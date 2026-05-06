@@ -1,0 +1,261 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AppRole {
+  CUSTOMER
+  CASHIER
+  BRANCH_ADMIN
+  SUPER_ADMIN
+}
+
+enum LoyaltyCardStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum VisitStatus {
+  PENDING
+  AUTO_APPROVED
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  NOT_REQUIRED
+  REQUIRED
+  APPROVED
+  REJECTED
+  OVERRIDDEN
+}
+
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum StaffAssignmentStatus {
+  ACTIVE
+  INACTIVE
+  REVOKED
+}
+
+enum LedgerType {
+  EARN
+  REDEEM
+  ADJUST
+}
+
+enum RedemptionStatus {
+  LOCKED
+  AVAILABLE
+  REDEEMED
+  EXPIRED
+  DISABLED
+}
+
+enum VisitReasonCode {
+  DUPLICATE_SAME_DAY
+  ALREADY_USED_OTHER_BRANCH
+  INVALID_QR
+  QR_NOT_FOUND
+  CARD_BLOCKED
+  CARD_INACTIVE
+  CUSTOMER_INACTIVE
+  BRANCH_INACTIVE
+  UNAUTHORIZED_CASHIER
+  SUSPICIOUS_ACTIVITY
+  MANUAL_REVIEW_REQUIRED
+  RECEIPT_CONFLICT
+  SYSTEM_ERROR
+}
+
+model UserProfile {
+  id               String             @id @default(cuid())
+  authUserId       String             @unique
+  fullName         String
+  username         String             @unique
+  mobile           String             @unique
+  email            String             @unique
+  status           UserStatus         @default(ACTIVE)
+  roles            AppRole[]          @default([CUSTOMER])
+  loyaltyCard      LoyaltyCard?
+  staffAssignments StaffAssignment[]
+  visits           Visit[]            @relation("CustomerVisits")
+  cashierVisits    Visit[]            @relation("CashierVisits")
+  ledgerEntries    PointLedger[]
+  redemptions      RewardRedemption[]
+  auditEvents      AuditEvent[]       @relation("ActorAuditEvents")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model LoyaltyCard {
+  id            String             @id @default(cuid())
+  profileId     String             @unique
+  profile       UserProfile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  cardNumber    String             @unique
+  qrToken       String             @unique
+  status        LoyaltyCardStatus  @default(ACTIVE)
+  tier          String             @default("Starter")
+  visitsEarned  Int                @default(0)
+  pointsBalance Int                @default(0)
+  totalEarned   Int                @default(0)
+  totalRedeemed Int                @default(0)
+  lastVisitAt   DateTime?
+  visits        Visit[]
+  ledgerEntries PointLedger[]
+  redemptions   RewardRedemption[]
+  scanAttempts  ScanAttempt[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model Branch {
+  id               String             @id @default(cuid())
+  code             String             @unique
+  name             String
+  status           BranchStatus       @default(ACTIVE)
+  staffAssignments StaffAssignment[]
+  visits           Visit[]
+  scanAttempts     ScanAttempt[]
+  redemptions      RewardRedemption[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model StaffAssignment {
+  id        String                @id @default(cuid())
+  profileId String
+  profile   UserProfile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  role      AppRole
+  status    StaffAssignmentStatus @default(ACTIVE)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@unique([profileId, branchId, role])
+}
+
+model Visit {
+  id             String           @id @default(cuid())
+  loyaltyCardId  String
+  loyaltyCard    LoyaltyCard      @relation(fields: [loyaltyCardId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       UserProfile      @relation("CustomerVisits", fields: [customerId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch           @relation(fields: [branchId], references: [id])
+  cashierId      String
+  cashier        UserProfile      @relation("CashierVisits", fields: [cashierId], references: [id])
+  status         VisitStatus      @default(PENDING)
+  approvalStatus ApprovalStatus   @default(REQUIRED)
+  reasonCode     VisitReasonCode?
+  reason         String?
+  pointsAwarded  Int              @default(0)
+  scannedAt      DateTime         @default(now())
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  reviewedById   String?
+  ledgerEntries  PointLedger[]
+  auditEvents    AuditEvent[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model PointLedger {
+  id            String            @id @default(cuid())
+  loyaltyCardId String
+  loyaltyCard   LoyaltyCard       @relation(fields: [loyaltyCardId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       UserProfile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  visitId       String?
+  visit         Visit?            @relation(fields: [visitId], references: [id])
+  redemptionId  String?
+  redemption    RewardRedemption? @relation(fields: [redemptionId], references: [id])
+  type          LedgerType
+  points        Int
+  description   String
+  createdAt     DateTime          @default(now())
+
+  @@unique([visitId, type])
+  @@unique([redemptionId, type])
+}
+
+model RewardMilestone {
+  id             String             @id @default(cuid())
+  name           String             @unique
+  description    String
+  pointsRequired Int
+  pointsCost     Int                @default(0)
+  status         RedemptionStatus   @default(AVAILABLE)
+  redemptions    RewardRedemption[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model RewardRedemption {
+  id            String           @id @default(cuid())
+  milestoneId   String
+  milestone     RewardMilestone  @relation(fields: [milestoneId], references: [id])
+  profileId     String
+  profile       UserProfile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  loyaltyCardId String
+  loyaltyCard   LoyaltyCard      @relation(fields: [loyaltyCardId], references: [id], onDelete: Cascade)
+  branchId      String?
+  branch        Branch?          @relation(fields: [branchId], references: [id])
+  cashierId     String?
+  status        RedemptionStatus @default(REDEEMED)
+  ledgerEntries PointLedger[]
+  createdAt     DateTime         @default(now())
+}
+
+model ScanAttempt {
+  id             String           @id @default(cuid())
+  qrTokenHash    String?
+  loyaltyCardId  String?
+  loyaltyCard    LoyaltyCard?     @relation(fields: [loyaltyCardId], references: [id])
+  branchId       String?
+  branch         Branch?          @relation(fields: [branchId], references: [id])
+  cashierId      String?
+  status         VisitStatus?
+  reasonCode     VisitReasonCode?
+  message        String
+  nextEligibleAt DateTime?
+  createdAt      DateTime         @default(now())
+}
+
+model AuditEvent {
+  id        String       @id @default(cuid())
+  actorId   String?
+  actor     UserProfile? @relation("ActorAuditEvents", fields: [actorId], references: [id])
+  visitId   String?
+  visit     Visit?       @relation(fields: [visitId], references: [id])
+  action    String
+  metadata  Json?
+  createdAt DateTime     @default(now())
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
