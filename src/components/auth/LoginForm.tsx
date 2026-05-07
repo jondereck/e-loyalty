@@ -3,6 +3,7 @@
 import { useActionState, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { Eye, EyeOff, KeyRound, Loader2, Lock, LogIn, Mail, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { GoogleMark } from "@/components/auth/GoogleMark";
 import { authClient } from "@/lib/auth/client";
 import { loginAction } from "@/lib/services/auth";
 import type { AuthActionState } from "@/lib/validations/auth";
@@ -223,12 +224,16 @@ export function LoginForm() {
       <div className="auth-divider"><span>OR</span></div>
       <div className="auth-provider-row">
         <Button type="button" variant="secondary" className="auth-provider-button" disabled={clientPending || pending} onClick={startGoogleSignIn}>
-          {clientPending ? <Loader2 className="spin" size={16} /> : <span className="google-mark">G</span>}
-          Continue with Google
+          <span className="provider-icon provider-icon--google" aria-hidden="true">
+            {clientPending ? <Loader2 className="spin" size={16} /> : <GoogleMark size={18} />}
+          </span>
+          <span className="provider-label">Continue with Google</span>
         </Button>
         <Button type="button" variant="secondary" className="auth-provider-button" disabled={clientPending || pending} onClick={() => setMode("email-code")}>
-          <KeyRound size={16} />
-          Sign in with email code
+          <span className="provider-icon provider-icon--key" aria-hidden="true">
+            <KeyRound size={16} />
+          </span>
+          <span className="provider-label">Sign in with email code</span>
         </Button>
       </div>
       <div className="auth-secure-note">

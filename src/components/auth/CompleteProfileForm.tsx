@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { AtSign, Loader2, Mail, User, UserCheck } from "lucide-react";
+import { Loader2, Mail, User, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { completeProfileAction } from "@/lib/services/auth";
 import type { AuthActionState } from "@/lib/validations/auth";
@@ -28,23 +28,7 @@ export function CompleteProfileForm({ email, name }: { email?: string; name?: st
         </div>
       </div>
       <FieldError errors={state.errors?.fullName} />
-      <div className="auth-field">
-        <label htmlFor="username">Username</label>
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><AtSign size={18} /></span>
-          <input id="username" name="username" placeholder="e.g. juan_dela_cruz" autoComplete="username" />
-        </div>
-      </div>
-      <FieldError errors={state.errors?.username} />
-      <p className="field-hint">3-20 characters, lowercase letters/numbers/underscore.</p>
-      <div className="auth-field">
-        <label htmlFor="mobile">Mobile</label>
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><UserCheck size={18} /></span>
-          <input id="mobile" name="mobile" autoComplete="tel" />
-        </div>
-      </div>
-      <FieldError errors={state.errors?.mobile} />
+      <p className="field-hint">You can add username, mobile number, and password changes later in Manage account.</p>
       {state.message ? <p className="error-text">{state.message}</p> : null}
       <Button variant="primary" type="submit" disabled={pending} className="auth-submit">
         {pending ? <Loader2 className="spin" size={18} /> : <UserCheck size={18} />}

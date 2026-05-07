@@ -21,6 +21,8 @@
   --radius-md: 16px;
   --radius-sm: 12px;
   --max: 1180px;
+  --font-geist-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 @theme inline {
@@ -3115,17 +3117,30 @@ h3 {
 }
 
 .auth-panel {
-  width: min(450px, 100%);
+  width: min(560px, 100%);
   border: 1px solid rgba(14, 36, 70, 0.08);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 24px 80px rgba(28, 56, 98, 0.12);
-  padding: 38px 36px 28px;
+  padding: 38px 40px 28px;
   backdrop-filter: saturate(180%) blur(24px);
 }
 
+.auth-spinner-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.auth-spinner {
+  color: #2164f3;
+}
+
 .signup-panel {
-  width: min(520px, 100%);
+  width: min(560px, 100%);
 }
 
 .compact-auth-panel {
@@ -3297,15 +3312,57 @@ h3 {
   background: #fff;
   color: #23345f;
   border: 1px solid #dce4ef;
+  justify-content: flex-start;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .auth-provider-button.wide {
   grid-template-columns: 1fr;
 }
 
-.google-mark {
-  color: #1a73e8;
-  font-weight: 900;
+.provider-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(20, 92, 255, 0.06);
+  border: 1px solid rgba(20, 92, 255, 0.15);
+  flex: 0 0 auto;
+}
+
+.provider-icon--google {
+  background: transparent;
+  border-color: transparent;
+}
+
+.provider-icon--key {
+  color: #145cff;
+}
+
+.provider-label {
+  flex: 1;
+  min-width: max-content;
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.lp-account-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.lp-account-section {
+  padding: 16px;
+}
+
+.lp-account-actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .auth-secure-note,

@@ -4,6 +4,21 @@ const password = z
   .string()
   .min(8, "Password must be at least 8 characters.");
 
+const optionalUsername = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .transform((value) => value || undefined)
+  .refine((value) => !value || value.length >= 3, "Username must be at least 3 characters.")
+  .refine((value) => !value || value.length <= 20, "Username must be 20 characters or fewer.")
+  .refine((value) => !value || /^[a-z0-9_]+$/.test(value), "Use lowercase letters, numbers, and underscores only.");
+
+const optionalMobile = z
+  .string()
+  .trim()
+  .transform((value) => value || undefined)
+  .refine((value) => !value || value.length >= 7, "Mobile must be at least 7 characters.");
+
 export const signupSchema = z
   .object({
     fullName: z.string().min(2, "Full name is required.").trim(),
@@ -24,13 +39,12 @@ export const loginSchema = z.object({
 
 export const completeProfileSchema = z.object({
   fullName: z.string().min(2, "Full name is required.").trim(),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters.")
-    .max(20, "Username must be 20 characters or fewer.")
-    .regex(/^[a-z0-9_]+$/, "Use lowercase letters, numbers, and underscores only.")
-    .trim(),
-  mobile: z.string().min(7, "Mobile is required.").trim(),
+});
+
+export const profileSettingsSchema = z.object({
+  fullName: z.string().min(2, "Full name is required.").trim(),
+  username: optionalUsername,
+  mobile: optionalMobile,
 });
 
 export type AuthActionState = {

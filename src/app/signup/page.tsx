@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2 } from "lucide-react";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
 
@@ -18,10 +17,6 @@ export default async function SignupPage() {
         <p className="auth-subtitle">Create your loyalty workspace</p>
         <SignupForm />
         <div className="auth-footer-block">
-          <div className="auth-product-line">
-            <Building2 size={18} />
-            <span>Loyalty Management System</span>
-          </div>
           <p className="muted">
             Already have an account? <Link href="/login">Sign in</Link>
           </p>

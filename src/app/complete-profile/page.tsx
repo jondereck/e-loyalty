@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2 } from "lucide-react";
 import { CompleteProfileForm } from "@/components/auth/CompleteProfileForm";
 import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
 
@@ -19,14 +18,8 @@ export default async function CompleteProfilePage() {
           <span>Loyalty Pass</span>
         </Link>
         <h1>Complete profile</h1>
-        <p className="auth-subtitle">Add your loyalty account details</p>
+        <p className="auth-subtitle">Finish your account now and add extra details later in Manage account.</p>
         <CompleteProfileForm email={user.email} name={user.name} />
-        <div className="auth-footer-block">
-          <div className="auth-product-line">
-            <Building2 size={18} />
-            <span>Loyalty Management System</span>
-          </div>
-        </div>
       </section>
     </main>
   );

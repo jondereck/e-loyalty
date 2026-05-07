@@ -1,4 +1,5 @@
 import { LogOut, ShieldCheck, UserCircle } from "lucide-react";
+import { AccountSettingsForm } from "@/components/customer/AccountSettingsForm";
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { Button } from "@/components/ui/Button";
 import { logoutAction } from "@/lib/services/auth";
@@ -8,8 +9,6 @@ export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const profile = await requireProfile(["CUSTOMER"]);
-  const username = profile.username ?? "Not added yet";
-  const mobile = profile.mobile ?? "Not added yet";
 
   return (
     <CustomerShell active="profile" eyebrow="Profile" title="Account details">
@@ -25,11 +24,18 @@ export default async function ProfilePage() {
       </div>
 
       <div className="lp-mini-card">
-        <div className="lp-detail-row"><span>Username</span><b>{username}</b></div>
+        <div className="lp-detail-row"><span>Username</span><b>{profile.username ?? "Not added yet"}</b></div>
         <div className="lp-detail-row"><span>Email</span><b>{profile.email}</b></div>
-        <div className="lp-detail-row"><span>Mobile</span><b>{mobile}</b></div>
+        <div className="lp-detail-row"><span>Mobile</span><b>{profile.mobile ?? "Not added yet"}</b></div>
         <div className="lp-detail-row"><span>Status</span><b>{profile.status}</b></div>
       </div>
+
+      <AccountSettingsForm
+        email={profile.email}
+        fullName={profile.fullName}
+        username={profile.username}
+        mobile={profile.mobile}
+      />
 
       <div className="lp-glass-row">
         <span className="lp-soft-icon"><ShieldCheck size={22} /></span>

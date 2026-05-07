@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { signupSchema } from "@/lib/validations/auth";
+import { completeProfileSchema, profileSettingsSchema, signupSchema } from "@/lib/validations/auth";
 
 describe("signup validation", () => {
   const validSignup = {
@@ -36,6 +36,28 @@ describe("signup validation", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.flatten().fieldErrors.confirmPassword).toContain("Passwords do not match.");
+    }
+  });
+});
+
+describe("profile validation", () => {
+  it("allows complete profile with full name only", () => {
+    const result = completeProfileSchema.safeParse({ fullName: "Juan Dela Cruz" });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("allows blank optional username and mobile in account settings", () => {
+    const result = profileSettingsSchema.safeParse({
+      fullName: "Juan Dela Cruz",
+      username: "",
+      mobile: "",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.username).toBeUndefined();
+      expect(result.data.mobile).toBeUndefined();
     }
   });
 });

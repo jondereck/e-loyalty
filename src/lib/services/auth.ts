@@ -1,14 +1,25 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, redirectForRoles } from "@/lib/services/session";
-import { completeProfileSchema, loginSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
+import { getAuthUser, redirectForRoles, requireProfile } from "@/lib/services/session";
+import { completeProfileSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
 function firstError(errors: Record<string, string[] | undefined>) {
   return Object.values(errors).flat().find(Boolean) ?? "Please check the form.";
+}
+
+function buildProfileConflictWhere(email: string, username?: string, mobile?: string) {
+  return {
+    OR: [
+      { email },
+      ...(username ? [{ username }] : []),
+      ...(mobile ? [{ mobile }] : []),
+    ],
+  };
 }
 
 export async function signupAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -205,19 +216,13 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
 
   const data = parsed.data;
   const existing = await prisma.userProfile.findFirst({
-    where: {
-      OR: [{ email }, { username: data.username }, { mobile: data.mobile }],
-    },
-    select: { email: true, username: true, mobile: true },
+    where: buildProfileConflictWhere(email),
+    select: { email: true },
   });
 
   if (existing) {
     return {
-      message: "Email, username, or mobile is already registered.",
-      errors: {
-        username: existing.username === data.username ? ["Username is already taken."] : undefined,
-        mobile: existing.mobile === data.mobile ? ["Mobile is already registered."] : undefined,
-      },
+      message: "Email is already registered.",
     };
   }
 
@@ -226,8 +231,6 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
       data: {
         authUserId,
         fullName: data.fullName,
-        username: data.username,
-        mobile: data.mobile,
         email,
         roles: ["CUSTOMER"],
       },
@@ -251,5 +254,65 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
   });
 
   redirect("/auth/finish");
+}
+
+export async function updateCustomerAccountAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const profile = await requireProfile(["CUSTOMER"]);
+  const parsed = profileSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    return { errors, message: firstError(errors) };
+  }
+
+  const data = parsed.data;
+  const username = data.username ?? null;
+  const mobile = data.mobile ?? null;
+  const profileConflicts = username || mobile
+    ? await prisma.userProfile.findFirst({
+      where: {
+        id: { not: profile.id },
+        OR: [
+          ...(username ? [{ username }] : []),
+          ...(mobile ? [{ mobile }] : []),
+        ],
+      },
+      select: { username: true, mobile: true },
+    })
+    : null;
+
+  if (profileConflicts) {
+    return {
+      message: "Username or mobile is already registered.",
+      errors: {
+        username: profileConflicts.username === username ? ["Username is already taken."] : undefined,
+        mobile: profileConflicts.mobile === mobile ? ["Mobile is already registered."] : undefined,
+      },
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userProfile.update({
+      where: { id: profile.id },
+      data: {
+        fullName: data.fullName,
+        username,
+        mobile,
+      },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: profile.id,
+        action: "ACCOUNT_PROFILE_UPDATED",
+        metadata: {
+          hasUsername: Boolean(username),
+          hasMobile: Boolean(mobile),
+        },
+      },
+    });
+  });
+
+  revalidatePath("/profile");
+  return { ok: true, message: "Account details updated." };
 }
 
