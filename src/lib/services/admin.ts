@@ -688,22 +688,26 @@ export type MemberManagementOptions = {
   branchId?: string;
   cardStatus?: "all" | "ACTIVE" | "BLOCKED";
   tier?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   pageSize?: number;
 };
 
-function memberIncludeFor(branchIds?: string[]): Prisma.UserProfileInclude {
+function memberIncludeFor(options: MemberManagementOptions = {}): Prisma.UserProfileInclude {
+  const visitWhere = memberVisitWhere(options);
+
   return {
     loyaltyCard: true,
     visits: {
-      where: Array.isArray(branchIds) ? { branchId: { in: branchIds } } : {},
+      where: visitWhere,
       orderBy: { scannedAt: "desc" },
       take: 1,
       include: { branch: true },
     },
     _count: {
       select: {
-        visits: Array.isArray(branchIds) ? { where: { branchId: { in: branchIds } } } : true,
+        visits: { where: visitWhere },
       },
     },
   };
@@ -712,6 +716,12 @@ function memberIncludeFor(branchIds?: string[]): Prisma.UserProfileInclude {
 export async function getMemberManagementData(options: MemberManagementOptions = {}) {
   const pageSize = normalizePageSize(options.pageSize, 8);
   const page = normalizePage(options.page);
+  const dates = defaultDateRange();
+  const normalizedOptions = {
+    ...options,
+    dateFrom: options.dateFrom ?? dates.dateFrom,
+    dateTo: options.dateTo ?? dates.dateTo,
+  };
   const scopedWhere = memberScopeWhere(options.branchIds);
   const where = memberManagementWhere(options);
 
@@ -736,7 +746,7 @@ export async function getMemberManagementData(options: MemberManagementOptions =
   const currentPage = Math.min(page, pageCount);
   const members = await prisma.userProfile.findMany({
     where,
-    include: memberIncludeFor(options.branchIds),
+    include: memberIncludeFor(normalizedOptions),
     orderBy: { createdAt: "desc" },
     skip: (currentPage - 1) * pageSize,
     take: pageSize,
@@ -752,6 +762,8 @@ export async function getMemberManagementData(options: MemberManagementOptions =
       branchId: options.branchId ?? "all",
       cardStatus: options.cardStatus ?? "all",
       tier: options.tier ?? "all",
+      dateFrom: normalizedOptions.dateFrom,
+      dateTo: normalizedOptions.dateTo,
     },
     metrics: {
       total: scopedMembers.length,
@@ -764,9 +776,16 @@ export async function getMemberManagementData(options: MemberManagementOptions =
 }
 
 export async function getMemberExportRows(options: MemberManagementOptions = {}) {
+  const dates = defaultDateRange();
+  const normalizedOptions = {
+    ...options,
+    dateFrom: options.dateFrom ?? dates.dateFrom,
+    dateTo: options.dateTo ?? dates.dateTo,
+  };
+
   return prisma.userProfile.findMany({
     where: memberManagementWhere(options),
-    include: memberIncludeFor(options.branchIds),
+    include: memberIncludeFor(normalizedOptions),
     orderBy: { createdAt: "desc" },
   });
 }
@@ -1035,6 +1054,16 @@ function memberBranchScope(branchIds?: string[], selectedBranchId?: string) {
     return [selectedBranchId];
   }
   return Array.isArray(branchIds) ? branchIds : undefined;
+}
+
+function memberVisitWhere(options: MemberManagementOptions): Prisma.VisitWhereInput {
+  const scopedBranchIds = memberBranchScope(options.branchIds, options.branchId);
+  const range = dateRangeFor(options.dateFrom, options.dateTo);
+
+  return {
+    ...(scopedBranchIds ? { branchId: { in: scopedBranchIds } } : {}),
+    scannedAt: { gte: range.start, lt: range.end },
+  };
 }
 
 function defaultDateRange() {

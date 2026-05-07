@@ -3,12 +3,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 const sidebarLinks = [
   { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
   { href: "/admin/members", label: "Members", icon: Users },
+  { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
   { href: "/admin/staff", label: "Staff", icon: Users },
   { href: "/admin/branches", label: "Branches", icon: Building2 },
-  { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield },
   { href: "/super-admin/settings", label: "Settings", icon: Settings },
+  { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield },
 ];
 
 export function AdminSkeletonShell({

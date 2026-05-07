@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, ChevronDown, ClipboardCheck, Gift, LayoutDashboard, LogOut, MapPin, Settings, Shield, Sparkles, UserCircle, Users } from "lucide-react";
+import { ChevronDown, ClipboardCheck, LayoutDashboard, LogOut, MapPin, Settings, Shield, Sparkles, UserCircle, Users } from "lucide-react";
 import { logoutAction } from "@/lib/services/auth";
 import type { CurrentProfile } from "@/lib/services/session";
 
@@ -7,10 +7,8 @@ const links = [
   { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
-  { href: "/rewards", label: "Rewards", icon: Gift },
   { href: "/admin/staff", label: "Staff", icon: UserCircle },
   { href: "/admin/branches", label: "Branches", icon: MapPin },
-  { href: "/super-admin/dashboard", label: "Reports", icon: BarChart3 },
   { href: "/super-admin/settings", label: "Settings", icon: Settings },
   { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield },
 ];

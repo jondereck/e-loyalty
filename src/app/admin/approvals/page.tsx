@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Download, Eye, Filter, Search } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Download, Eye, Filter, Search } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -81,7 +81,7 @@ export default async function AdminApprovalsPage({
       </div>
 
       <section className="lp-panel lp-admin-data-panel">
-        <h3>{status === "pending" ? "Pending Scans" : "Approval Scans"}</h3>
+        <h3>{tableTitle(status)}</h3>
         <div className="lp-table-wrap">
           <table>
             <thead>
@@ -153,14 +153,25 @@ function Tab({ href, active, label, count, tone = "purple" }: { href: string; ac
 function Pagination({ baseFilters, pageSize, page, pageCount }: { baseFilters: { status: ApprovalStatusParam; query: string; dateFrom: string; dateTo: string }; pageSize: number; page: number; pageCount: number }) {
   return (
     <div className="lp-pagination">
-      <Link className={page <= 1 ? "disabled" : ""} href={pageHref(baseFilters, pageSize, page - 1)}>‹</Link>
+      <Link className={page <= 1 ? "disabled" : ""} href={pageHref(baseFilters, pageSize, page - 1)} aria-label="Previous page">
+        <ChevronLeft size={16} />
+      </Link>
       {Array.from({ length: Math.min(pageCount, 5) }).map((_, index) => {
         const itemPage = index + 1;
         return <Link key={itemPage} className={itemPage === page ? "active" : ""} href={pageHref(baseFilters, pageSize, itemPage)}>{itemPage}</Link>;
       })}
-      <Link className={page >= pageCount ? "disabled" : ""} href={pageHref(baseFilters, pageSize, page + 1)}>›</Link>
+      <Link className={page >= pageCount ? "disabled" : ""} href={pageHref(baseFilters, pageSize, page + 1)} aria-label="Next page">
+        <ChevronRight size={16} />
+      </Link>
     </div>
   );
+}
+
+function tableTitle(status: ApprovalStatusParam) {
+  if (status === "pending") return "Pending Scans";
+  if (status === "approved") return "Approved Scans";
+  if (status === "rejected") return "Rejected Scans";
+  return "All Scans";
 }
 
 function filterParams(filters: { status: ApprovalStatusParam; query: string; dateFrom: string; dateTo: string }, pageSize: number) {
@@ -206,5 +217,5 @@ function shortCode(value: string) {
 
 function conflictLabel(reasonCode?: string | null, reason?: string | null) {
   if (reasonCode) return reasonCode.replaceAll("_", " ").toLowerCase();
-  return reason || "—";
+  return reason || "-";
 }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, Calendar, Check, Clock, CreditCard, FileText, MapPin, PackageCheck, ShieldCheck, User, X } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminNoteTextarea } from "@/components/admin/AdminNoteTextarea";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { POINTS_PER_VISIT } from "@/lib/constants";
@@ -36,15 +37,8 @@ export default async function AdminApprovalDetailPage({
           </div>
           {pending ? (
             <div className="lp-title-actions">
-              <form id="approve-visit-form" action={approveVisitAction}>
-                <input type="hidden" name="visitId" value={visit.id} />
-              </form>
-              <form id="reject-visit-form" action={rejectVisitAction}>
-                <input type="hidden" name="visitId" value={visit.id} />
-                <input type="hidden" name="reason" value="Rejected by admin review" />
-              </form>
-              <Button form="approve-visit-form" variant="success" type="submit"><Check size={20} /> Approve</Button>
-              <Button form="reject-visit-form" variant="danger" type="submit"><X size={20} /> Reject</Button>
+              <Button form="approval-decision-form" variant="success" type="submit"><Check size={20} /> Approve</Button>
+              <Button form="approval-decision-form" formAction={rejectVisitAction} variant="danger" type="submit"><X size={20} /> Reject</Button>
             </div>
           ) : null}
         </div>
@@ -87,18 +81,19 @@ export default async function AdminApprovalDetailPage({
 
       <section className="lp-panel lp-notes-panel">
         <h3><span className="lp-panel-icon"><FileText size={18} /></span> Notes</h3>
-        <p>Add notes about this approval.</p>
+        <p>Add notes about this approval (optional).</p>
         {pending ? (
-          <div className="lp-note-grid">
-            <label>
-              Approval note
-              <textarea name="adminNote" form="approve-visit-form" placeholder="Type your approval notes here..." maxLength={500} defaultValue={visit.adminNote ?? ""} />
-            </label>
-            <label>
-              Reject reason and note
-              <textarea name="reason" form="reject-visit-form" placeholder="Reason for rejection..." maxLength={500} defaultValue={visit.reason ?? ""} />
-            </label>
-          </div>
+          <form id="approval-decision-form" action={approveVisitAction} className="lp-note-form">
+            <input type="hidden" name="visitId" value={visit.id} />
+            <input type="hidden" name="reason" value="Rejected by admin review" />
+            <AdminNoteTextarea
+              label="Approval notes"
+              name="adminNote"
+              placeholder="Type your notes here..."
+              maxLength={500}
+              defaultValue={visit.adminNote ?? ""}
+            />
+          </form>
         ) : (
           <div className="lp-readonly-note">{visit.adminNote || visit.reason || "No notes recorded."}</div>
         )}

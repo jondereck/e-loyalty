@@ -20,6 +20,8 @@ export async function GET(request: Request) {
     branchId: url.searchParams.get("branchId") ?? undefined,
     cardStatus: readCardStatus(url.searchParams.get("cardStatus")),
     tier: url.searchParams.get("tier") ?? undefined,
+    dateFrom: url.searchParams.get("from") ?? undefined,
+    dateTo: url.searchParams.get("to") ?? undefined,
   });
   const csv = [
     ["Name", "Email", "Mobile", "Card Number", "Tier", "Points", "Visits", "Last Visit", "Profile Status", "Card Status"].join(","),

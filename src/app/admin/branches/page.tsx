@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Building2, Download, MapPin, Plus, Search, Store } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, MapPin, Plus, Search, Store } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { BranchTable } from "@/components/admin/BranchTable";
 import { Button } from "@/components/ui/Button";
@@ -75,7 +75,6 @@ export default async function AdminBranchesPage({
       <div className="lp-branch-metrics">
         <BranchMetric label="Total Branches" value={data.metrics.totalBranches} sub="All visible branches" icon={<MapPin size={25} />} />
         <BranchMetric label="Active Branches" value={data.metrics.activeBranches} sub={`${data.metrics.activePercent}% of total branches`} icon={<Store size={25} />} tone="green" />
-        <BranchMetric label="Staff Assigned" value={data.metrics.staffAssigned} sub="Across visible branches" icon={<Building2 size={25} />} tone="orange" />
       </div>
 
       <form action="/admin/branches" className="lp-branch-toolbar">
@@ -95,7 +94,9 @@ export default async function AdminBranchesPage({
       <div className="lp-branch-table-footer">
         <span>Showing {data.pagination.from} to {data.pagination.to} of {data.pagination.total} branches</span>
         <div className="lp-pagination">
-          <Link aria-disabled={data.pagination.page <= 1} className={data.pagination.page <= 1 ? "disabled" : ""} href={pageHref(query, data.pagination.pageSize, data.pagination.page - 1)}>‹</Link>
+          <Link aria-disabled={data.pagination.page <= 1} className={data.pagination.page <= 1 ? "disabled" : ""} href={pageHref(query, data.pagination.pageSize, data.pagination.page - 1)} aria-label="Previous page">
+            <ChevronLeft size={16} />
+          </Link>
           {Array.from({ length: data.pagination.pageCount }).slice(0, 5).map((_, index) => {
             const itemPage = index + 1;
             return (
@@ -104,7 +105,9 @@ export default async function AdminBranchesPage({
               </Link>
             );
           })}
-          <Link aria-disabled={data.pagination.page >= data.pagination.pageCount} className={data.pagination.page >= data.pagination.pageCount ? "disabled" : ""} href={pageHref(query, data.pagination.pageSize, data.pagination.page + 1)}>›</Link>
+          <Link aria-disabled={data.pagination.page >= data.pagination.pageCount} className={data.pagination.page >= data.pagination.pageCount ? "disabled" : ""} href={pageHref(query, data.pagination.pageSize, data.pagination.page + 1)} aria-label="Next page">
+            <ChevronRight size={16} />
+          </Link>
         </div>
       </div>
     </AdminShell>

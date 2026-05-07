@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CreditCard, Download, Eye, Filter, MoreVertical, Search, Star, UserCheck, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, CreditCard, Download, Eye, Filter, MoreVertical, Search, Star, UserCheck, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { PageSizeSelect } from "@/components/admin/PageSizeSelect";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getMemberManagementData } from "@/lib/services/admin";
@@ -22,6 +23,8 @@ export default async function AdminMembersPage({
     branchId?: string | string[];
     cardStatus?: string | string[];
     tier?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
     page?: string | string[];
     pageSize?: string | string[];
   }>;
@@ -33,6 +36,8 @@ export default async function AdminMembersPage({
   const branchId = readParam(params.branchId) ?? "all";
   const cardStatus = readCardStatus(readParam(params.cardStatus));
   const tier = readParam(params.tier) ?? "all";
+  const dateFrom = readParam(params.from);
+  const dateTo = readParam(params.to);
   const page = Number(readParam(params.page) ?? "1");
   const pageSize = Number(readParam(params.pageSize) ?? "8");
   const data = await getMemberManagementData({
@@ -42,6 +47,8 @@ export default async function AdminMembersPage({
     branchId,
     cardStatus,
     tier,
+    dateFrom,
+    dateTo,
     page,
     pageSize,
   });
@@ -55,6 +62,17 @@ export default async function AdminMembersPage({
           <p>Manage customer loyalty accounts, cards, points, and visit activity.</p>
         </div>
         <div className="lp-title-actions">
+          <form action="/admin/members" className="lp-date-range-form">
+            <input type="hidden" name="q" value={query} />
+            <input type="hidden" name="status" value={status} />
+            <input type="hidden" name="branchId" value={branchId} />
+            <input type="hidden" name="cardStatus" value={cardStatus} />
+            <input type="hidden" name="tier" value={tier} />
+            <input type="hidden" name="pageSize" value={String(data.pagination.pageSize)} />
+            <input type="date" name="from" defaultValue={data.filters.dateFrom} aria-label="Date from" />
+            <input type="date" name="to" defaultValue={data.filters.dateTo} aria-label="Date to" />
+            <Button type="submit" variant="secondary">Apply</Button>
+          </form>
           <Link className="btn primary" href={exportHref}><Download size={16} /> Export</Link>
         </div>
       </div>
@@ -67,6 +85,9 @@ export default async function AdminMembersPage({
       </div>
 
       <form action="/admin/members" className="lp-member-toolbar">
+        <input type="hidden" name="from" value={data.filters.dateFrom} />
+        <input type="hidden" name="to" value={data.filters.dateTo} />
+        <input type="hidden" name="pageSize" value={String(data.pagination.pageSize)} />
         <label className="lp-search-field">
           <Search size={17} />
           <input name="q" defaultValue={query} placeholder="Search members by name, email, or phone..." />
@@ -139,7 +160,15 @@ export default async function AdminMembersPage({
         </div>
         <div className="lp-branch-table-footer">
           <span>Showing {data.pagination.from} to {data.pagination.to} of {data.pagination.total} members</span>
-          <Pagination filters={data.filters} pageSize={data.pagination.pageSize} page={data.pagination.page} pageCount={data.pagination.pageCount} />
+          <div className="lp-footer-actions">
+            <Pagination filters={data.filters} pageSize={data.pagination.pageSize} page={data.pagination.page} pageCount={data.pagination.pageCount} />
+            <PageSizeSelect
+              action="/admin/members"
+              value={data.pagination.pageSize}
+              options={[8, 10, 20, 50]}
+              hidden={pageSizeHiddenInputs(data.filters)}
+            />
+          </div>
         </div>
       </section>
     </AdminShell>
@@ -159,34 +188,62 @@ function MemberMetric({ label, value, sub, icon, tone = "purple" }: { label: str
   );
 }
 
-function Pagination({ filters, pageSize, page, pageCount }: { filters: { query: string; status: MemberStatusParam; branchId: string; cardStatus: CardStatusParam; tier: string }; pageSize: number; page: number; pageCount: number }) {
+function Pagination({ filters, pageSize, page, pageCount }: { filters: MemberFilters; pageSize: number; page: number; pageCount: number }) {
   return (
     <div className="lp-pagination">
-      <Link className={page <= 1 ? "disabled" : ""} href={pageHref(filters, pageSize, page - 1)}>‹</Link>
+      <Link className={page <= 1 ? "disabled" : ""} href={pageHref(filters, pageSize, page - 1)} aria-label="Previous page">
+        <ChevronLeft size={16} />
+      </Link>
       {Array.from({ length: Math.min(pageCount, 5) }).map((_, index) => {
         const itemPage = index + 1;
         return <Link key={itemPage} className={itemPage === page ? "active" : ""} href={pageHref(filters, pageSize, itemPage)}>{itemPage}</Link>;
       })}
-      <Link className={page >= pageCount ? "disabled" : ""} href={pageHref(filters, pageSize, page + 1)}>›</Link>
+      <Link className={page >= pageCount ? "disabled" : ""} href={pageHref(filters, pageSize, page + 1)} aria-label="Next page">
+        <ChevronRight size={16} />
+      </Link>
     </div>
   );
 }
 
-function memberParams(filters: { query: string; status: MemberStatusParam; branchId: string; cardStatus: CardStatusParam; tier: string }, pageSize: number) {
+type MemberFilters = {
+  query: string;
+  status: MemberStatusParam;
+  branchId: string;
+  cardStatus: CardStatusParam;
+  tier: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+function memberParams(filters: MemberFilters, pageSize: number) {
   const params = new URLSearchParams();
   if (filters.query) params.set("q", filters.query);
   params.set("status", filters.status);
   params.set("branchId", filters.branchId);
   params.set("cardStatus", filters.cardStatus);
   params.set("tier", filters.tier);
+  params.set("from", filters.dateFrom);
+  params.set("to", filters.dateTo);
   params.set("pageSize", String(pageSize));
   return params;
 }
 
-function pageHref(filters: { query: string; status: MemberStatusParam; branchId: string; cardStatus: CardStatusParam; tier: string }, pageSize: number, page: number) {
+function pageHref(filters: MemberFilters, pageSize: number, page: number) {
   const params = memberParams(filters, pageSize);
   params.set("page", String(Math.max(1, page)));
   return `/admin/members?${params.toString()}`;
+}
+
+function pageSizeHiddenInputs(filters: MemberFilters) {
+  return [
+    { name: "q", value: filters.query },
+    { name: "status", value: filters.status },
+    { name: "branchId", value: filters.branchId },
+    { name: "cardStatus", value: filters.cardStatus },
+    { name: "tier", value: filters.tier },
+    { name: "from", value: filters.dateFrom },
+    { name: "to", value: filters.dateTo },
+  ];
 }
 
 function readParam(value?: string | string[]) {
