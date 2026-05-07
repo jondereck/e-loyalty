@@ -7,7 +7,7 @@ export function StatusBadge({ status }: { status?: string | null }) {
       ? "green"
       : normalized.includes("PENDING") || normalized === "MAINTENANCE" || normalized === "LOCKED"
         ? "orange"
-        : normalized.includes("REJECTED") || normalized.includes("BLOCKED") || normalized === "INACTIVE"
+        : normalized.includes("REJECTED") || normalized.includes("BLOCKED") || normalized === "INACTIVE" || normalized === "SUSPENDED" || normalized === "REVOKED"
           ? "red"
           : "purple";
 

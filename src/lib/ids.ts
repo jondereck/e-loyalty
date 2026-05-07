@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 
 export function generateQrToken() {
   return randomBytes(32).toString("base64url");
@@ -12,6 +12,7 @@ export function generateCardNumber() {
 
 export function safeTokenPreview(token?: string | null) {
   if (!token) return null;
-  return randomBytes(8).toString("hex") + ":" + token.slice(-8);
+  const digest = createHash("sha256").update(token).digest("hex");
+  return `${digest.slice(0, 16)}:${token.slice(-8)}`;
 }
 

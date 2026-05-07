@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { AppNav } from "@/components/AppNav";
+import { X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScanResultCard } from "@/components/cashier/ScanResultCard";
-import { requireProfile } from "@/lib/services/session";
+import { activeAssignmentsForRole, requireProfile } from "@/lib/services/session";
 import { getScanResult } from "@/lib/services/visits";
 
 export const dynamic = "force-dynamic";
@@ -12,25 +12,30 @@ export default async function CashierScanResultPage({
 }: {
   params: Promise<{ visitId: string }>;
 }) {
-  await requireProfile(["CASHIER", "BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireProfile(["CASHIER", "BRANCH_ADMIN", "SUPER_ADMIN"]);
   const { visitId } = await params;
   const result = await getScanResult(visitId);
   if (!result) notFound();
+  const resultBranchId = result.kind === "visit" ? result.visit.branchId : result.attempt.branchId;
+  const canAccess = profile.roles.includes("SUPER_ADMIN") ||
+    Boolean(resultBranchId && activeAssignmentsForRole(profile, ["CASHIER", "BRANCH_ADMIN"]).some((item) => item.branchId === resultBranchId));
+  if (!canAccess) notFound();
 
   const card =
     result.kind === "visit" ? (
       <ScanResultCard
         status={result.visit.status}
-        title={result.visit.status.includes("APPROVED") ? "Visit approved" : "Pending review"}
+        title={result.visit.status.includes("APPROVED") ? "Eligible for Visit" : "Pending Review"}
         message={result.visit.reason ?? `${result.visit.pointsAwarded} points will be applied.`}
         customer={result.visit.customer.fullName}
         branch={result.visit.branch.name}
         scannedAt={result.visit.scannedAt}
+        pointsAwarded={result.visit.pointsAwarded}
       />
     ) : (
       <ScanResultCard
         status="BLOCKED"
-        title="Scan blocked"
+        title="Scan Blocked"
         message={result.attempt.message}
         customer={result.attempt.loyaltyCard?.profile.fullName}
         branch={result.attempt.branch?.name}
@@ -40,23 +45,23 @@ export default async function CashierScanResultPage({
     );
 
   return (
-    <>
-      <AppNav active="cashier" />
-      <main className="container section">
-        <div className="grid two" style={{ alignItems: "start" }}>
-          {card}
-          <section>
-            <div className="eyebrow">Scan result</div>
-            <h2>Cashier outcome</h2>
-            <p className="lead">Green proceeds, yellow waits for admin review, and red is blocked with the reason shown.</p>
-            <div className="actions">
-              <ButtonLink href="/cashier/scan" variant="primary">Scan another</ButtonLink>
-              <ButtonLink href="/admin/approvals" variant="secondary">Open approvals</ButtonLink>
-            </div>
-          </section>
+    <main className="lp-mobile-shell lp-cashier-shell">
+      <div className="lp-mobile-content">
+        <div className="lp-mobile-topbar">
+          <h2>Scan Result</h2>
+          <ButtonLink href="/cashier/scan" variant="secondary" className="lp-icon-link" aria-label="Close scan result">
+            <X size={17} />
+          </ButtonLink>
         </div>
-      </main>
-    </>
+        {card}
+        <div className="lp-scan-actions">
+          <ButtonLink href="/cashier/scan" variant="primary">Scan another</ButtonLink>
+          {profile.roles.some((role) => ["BRANCH_ADMIN", "SUPER_ADMIN"].includes(role)) ? (
+            <ButtonLink href="/admin/approvals" variant="secondary">Open approvals</ButtonLink>
+          ) : null}
+        </div>
+      </div>
+    </main>
   );
 }
 

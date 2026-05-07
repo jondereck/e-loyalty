@@ -19,34 +19,39 @@ export default async function AdminBranchDetailPage({
 
   return (
     <AdminShell active="/admin/branches">
-      <div className="eyebrow">Branch Detail</div>
-      <h2>{branch.name}</h2>
-      <div className="grid three">
-        <div className="card metric"><span className="muted">Code</span><strong>{branch.code}</strong></div>
-        <div className="card metric"><span className="muted">Visits</span><strong>{branch._count.visits}</strong></div>
-        <div className="card metric"><span className="muted">Status</span><StatusBadge status={branch.status} /></div>
+      <div className="lp-page-title">
+        <h1>{branch.name}</h1>
+        <p>Branch detail and recent activity.</p>
       </div>
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="lp-metrics compact">
+        <div className="lp-metric"><div><small>Code</small><b>{branch.code}</b><span className="up">Branch code</span></div></div>
+        <div className="lp-metric"><div><small>Visits</small><b>{branch._count.visits}</b><span className="up">All time</span></div></div>
+        <div className="lp-metric"><div><small>Status</small><StatusBadge status={branch.status} /></div></div>
+      </div>
+      <div className="lp-panel">
         <h3>Assigned staff</h3>
-        <table className="table">
-          <thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>
-          <tbody>
-            {branch.staffAssignments.map((assignment) => (
-              <tr key={assignment.id}>
-                <td>{assignment.profile.fullName}</td>
-                <td>{assignment.role.replaceAll("_", " ")}</td>
-                <td><StatusBadge status={assignment.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="lp-table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>
+            <tbody>
+              {branch.staffAssignments.map((assignment) => (
+                <tr key={assignment.id}>
+                  <td>{assignment.profile.fullName}</td>
+                  <td>{assignment.role.replaceAll("_", " ")}</td>
+                  <td><StatusBadge status={assignment.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="lp-panel" style={{ marginTop: 18 }}>
         <h3>Recent activity</h3>
-        <div className="list">
+        <div className="lp-activity">
           {branch.visits.map((visit) => (
-            <div className="row" key={visit.id}>
+            <div className="lp-activity-item" key={visit.id}>
               <span>{formatDateTime(visit.scannedAt)}</span>
+              <div><b>{visit.id.slice(0, 8)}</b><br /><span>Visit</span></div>
               <StatusBadge status={visit.status} />
             </div>
           ))}

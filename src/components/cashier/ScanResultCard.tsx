@@ -1,6 +1,4 @@
-import { Check, Clock, X } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AlertTriangle, Building2, Check, Clock, X } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 export function ScanResultCard({
@@ -11,6 +9,7 @@ export function ScanResultCard({
   customer,
   scannedAt,
   nextEligibleAt,
+  pointsAwarded,
 }: {
   status: string;
   title: string;
@@ -19,26 +18,47 @@ export function ScanResultCard({
   customer?: string | null;
   scannedAt?: Date | null;
   nextEligibleAt?: Date | null;
+  pointsAwarded?: number | null;
 }) {
   const approved = status.includes("APPROVED");
   const pending = status.includes("PENDING");
   const Icon = approved ? Check : pending ? Clock : X;
 
   return (
-    <Card>
-      <div className={`circle ${pending ? "pending" : approved ? "" : "blocked"}`}>
-        <Icon size={44} />
+    <section className="lp-scan-result-card">
+      <div className={`lp-result-orb ${pending ? "pending" : approved ? "" : "blocked"}`}>
+        <Icon size={54} />
       </div>
-      <h2 style={{ textAlign: "center", fontSize: 30 }}>{title}</h2>
-      <p className="muted" style={{ textAlign: "center" }}>{message}</p>
-      <div className="list">
-        <div className="row"><span>Status</span><StatusBadge status={status} /></div>
-        <div className="row"><span>Customer</span><strong>{customer ?? "Unknown"}</strong></div>
-        <div className="row"><span>Branch</span><strong>{branch ?? "Unknown"}</strong></div>
-        <div className="row"><span>Scan time</span><strong>{formatDateTime(scannedAt)}</strong></div>
-        {nextEligibleAt ? <div className="row"><span>Next eligible</span><strong>{formatDateTime(nextEligibleAt)}</strong></div> : null}
+      <h1 className={approved ? "" : pending ? "pending" : "blocked"}>{title}</h1>
+      <p>
+        <b>{customer ?? "Unknown customer"}</b>
+        <br />
+        {message ?? (approved ? "Eligible loyalty visit." : "Scan needs review.")}
+      </p>
+
+      <div className="lp-scan-card">
+        <div className="lp-scan-branch">
+          <span className="lp-soft-icon"><Building2 size={23} /></span>
+          <div>
+            <b>{branch ?? "Unknown branch"}</b>
+            <small>{formatDateTime(scannedAt)}</small>
+          </div>
+        </div>
+        <p>{approved ? "Points to be earned" : pending ? "Pending reason" : "Blocked reason"}</p>
+        <span className={approved ? "lp-big-points" : "lp-big-points muted"}>
+          {approved ? `+${pointsAwarded ?? 0} pts` : status.replaceAll("_", " ")}
+        </span>
       </div>
-    </Card>
+
+      <p className="lp-alt-label">{nextEligibleAt ? "Next eligible" : "Details"}</p>
+      <div className="lp-glass-row">
+        <span className="lp-soft-icon"><AlertTriangle size={22} /></span>
+        <div>
+          <h3>{nextEligibleAt ? formatDateTime(nextEligibleAt) : status.replaceAll("_", " ")}</h3>
+          <p>{nextEligibleAt ? "Customer can earn again at this time." : "This result was validated server-side."}</p>
+        </div>
+      </div>
+    </section>
   );
 }
 

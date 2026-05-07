@@ -1,4 +1,4 @@
-export const BUSINESS_TIMEZONE = "Asia/Taipei";
+export const BUSINESS_TIMEZONE = "Asia/Manila";
 export const POINTS_PER_VISIT = 100;
 
 export const roleRedirects = {

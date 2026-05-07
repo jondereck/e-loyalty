@@ -91,8 +91,8 @@ model UserProfile {
   id               String             @id @default(cuid())
   authUserId       String             @unique
   fullName         String
-  username         String             @unique
-  mobile           String             @unique
+  username         String?            @unique
+  mobile           String?            @unique
   email            String             @unique
   status           UserStatus         @default(ACTIVE)
   roles            AppRole[]          @default([CUSTOMER])
@@ -170,6 +170,8 @@ model Visit {
   reasonCode     VisitReasonCode?
   reason         String?
   pointsAwarded  Int              @default(0)
+  businessDate   String           @default("")
+  earnKey        String?          @unique
   scannedAt      DateTime         @default(now())
   approvedAt     DateTime?
   rejectedAt     DateTime?
@@ -225,21 +227,28 @@ model RewardRedemption {
   status        RedemptionStatus @default(REDEEMED)
   ledgerEntries PointLedger[]
   createdAt     DateTime         @default(now())
+
+  @@unique([loyaltyCardId, milestoneId])
 }
 
 model ScanAttempt {
-  id             String           @id @default(cuid())
-  qrTokenHash    String?
-  loyaltyCardId  String?
-  loyaltyCard    LoyaltyCard?     @relation(fields: [loyaltyCardId], references: [id])
-  branchId       String?
-  branch         Branch?          @relation(fields: [branchId], references: [id])
-  cashierId      String?
-  status         VisitStatus?
-  reasonCode     VisitReasonCode?
-  message        String
-  nextEligibleAt DateTime?
-  createdAt      DateTime         @default(now())
+  id                     String           @id @default(cuid())
+  qrTokenHash            String?
+  loyaltyCardId          String?
+  loyaltyCard            LoyaltyCard?     @relation(fields: [loyaltyCardId], references: [id])
+  branchId               String?
+  branch                 Branch?          @relation(fields: [branchId], references: [id])
+  cashierId              String?
+  status                 VisitStatus?
+  reasonCode             VisitReasonCode?
+  message                String
+  businessDate           String?
+  repeatedCustomerScan   Boolean          @default(false)
+  repeatedCashierFailure Boolean          @default(false)
+  invalidQrBurst         Boolean          @default(false)
+  multipleBranchSameDay  Boolean          @default(false)
+  nextEligibleAt         DateTime?
+  createdAt              DateTime         @default(now())
 }
 
 model AuditEvent {

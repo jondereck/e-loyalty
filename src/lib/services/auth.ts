@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
-import { redirectForRoles } from "@/lib/services/session";
-import { loginSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
+import { getAuthUser, redirectForRoles } from "@/lib/services/session";
+import { completeProfileSchema, loginSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
 function firstError(errors: Record<string, string[] | undefined>) {
   return Object.values(errors).flat().find(Boolean) ?? "Please check the form.";
@@ -19,20 +19,16 @@ export async function signupAction(_state: AuthActionState, formData: FormData):
   }
 
   const data = parsed.data;
-  const existing = await prisma.userProfile.findFirst({
-    where: {
-      OR: [{ email: data.email }, { username: data.username }, { mobile: data.mobile }],
-    },
-    select: { email: true, username: true, mobile: true },
+  const existing = await prisma.userProfile.findUnique({
+    where: { email: data.email },
+    select: { email: true },
   });
 
   if (existing) {
     return {
-      message: "Email, username, or mobile is already registered.",
+      message: "Email is already registered.",
       errors: {
-        email: existing.email === data.email ? ["Email is already registered."] : undefined,
-        username: existing.username === data.username ? ["Username is already taken."] : undefined,
-        mobile: existing.mobile === data.mobile ? ["Mobile is already registered."] : undefined,
+        email: ["Email is already registered."],
       },
     };
   }
@@ -54,10 +50,16 @@ export async function signupAction(_state: AuthActionState, formData: FormData):
       data: {
         authUserId,
         fullName: data.fullName,
-        username: data.username,
-        mobile: data.mobile,
         email: data.email,
         roles: ["CUSTOMER"],
+      },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: profile.id,
+        action: "ACCOUNT_SIGNUP",
+        metadata: { method: "password" },
       },
     });
 
@@ -70,7 +72,22 @@ export async function signupAction(_state: AuthActionState, formData: FormData):
     });
   });
 
-  redirect("/card");
+  redirect("/auth/finish");
+}
+
+export async function resolveLoginIdentifier(identifier: string) {
+  const normalized = identifier.trim().toLowerCase();
+  const raw = identifier.trim();
+  const profile = await prisma.userProfile.findFirst({
+    where: {
+      OR: [{ email: normalized }, { username: normalized }, { mobile: raw }],
+    },
+  });
+
+  return {
+    profile,
+    email: profile?.email ?? (normalized.includes("@") ? normalized : null),
+  };
 }
 
 export async function loginAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -80,29 +97,159 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
     return { errors, message: firstError(errors) };
   }
 
-  const identifier = parsed.data.identifier.toLowerCase();
-  const profile = await prisma.userProfile.findFirst({
-    where: {
-      OR: [{ email: identifier }, { username: identifier }, { mobile: parsed.data.identifier }],
-    },
-  });
-
-  const email = profile?.email ?? (identifier.includes("@") ? identifier : null);
+  const { profile, email } = await resolveLoginIdentifier(parsed.data.identifier);
   if (!email) return { message: "No account found for that identifier." };
+  if (profile?.status && profile.status !== "ACTIVE") {
+    return { message: "This account is not active. Contact an administrator." };
+  }
 
   const result = await auth.signIn.email({
     email,
     password: parsed.data.password,
+    rememberMe: parsed.data.rememberMe,
   });
 
   if (result.error) return { message: result.error.message };
 
-  if (!profile) return { message: "Authenticated, but no loyalty profile exists yet." };
-  redirect(redirectForRoles(profile.roles));
+  redirect("/auth/finish");
 }
 
 export async function logoutAction() {
   await auth.signOut();
   redirect("/login");
+}
+
+export async function finishAuthSession() {
+  const user = await getAuthUser();
+  if (!user?.id) redirect("/login");
+  const authUserId = user.id;
+
+  let profile = await prisma.userProfile.findUnique({
+    where: { authUserId },
+  });
+
+  if (!profile && user.email) {
+    const email = user.email.toLowerCase();
+    const existingByEmail = await prisma.userProfile.findUnique({
+      where: { email },
+    });
+
+    if (existingByEmail) {
+      profile = await prisma.userProfile.update({
+        where: { id: existingByEmail.id },
+        data: { authUserId },
+      });
+    } else {
+      profile = await prisma.$transaction(async (tx) => {
+        const created = await tx.userProfile.create({
+          data: {
+            authUserId,
+            fullName: user.name?.trim() || email.split("@")[0],
+            email,
+            roles: ["CUSTOMER"],
+          },
+        });
+
+        await tx.loyaltyCard.create({
+          data: {
+            profileId: created.id,
+            cardNumber: generateCardNumber(),
+            qrToken: generateQrToken(),
+          },
+        });
+
+        await tx.auditEvent.create({
+          data: {
+            actorId: created.id,
+            action: "ACCOUNT_SIGNUP",
+            metadata: { method: "external_auth" },
+          },
+        });
+
+        return created;
+      });
+    }
+  }
+
+  if (!profile) redirect("/complete-profile");
+  if (profile.status !== "ACTIVE") {
+    await auth.signOut();
+    redirect("/login?error=suspended");
+  }
+
+  await prisma.auditEvent.create({
+    data: {
+      actorId: profile.id,
+      action: "ACCOUNT_LOGIN",
+      metadata: { email: user.email },
+    },
+  });
+
+  redirect(redirectForRoles(profile.roles));
+}
+
+export async function completeProfileAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const user = await getAuthUser();
+  if (!user?.id || !user.email) return { message: "Your auth session expired. Please sign in again." };
+  const authUserId = user.id;
+  const email = user.email.toLowerCase();
+
+  const existingProfile = await prisma.userProfile.findUnique({ where: { authUserId } });
+  if (existingProfile) redirect(redirectForRoles(existingProfile.roles));
+
+  const parsed = completeProfileSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    return { errors, message: firstError(errors) };
+  }
+
+  const data = parsed.data;
+  const existing = await prisma.userProfile.findFirst({
+    where: {
+      OR: [{ email }, { username: data.username }, { mobile: data.mobile }],
+    },
+    select: { email: true, username: true, mobile: true },
+  });
+
+  if (existing) {
+    return {
+      message: "Email, username, or mobile is already registered.",
+      errors: {
+        username: existing.username === data.username ? ["Username is already taken."] : undefined,
+        mobile: existing.mobile === data.mobile ? ["Mobile is already registered."] : undefined,
+      },
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const profile = await tx.userProfile.create({
+      data: {
+        authUserId,
+        fullName: data.fullName,
+        username: data.username,
+        mobile: data.mobile,
+        email,
+        roles: ["CUSTOMER"],
+      },
+    });
+
+    await tx.loyaltyCard.create({
+      data: {
+        profileId: profile.id,
+        cardNumber: generateCardNumber(),
+        qrToken: generateQrToken(),
+      },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: profile.id,
+        action: "ACCOUNT_SIGNUP",
+        metadata: { method: "external_auth" },
+      },
+    });
+  });
+
+  redirect("/auth/finish");
 }
 

@@ -31,8 +31,8 @@ async function main() {
 
   await prisma.systemSetting.upsert({
     where: { key: "business_timezone" },
-    update: { value: "Asia/Taipei" },
-    create: { key: "business_timezone", value: "Asia/Taipei" },
+    update: { value: "Asia/Manila" },
+    create: { key: "business_timezone", value: "Asia/Manila" },
   });
 
   await prisma.systemSetting.upsert({

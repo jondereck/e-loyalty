@@ -17,7 +17,7 @@ export default async function CashierScanPage() {
 
   return (
     <>
-      <AppNav active="cashier" />
+      <AppNav active="cashier" mode="staff" showAdmin={profile.roles.some((role) => ["BRANCH_ADMIN", "SUPER_ADMIN"].includes(role))} />
       <main className="container section">
         <div className="eyebrow">Cashier</div>
         <h2>QR scan</h2>

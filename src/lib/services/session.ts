@@ -37,7 +37,45 @@ export async function getCurrentProfile() {
   });
 }
 
-export async function requireProfile(allowedRoles?: string[]) {
+export type CurrentProfile = NonNullable<Awaited<ReturnType<typeof getCurrentProfile>>>;
+
+export function activeAssignmentsForRole(profile: CurrentProfile, roles: string[]) {
+  return profile.staffAssignments.filter(
+    (assignment) =>
+      assignment.status === "ACTIVE" &&
+      assignment.branch.status === "ACTIVE" &&
+      roles.includes(assignment.role),
+  );
+}
+
+export function branchIdsForAdmin(profile: CurrentProfile) {
+  if (profile.roles.includes("SUPER_ADMIN")) return undefined;
+  return activeAssignmentsForRole(profile, ["BRANCH_ADMIN"]).map((assignment) => assignment.branchId);
+}
+
+export function getStaffScope(profile: CurrentProfile, roles: string[], branchId?: string) {
+  if (profile.roles.includes("SUPER_ADMIN")) {
+    return {
+      isSuperAdmin: true,
+      branchIds: undefined as string[] | undefined,
+      branchId,
+    };
+  }
+
+  const assignments = activeAssignmentsForRole(profile, roles);
+  const scopedAssignments = branchId
+    ? assignments.filter((assignment) => assignment.branchId === branchId)
+    : assignments;
+
+  return {
+    isSuperAdmin: false,
+    branchIds: assignments.map((assignment) => assignment.branchId),
+    branchId: branchId ?? assignments[0]?.branchId,
+    assignment: scopedAssignments[0],
+  };
+}
+
+export async function requireProfile(allowedRoles?: readonly string[]) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   if (profile.status !== "ACTIVE") redirect("/login?error=suspended");

@@ -38,6 +38,15 @@ function zonedDateToUtc(parts: {
   return new Date(utcGuess.getTime() + (wantedUtc - asUtc));
 }
 
+function pad2(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+export function computeBusinessDate(now = new Date(), timeZone = BUSINESS_TIMEZONE) {
+  const current = zonedParts(now, timeZone);
+  return `${current.year}-${pad2(current.month)}-${pad2(current.day)}`;
+}
+
 export function businessDayWindow(now = new Date(), timeZone = BUSINESS_TIMEZONE) {
   const current = zonedParts(now, timeZone);
   const start = zonedDateToUtc({ ...current, hour: 0, minute: 0, second: 0 }, timeZone);

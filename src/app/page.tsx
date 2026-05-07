@@ -9,7 +9,7 @@ export default function Home() {
     <>
       <AppNav active="home" />
       <main className="container">
-        <section className="hero">
+        <section className="hero" id="card-preview">
           <div>
             <div className="eyebrow">Digital loyalty for branch teams</div>
             <h1>Loyalty Pass</h1>
@@ -17,11 +17,11 @@ export default function Home() {
               Customers earn once per business day with a secure QR card. Cashiers scan, the system validates, and admins review exceptions.
             </p>
             <div className="actions">
-              <ButtonLink href="/signup" variant="primary">
-                Sign up <ArrowRight size={18} />
-              </ButtonLink>
               <ButtonLink href="/login" variant="secondary">
                 Login
+              </ButtonLink>
+              <ButtonLink href="/signup" variant="primary">
+                Sign up <ArrowRight size={18} />
               </ButtonLink>
             </div>
           </div>
@@ -41,7 +41,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className="section">
+        <section className="section" id="how-it-works">
           <div className="grid three">
             {[
               ["1", "Create a card", "Signup creates the Neon Auth account, profile, card number, and secure QR token."],
@@ -56,7 +56,7 @@ export default function Home() {
             ))}
           </div>
         </section>
-        <section className="section">
+        <section className="section" id="rewards-preview">
           <div className="grid two">
             <Card>
               <Gift />
@@ -72,7 +72,7 @@ export default function Home() {
               <p className="muted">The functional slice includes registration, login, customer cards, cashier scanning, admin approvals, and point-ledger updates.</p>
               <div className="actions">
                 <ButtonLink href="/signup" variant="primary">Create customer account</ButtonLink>
-                <ButtonLink href="/login" variant="secondary">Staff login</ButtonLink>
+                <ButtonLink href="/login" variant="secondary">Login</ButtonLink>
               </div>
             </Card>
           </div>

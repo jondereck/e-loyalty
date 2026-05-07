@@ -1,23 +1,32 @@
 import Link from "next/link";
-import { AppNav } from "@/components/AppNav";
+import { redirect } from "next/navigation";
+import { Building2 } from "lucide-react";
 import { SignupForm } from "@/components/auth/SignupForm";
+import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
 
-export default function SignupPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SignupPage() {
+  const [user, profile] = await Promise.all([getAuthUser(), getCurrentProfile()]);
+  if (profile) redirect(redirectForRoles(profile.roles));
+  if (user) redirect("/complete-profile");
+
   return (
-    <>
-      <AppNav />
-      <main className="auth-wrap">
-        <section className="card auth-card glass">
-          <div className="eyebrow">Customer onboarding</div>
-          <h2>Create your account</h2>
-          <p className="muted">Your profile, loyalty card, card number, and secure QR token are created after signup.</p>
-          <SignupForm />
-          <p className="muted" style={{ marginTop: 18 }}>
-            Already registered? <Link href="/login" style={{ color: "var(--primary)", fontWeight: 700 }}>Login</Link>
+    <main className="auth-screen">
+      <section className="auth-panel signup-panel">
+        <h1>Create account</h1>
+        <p className="auth-subtitle">Create your loyalty workspace</p>
+        <SignupForm />
+        <div className="auth-footer-block">
+          <div className="auth-product-line">
+            <Building2 size={18} />
+            <span>Loyalty Management System</span>
+          </div>
+          <p className="muted">
+            Already have an account? <Link href="/login">Sign in</Link>
           </p>
-        </section>
-      </main>
-    </>
+        </div>
+      </section>
+    </main>
   );
 }
-

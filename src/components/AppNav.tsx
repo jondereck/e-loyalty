@@ -1,14 +1,28 @@
 import Link from "next/link";
+import { LogOut } from "lucide-react";
+import { logoutAction } from "@/lib/services/auth";
 
-export function AppNav({ active }: { active?: string }) {
-  const links = [
-    ["/", "Home", "home"],
-    ["/card", "Card", "card"],
-    ["/rewards", "Rewards", "rewards"],
-    ["/history", "History", "history"],
-    ["/cashier/scan", "Cashier", "cashier"],
-    ["/admin/dashboard", "Admin", "admin"],
-  ] as const;
+export function AppNav({
+  active,
+  mode = "public",
+  showAdmin = false,
+}: {
+  active?: string;
+  mode?: "public" | "staff";
+  showAdmin?: boolean;
+}) {
+  const links = mode === "staff"
+    ? [
+        ["/cashier/scan", "Scan", "cashier"],
+        ...(showAdmin ? [["/admin/dashboard", "Admin", "admin"] as const] : []),
+      ] as const
+    : [
+        ["/", "Home", "home"],
+        ["/#card-preview", "Card", "card"],
+        ["/#rewards-preview", "Rewards", "rewards"],
+        ["/login", "Login", "login"],
+        ["/signup", "Sign up", "signup"],
+      ] as const;
 
   return (
     <header className="topbar">
@@ -23,6 +37,14 @@ export function AppNav({ active }: { active?: string }) {
               {label}
             </Link>
           ))}
+          {mode === "staff" ? (
+            <form action={logoutAction}>
+              <button className="nav-action" type="submit" aria-label="Logout">
+                <LogOut size={15} />
+                Logout
+              </button>
+            </form>
+          ) : null}
         </div>
       </nav>
     </header>

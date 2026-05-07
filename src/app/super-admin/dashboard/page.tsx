@@ -1,5 +1,4 @@
 import { AdminShell } from "@/components/admin/AdminShell";
-import { MetricCard } from "@/components/ui/MetricCard";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/services/session";
 
@@ -17,15 +16,17 @@ export default async function SuperAdminDashboardPage() {
 
   return (
     <AdminShell active="/super-admin/dashboard">
-      <div className="eyebrow">Super Admin</div>
-      <h2>Platform control</h2>
-      <div className="grid four">
-        <MetricCard label="Total Users" value={users} />
-        <MetricCard label="Total Visits" value={visits} />
-        <MetricCard label="Branches" value={branches} />
-        <MetricCard label="Pending" value={pending} />
+      <div className="lp-page-title">
+        <h1>Platform control</h1>
+        <p>Global loyalty system activity.</p>
       </div>
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="lp-metrics">
+        <div className="lp-metric"><div><small>Total Users</small><b>{users}</b><span className="up">All profiles</span></div></div>
+        <div className="lp-metric"><div><small>Total Visits</small><b>{visits}</b><span className="up">All scans</span></div></div>
+        <div className="lp-metric"><div><small>Branches</small><b>{branches}</b><span className="up">Locations</span></div></div>
+        <div className="lp-metric"><div><small>Pending</small><b>{pending}</b><span className="down">Needs review</span></div></div>
+      </div>
+      <div className="lp-panel lp-padded-panel" style={{ marginTop: 18 }}>
         <h3>Reward usage</h3>
         <p className="muted">{redemptions} reward redemptions recorded.</p>
       </div>
