@@ -1,16 +1,18 @@
 import Link from "next/link";
-import { Building2, ChevronDown, ClipboardCheck, LayoutDashboard, LogOut, Settings, Shield, UserCircle, Users } from "lucide-react";
+import { BarChart3, ChevronDown, ClipboardCheck, Gift, LayoutDashboard, LogOut, MapPin, Settings, Shield, Sparkles, UserCircle, Users } from "lucide-react";
 import { logoutAction } from "@/lib/services/auth";
 import type { CurrentProfile } from "@/lib/services/session";
 
 const links = [
   { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
   { href: "/admin/members", label: "Members", icon: Users },
+  { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
+  { href: "/rewards", label: "Rewards", icon: Gift },
   { href: "/admin/staff", label: "Staff", icon: UserCircle },
-  { href: "/admin/branches", label: "Branches", icon: Building2 },
-  { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield },
+  { href: "/admin/branches", label: "Branches", icon: MapPin },
+  { href: "/super-admin/dashboard", label: "Reports", icon: BarChart3 },
   { href: "/super-admin/settings", label: "Settings", icon: Settings },
+  { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield },
 ];
 
 export function Sidebar({
@@ -27,7 +29,7 @@ export function Sidebar({
   return (
     <aside className="lp-admin-sidebar">
       <Link className="lp-admin-brand" href="/admin/dashboard">
-        <span className="lp-brand-icon">L</span>
+        <span className="lp-brand-icon"><Sparkles size={18} /></span>
         <span>Loyalty Pass</span>
       </Link>
       {visibleLinks.map((link) => {

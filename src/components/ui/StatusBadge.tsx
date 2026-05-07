@@ -11,6 +11,10 @@ export function StatusBadge({ status }: { status?: string | null }) {
           ? "red"
           : "purple";
 
-  return <Badge tone={tone}>{normalized.replaceAll("_", " ")}</Badge>;
+  return <Badge tone={tone}>{toTitleCase(normalized.replaceAll("_", " "))}</Badge>;
+}
+
+function toTitleCase(value: string) {
+  return value.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 

@@ -132,6 +132,9 @@ model Branch {
   id               String             @id @default(cuid())
   code             String             @unique
   name             String
+  address          String?
+  phone            String?
+  email            String?
   status           BranchStatus       @default(ACTIVE)
   staffAssignments StaffAssignment[]
   visits           Visit[]
@@ -169,6 +172,7 @@ model Visit {
   approvalStatus ApprovalStatus   @default(REQUIRED)
   reasonCode     VisitReasonCode?
   reason         String?
+  adminNote      String?
   pointsAwarded  Int              @default(0)
   businessDate   String           @default("")
   earnKey        String?          @unique

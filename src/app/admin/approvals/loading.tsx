@@ -7,7 +7,7 @@ export default function Loading() {
       title="Approvals"
       subtitle="Review pending scans before points are awarded."
       tableTitle="Pending Scans"
-      columns={["Scan time", "Customer", "Branch", "Cashier", "Conflict", "Status"]}
+      columns={["Scan Time", "Member", "Branch", "Cashier", "Conflict", "Status", "Actions"]}
     />
   );
 }

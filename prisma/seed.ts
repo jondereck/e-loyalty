@@ -20,11 +20,17 @@ async function main() {
     where: { code: process.env.SEED_BRANCH_CODE ?? "MAIN" },
     update: {
       name: process.env.SEED_BRANCH_NAME ?? "Main Branch",
+      address: process.env.SEED_BRANCH_ADDRESS || undefined,
+      phone: process.env.SEED_BRANCH_PHONE || undefined,
+      email: process.env.SEED_BRANCH_EMAIL || undefined,
       status: "ACTIVE",
     },
     create: {
       code: process.env.SEED_BRANCH_CODE ?? "MAIN",
       name: process.env.SEED_BRANCH_NAME ?? "Main Branch",
+      address: process.env.SEED_BRANCH_ADDRESS || undefined,
+      phone: process.env.SEED_BRANCH_PHONE || undefined,
+      email: process.env.SEED_BRANCH_EMAIL || undefined,
       status: "ACTIVE",
     },
   });

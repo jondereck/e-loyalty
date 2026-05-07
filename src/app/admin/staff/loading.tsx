@@ -7,7 +7,7 @@ export default function Loading() {
       title="Staff"
       subtitle="Cashier and branch-admin assignments."
       tableTitle="Assigned Staff"
-      columns={["Name", "Branch", "Role", "Status"]}
+      columns={["Name", "Branch", "Role", "Status", "Manage"]}
       metrics
     />
   );

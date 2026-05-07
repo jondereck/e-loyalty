@@ -7,7 +7,9 @@ export default function Loading() {
       title="Branches"
       subtitle="Monitor branch activity and assigned staff."
       tableTitle="Branches"
-      columns={["Code", "Branch", "Visits", "Staff", "Status"]}
+      columns={["Code", "Branch", "Visits", "Staff", "Status", "Actions"]}
+      metrics
+      metricLabels={["Total Branches", "Active Branches", "Staff Assigned"]}
     />
   );
 }

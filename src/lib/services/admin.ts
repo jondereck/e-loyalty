@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { AppRole } from "@/generated/prisma/client";
+import type { AppRole, Prisma } from "@/generated/prisma/client";
+import { auth } from "@/lib/auth/server";
 import { POINTS_PER_VISIT } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { earnKeyFor } from "@/lib/services/visits";
@@ -10,9 +11,14 @@ import { computeBusinessDate } from "@/lib/time";
 import {
   adjustMemberPointsSchema,
   approveVisitSchema,
+  createBranchSchema,
+  createStaffAssignmentSchema,
+  createStaffAccountSchema,
   rejectVisitSchema,
   updateCardStatusSchema,
+  updateBranchSchema,
   updateMemberProfileStatusSchema,
+  updateStaffAssignmentStatusSchema,
 } from "@/lib/validations/admin";
 
 export async function getAdminDashboard(branchIds?: string[]) {
@@ -73,6 +79,70 @@ export async function listPendingApprovals(branchIds?: string[]) {
   });
 }
 
+export type ApprovalManagementOptions = {
+  branchIds?: string[];
+  status?: "all" | "pending" | "approved" | "rejected";
+  query?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+const approvalInclude = {
+  customer: { include: { loyaltyCard: true } },
+  branch: true,
+  cashier: true,
+} satisfies Prisma.VisitInclude;
+
+export async function getApprovalManagementData(options: ApprovalManagementOptions = {}) {
+  const pageSize = normalizePageSize(options.pageSize, 7);
+  const page = normalizePage(options.page);
+  const baseWhere = approvalBaseWhere(options);
+  const where = {
+    ...baseWhere,
+    ...approvalStatusWhere(options.status),
+  } satisfies Prisma.VisitWhereInput;
+
+  const [totalFiltered, counts] = await Promise.all([
+    prisma.visit.count({ where }),
+    getApprovalTabCounts(baseWhere),
+  ]);
+  const pageCount = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visits = await prisma.visit.findMany({
+    where,
+    include: approvalInclude,
+    orderBy: { scannedAt: "desc" },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+  });
+  const dates = defaultDateRange();
+
+  return {
+    visits,
+    counts,
+    filters: {
+      status: options.status ?? "all",
+      query: options.query?.trim() ?? "",
+      dateFrom: options.dateFrom ?? dates.dateFrom,
+      dateTo: options.dateTo ?? dates.dateTo,
+    },
+    pagination: paginationPayload(totalFiltered, currentPage, pageSize),
+  };
+}
+
+export async function getApprovalExportRows(options: ApprovalManagementOptions = {}) {
+  return prisma.visit.findMany({
+    where: {
+      ...approvalBaseWhere(options),
+      ...approvalStatusWhere(options.status),
+    },
+    include: approvalInclude,
+    orderBy: { scannedAt: "desc" },
+  });
+}
+
 export async function getApprovalDetail(visitId: string) {
   const visit = await prisma.visit.findUniqueOrThrow({
     where: { id: visitId },
@@ -111,11 +181,11 @@ export async function approveVisitAction(formData: FormData) {
     throw new Error("Only Super Admin can override visit decisions.");
   }
 
-  await approveVisit(parsed.visitId, actor.id, Boolean(parsed.override));
+  await approveVisit(parsed.visitId, actor.id, Boolean(parsed.override), parsed.adminNote);
   revalidateAdmin();
 }
 
-export async function approveVisit(visitId: string, actorId: string, override = false) {
+export async function approveVisit(visitId: string, actorId: string, override = false, adminNote?: string | null) {
   await prisma.$transaction(async (tx) => {
     const visit = await tx.visit.findUniqueOrThrow({ where: { id: visitId } });
     if (visit.status !== "PENDING") {
@@ -148,6 +218,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
         earnKey,
         approvedAt: new Date(),
         reviewedById: actorId,
+        adminNote,
       },
     });
 
@@ -177,7 +248,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
         actorId,
         visitId: visit.id,
         action: override ? "VISIT_OVERRIDDEN" : "VISIT_APPROVED",
-        metadata: { previousStatus: visit.status, businessDate },
+        metadata: { previousStatus: visit.status, businessDate, adminNote },
       },
     });
   });
@@ -189,11 +260,11 @@ export async function rejectVisitAction(formData: FormData) {
   const visit = await prisma.visit.findUniqueOrThrow({ where: { id: parsed.visitId } });
   await requireBranchScopedProfile(visit.branchId);
 
-  await rejectVisit(parsed.visitId, actor.id, parsed.reason);
+  await rejectVisit(parsed.visitId, actor.id, parsed.reason, parsed.adminNote);
   revalidateAdmin();
 }
 
-export async function rejectVisit(visitId: string, actorId: string, reason: string) {
+export async function rejectVisit(visitId: string, actorId: string, reason: string, adminNote?: string | null) {
   const visit = await prisma.visit.findUniqueOrThrow({ where: { id: visitId } });
   if (visit.status !== "PENDING") {
     throw new Error("Only pending visits can be rejected.");
@@ -206,6 +277,7 @@ export async function rejectVisit(visitId: string, actorId: string, reason: stri
         status: "REJECTED",
         approvalStatus: "REJECTED",
         reason,
+        adminNote,
         rejectedAt: new Date(),
         reviewedById: actorId,
       },
@@ -215,30 +287,197 @@ export async function rejectVisit(visitId: string, actorId: string, reason: stri
         actorId,
         visitId: visit.id,
         action: "VISIT_REJECTED",
-        metadata: { reason, previousStatus: visit.status },
+        metadata: { reason, adminNote, previousStatus: visit.status },
       },
     }),
   ]);
 }
 
+const branchInclude = {
+  _count: { select: { visits: true, staffAssignments: true } },
+} satisfies Prisma.BranchInclude;
+
+export type BranchListOptions = {
+  branchIds?: string[];
+  query?: string;
+  page?: number;
+  pageSize?: number;
+};
+
 export async function listBranches(branchIds?: string[]) {
   return prisma.branch.findMany({
-    where: Array.isArray(branchIds) ? { id: { in: branchIds } } : {},
-    include: {
-      _count: { select: { visits: true, staffAssignments: true } },
+    where: branchScopeWhere(branchIds),
+    include: branchInclude,
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function getBranchManagementData(options: BranchListOptions = {}) {
+  const pageSize = normalizePageSize(options.pageSize);
+  const requestedPage = Number.isFinite(options.page) ? options.page ?? 1 : 1;
+  const page = Math.max(1, Math.floor(requestedPage));
+  const where = branchScopeWhere(options.branchIds, options.query);
+  const scopedWhere = branchScopeWhere(options.branchIds);
+
+  const [totalScoped, activeScoped, totalFiltered, totalStaff] = await Promise.all([
+    prisma.branch.count({ where: scopedWhere }),
+    prisma.branch.count({ where: { ...scopedWhere, status: "ACTIVE" } }),
+    prisma.branch.count({ where }),
+    prisma.staffAssignment.count({
+      where: Array.isArray(options.branchIds) ? { branchId: { in: options.branchIds } } : {},
+    }),
+  ]);
+
+  const pageCount = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const branches = await prisma.branch.findMany({
+    where,
+    include: branchInclude,
+    orderBy: { name: "asc" },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return {
+    branches,
+    metrics: {
+      totalBranches: totalScoped,
+      activeBranches: activeScoped,
+      activePercent: totalScoped ? Math.round((activeScoped / totalScoped) * 1000) / 10 : 0,
+      staffAssigned: totalStaff,
     },
+    pagination: {
+      page: currentPage,
+      pageSize,
+      pageCount,
+      total: totalFiltered,
+      from: totalFiltered ? (currentPage - 1) * pageSize + 1 : 0,
+      to: Math.min(currentPage * pageSize, totalFiltered),
+    },
+    query: options.query?.trim() ?? "",
+  };
+}
+
+export async function getBranchSetupOptions(branchIds?: string[]) {
+  return prisma.branch.findMany({
+    where: Array.isArray(branchIds) ? { id: { in: branchIds } } : {},
     orderBy: { name: "asc" },
   });
 }
 
 export async function getBranchDetail(branchId: string) {
-  return prisma.branch.findUniqueOrThrow({
+  const { end } = await import("@/lib/time").then((mod) => mod.businessDayWindow());
+  const weekStart = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const branch = await prisma.branch.findUniqueOrThrow({
     where: { id: branchId },
     include: {
       staffAssignments: { include: { profile: true }, orderBy: { createdAt: "desc" } },
-      visits: { orderBy: { scannedAt: "desc" }, take: 10 },
-      _count: { select: { visits: true } },
+      visits: { include: { customer: true, cashier: true }, orderBy: { scannedAt: "desc" }, take: 10 },
+      _count: { select: { visits: true, staffAssignments: true } },
     },
+  });
+
+  const [weeklyVisits, previousWeeklyVisits, weeklyPointsEarned, weeklyRedemptions, approvedLifetime, redemptionsLifetime] = await Promise.all([
+    prisma.visit.count({ where: { branchId, scannedAt: { gte: weekStart, lt: end } } }),
+    prisma.visit.count({ where: { branchId, scannedAt: { gte: new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000), lt: weekStart } } }),
+    prisma.visit.aggregate({
+      where: { branchId, scannedAt: { gte: weekStart, lt: end }, status: { in: ["AUTO_APPROVED", "APPROVED"] } },
+      _sum: { pointsAwarded: true },
+    }),
+    prisma.rewardRedemption.count({ where: { branchId, createdAt: { gte: weekStart, lt: end } } }),
+    prisma.visit.count({ where: { branchId, status: { in: ["AUTO_APPROVED", "APPROVED"] } } }),
+    prisma.rewardRedemption.count({ where: { branchId } }),
+  ]);
+
+  const weeklyVisitDelta = previousWeeklyVisits
+    ? Math.round(((weeklyVisits - previousWeeklyVisits) / previousWeeklyVisits) * 1000) / 10
+    : weeklyVisits ? 100 : 0;
+  const redemptionRate = approvedLifetime ? Math.round((redemptionsLifetime / approvedLifetime) * 1000) / 10 : 0;
+
+  return {
+    branch,
+    performance: {
+      weeklyVisits,
+      weeklyVisitDelta,
+      weeklyPointsEarned: weeklyPointsEarned._sum.pointsAwarded ?? 0,
+      weeklyRedemptions,
+      redemptionRate,
+    },
+  };
+}
+
+export async function createBranchAction(formData: FormData) {
+  const parsed = createBranchSchema.parse(Object.fromEntries(formData.entries()));
+  const actor = await requireSuperAdmin();
+
+  const branch = await prisma.branch.create({ data: parsed });
+  await prisma.auditEvent.create({
+    data: {
+      actorId: actor.id,
+      action: "BRANCH_CREATED",
+      metadata: {
+        branchId: branch.id,
+        code: branch.code,
+        name: branch.name,
+        address: branch.address,
+        phone: branch.phone,
+        email: branch.email,
+        status: branch.status,
+      },
+    },
+  });
+  revalidateBranchSetup(branch.id);
+}
+
+export async function updateBranchAction(formData: FormData) {
+  const parsed = updateBranchSchema.parse(Object.fromEntries(formData.entries()));
+  const actor = await requireBranchManager(parsed.branchId);
+  const previous = await prisma.branch.findUniqueOrThrow({ where: { id: parsed.branchId } });
+
+  const branch = await prisma.branch.update({
+    where: { id: parsed.branchId },
+    data: {
+      code: parsed.code,
+      name: parsed.name,
+      address: parsed.address,
+      phone: parsed.phone,
+      email: parsed.email,
+      status: parsed.status,
+    },
+  });
+  await prisma.auditEvent.create({
+    data: {
+      actorId: actor.id,
+      action: "BRANCH_UPDATED",
+      metadata: {
+        branchId: branch.id,
+        previous: {
+          code: previous.code,
+          name: previous.name,
+          address: previous.address,
+          phone: previous.phone,
+          email: previous.email,
+          status: previous.status,
+        },
+        next: {
+          code: branch.code,
+          name: branch.name,
+          address: branch.address,
+          phone: branch.phone,
+          email: branch.email,
+          status: branch.status,
+        },
+      },
+    },
+  });
+  revalidateBranchSetup(branch.id);
+}
+
+export async function getBranchExportRows(branchIds?: string[], query?: string) {
+  return prisma.branch.findMany({
+    where: branchScopeWhere(branchIds, query),
+    include: branchInclude,
+    orderBy: { name: "asc" },
   });
 }
 
@@ -253,6 +492,162 @@ export async function listStaff(branchIds?: string[]) {
     include: { profile: true, branch: true },
     orderBy: { createdAt: "desc" },
   });
+}
+
+export async function getStaffSetupData(branchIds?: string[]) {
+  const scoped = Array.isArray(branchIds);
+  const [branches, staffProfiles] = await Promise.all([
+    getBranchSetupOptions(branchIds),
+    prisma.userProfile.findMany({
+      where: {
+        OR: [
+          { roles: { has: "CASHIER" } },
+          { roles: { has: "BRANCH_ADMIN" } },
+          { roles: { has: "SUPER_ADMIN" } },
+        ],
+        ...(scoped ? { staffAssignments: { some: { branchId: { in: branchIds } } } } : {}),
+      },
+      orderBy: { fullName: "asc" },
+    }),
+  ]);
+
+  return { branches, staffProfiles };
+}
+
+export async function createStaffAccountAction(formData: FormData) {
+  const parsed = createStaffAccountSchema.parse(Object.fromEntries(formData.entries()));
+  const actor = await requireStaffAccountManager(parsed.branchId, parsed.role);
+  const syntheticEmail = staffEmailForUsername(parsed.username);
+
+  const existingProfile = await prisma.userProfile.findFirst({
+    where: { OR: [{ username: parsed.username }, { email: syntheticEmail }] },
+    select: { id: true },
+  });
+  if (existingProfile) throw new Error("Username is already used by another account.");
+
+  const result = await auth.signUp.email({
+    email: syntheticEmail,
+    password: parsed.password,
+    name: parsed.fullName,
+  });
+  if (result.error) throw new Error(result.error.message);
+
+  const authUser = result.data as unknown as { user?: { id?: string } };
+  const authUserId = authUser.user?.id;
+  if (!authUserId) throw new Error("Auth account was created, but no auth user id was returned.");
+
+  const profile = await prisma.$transaction(async (tx) => {
+    const created = await tx.userProfile.create({
+      data: {
+        authUserId,
+        fullName: parsed.fullName,
+        username: parsed.username,
+        email: syntheticEmail,
+        roles: [parsed.role],
+      },
+    });
+
+    await tx.staffAssignment.create({
+      data: {
+        profileId: created.id,
+        branchId: parsed.branchId,
+        role: parsed.role,
+        status: parsed.assignmentStatus,
+      },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.id,
+        action: "STAFF_ACCOUNT_CREATED",
+        metadata: {
+          profileId: created.id,
+          branchId: parsed.branchId,
+          role: parsed.role,
+          username: parsed.username,
+        },
+      },
+    });
+
+    return created;
+  });
+
+  revalidateStaffSetup(parsed.branchId, profile.id);
+}
+
+export async function createStaffAssignmentAction(formData: FormData) {
+  const parsed = createStaffAssignmentSchema.parse(Object.fromEntries(formData.entries()));
+  const actor = await requireStaffAccountManager(parsed.branchId, parsed.role);
+  const profile = await prisma.userProfile.findUniqueOrThrow({ where: { id: parsed.profileId } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userProfile.update({
+      where: { id: profile.id },
+      data: { roles: Array.from(new Set([...profile.roles, parsed.role])) },
+    });
+
+    await tx.staffAssignment.upsert({
+      where: {
+        profileId_branchId_role: {
+          profileId: profile.id,
+          branchId: parsed.branchId,
+          role: parsed.role,
+        },
+      },
+      update: { status: parsed.status },
+      create: {
+        profileId: profile.id,
+        branchId: parsed.branchId,
+        role: parsed.role,
+        status: parsed.status,
+      },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.id,
+        action: "STAFF_ASSIGNMENT_CREATED",
+        metadata: {
+          profileId: profile.id,
+          branchId: parsed.branchId,
+          role: parsed.role,
+          status: parsed.status,
+        },
+      },
+    });
+  });
+
+  revalidateStaffSetup(parsed.branchId, profile.id);
+}
+
+export async function updateStaffAssignmentStatusAction(formData: FormData) {
+  const parsed = updateStaffAssignmentStatusSchema.parse(Object.fromEntries(formData.entries()));
+  const assignment = await prisma.staffAssignment.findUniqueOrThrow({
+    where: { id: parsed.assignmentId },
+    include: { profile: true },
+  });
+  const actor = await requireAssignmentManager(assignment.branchId, assignment.role);
+
+  const updated = await prisma.staffAssignment.update({
+    where: { id: assignment.id },
+    data: { status: parsed.status },
+  });
+
+  await prisma.auditEvent.create({
+    data: {
+      actorId: actor.id,
+      action: "STAFF_ASSIGNMENT_STATUS_UPDATED",
+      metadata: {
+        assignmentId: assignment.id,
+        profileId: assignment.profileId,
+        branchId: assignment.branchId,
+        role: assignment.role,
+        previousStatus: assignment.status,
+        nextStatus: updated.status,
+      },
+    },
+  });
+  revalidateStaffSetup(assignment.branchId, assignment.profileId);
 }
 
 export async function listMembers(branchIds?: string[]) {
@@ -284,6 +679,96 @@ export async function listMembers(branchIds?: string[]) {
       totalPoints: members.reduce((sum, member) => sum + (member.loyaltyCard?.pointsBalance ?? 0), 0),
     },
   };
+}
+
+export type MemberManagementOptions = {
+  branchIds?: string[];
+  query?: string;
+  status?: "all" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+  branchId?: string;
+  cardStatus?: "all" | "ACTIVE" | "BLOCKED";
+  tier?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+function memberIncludeFor(branchIds?: string[]): Prisma.UserProfileInclude {
+  return {
+    loyaltyCard: true,
+    visits: {
+      where: Array.isArray(branchIds) ? { branchId: { in: branchIds } } : {},
+      orderBy: { scannedAt: "desc" },
+      take: 1,
+      include: { branch: true },
+    },
+    _count: {
+      select: {
+        visits: Array.isArray(branchIds) ? { where: { branchId: { in: branchIds } } } : true,
+      },
+    },
+  };
+}
+
+export async function getMemberManagementData(options: MemberManagementOptions = {}) {
+  const pageSize = normalizePageSize(options.pageSize, 8);
+  const page = normalizePage(options.page);
+  const scopedWhere = memberScopeWhere(options.branchIds);
+  const where = memberManagementWhere(options);
+
+  const [totalFiltered, scopedMembers, branches, tiers] = await Promise.all([
+    prisma.userProfile.count({ where }),
+    prisma.userProfile.findMany({
+      where: scopedWhere,
+      include: { loyaltyCard: true },
+    }),
+    getBranchSetupOptions(options.branchIds),
+    prisma.loyaltyCard.findMany({
+      where: {
+        profile: scopedWhere,
+      },
+      select: { tier: true },
+      distinct: ["tier"],
+      orderBy: { tier: "asc" },
+    }),
+  ]);
+
+  const pageCount = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const members = await prisma.userProfile.findMany({
+    where,
+    include: memberIncludeFor(options.branchIds),
+    orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return {
+    members,
+    branches,
+    tiers: tiers.map((item) => item.tier),
+    filters: {
+      query: options.query?.trim() ?? "",
+      status: options.status ?? "all",
+      branchId: options.branchId ?? "all",
+      cardStatus: options.cardStatus ?? "all",
+      tier: options.tier ?? "all",
+    },
+    metrics: {
+      total: scopedMembers.length,
+      active: scopedMembers.filter((member) => member.status === "ACTIVE").length,
+      blockedCards: scopedMembers.filter((member) => member.loyaltyCard?.status === "BLOCKED").length,
+      totalPoints: scopedMembers.reduce((sum, member) => sum + (member.loyaltyCard?.pointsBalance ?? 0), 0),
+    },
+    pagination: paginationPayload(totalFiltered, currentPage, pageSize),
+  };
+}
+
+export async function getMemberExportRows(options: MemberManagementOptions = {}) {
+  return prisma.userProfile.findMany({
+    where: memberManagementWhere(options),
+    include: memberIncludeFor(options.branchIds),
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function getMemberDetail(profileId: string, branchIds?: string[]) {
@@ -450,6 +935,153 @@ async function countScopedStaff(branchIds?: string[], activeOnly = false) {
   return prisma.staffAssignment.findMany({ where, select: { profileId: true }, distinct: ["profileId"] }).then((items) => items.length);
 }
 
+function branchScopeWhere(branchIds?: string[], query?: string): Prisma.BranchWhereInput {
+  const trimmed = query?.trim();
+  return {
+    ...(Array.isArray(branchIds) ? { id: { in: branchIds } } : {}),
+    ...(trimmed
+      ? {
+          OR: [
+            { code: { contains: trimmed, mode: "insensitive" } },
+            { name: { contains: trimmed, mode: "insensitive" } },
+            { address: { contains: trimmed, mode: "insensitive" } },
+            { phone: { contains: trimmed, mode: "insensitive" } },
+            { email: { contains: trimmed, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function approvalBaseWhere(options: ApprovalManagementOptions): Prisma.VisitWhereInput {
+  const trimmed = options.query?.trim();
+  const range = dateRangeFor(options.dateFrom, options.dateTo);
+  return {
+    ...(Array.isArray(options.branchIds) ? { branchId: { in: options.branchIds } } : {}),
+    scannedAt: { gte: range.start, lt: range.end },
+    ...(trimmed
+      ? {
+          OR: [
+            { id: { contains: trimmed, mode: "insensitive" } },
+            { reason: { contains: trimmed, mode: "insensitive" } },
+            { customer: { fullName: { contains: trimmed, mode: "insensitive" } } },
+            { customer: { email: { contains: trimmed, mode: "insensitive" } } },
+            { customer: { mobile: { contains: trimmed, mode: "insensitive" } } },
+            { cashier: { fullName: { contains: trimmed, mode: "insensitive" } } },
+            { cashier: { email: { contains: trimmed, mode: "insensitive" } } },
+            { branch: { name: { contains: trimmed, mode: "insensitive" } } },
+            { branch: { code: { contains: trimmed, mode: "insensitive" } } },
+            { loyaltyCard: { cardNumber: { contains: trimmed, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function approvalStatusWhere(status: ApprovalManagementOptions["status"]): Prisma.VisitWhereInput {
+  if (status === "pending") return { status: "PENDING" };
+  if (status === "approved") return { status: { in: ["APPROVED", "AUTO_APPROVED"] } };
+  if (status === "rejected") return { status: "REJECTED" };
+  return {};
+}
+
+async function getApprovalTabCounts(baseWhere: Prisma.VisitWhereInput) {
+  const [all, pending, approved, rejected] = await Promise.all([
+    prisma.visit.count({ where: baseWhere }),
+    prisma.visit.count({ where: { ...baseWhere, status: "PENDING" } }),
+    prisma.visit.count({ where: { ...baseWhere, status: { in: ["APPROVED", "AUTO_APPROVED"] } } }),
+    prisma.visit.count({ where: { ...baseWhere, status: "REJECTED" } }),
+  ]);
+  return { all, pending, approved, rejected };
+}
+
+function memberScopeWhere(branchIds?: string[]): Prisma.UserProfileWhereInput {
+  return {
+    roles: { has: "CUSTOMER" },
+    ...(Array.isArray(branchIds) ? { visits: { some: { branchId: { in: branchIds } } } } : {}),
+  };
+}
+
+function memberManagementWhere(options: MemberManagementOptions): Prisma.UserProfileWhereInput {
+  const trimmed = options.query?.trim();
+  const scopedBranchIds = memberBranchScope(options.branchIds, options.branchId);
+  const loyaltyCardFilters = {
+    ...(options.cardStatus && options.cardStatus !== "all" ? { status: options.cardStatus } : {}),
+    ...(options.tier && options.tier !== "all" ? { tier: options.tier } : {}),
+  };
+
+  return {
+    roles: { has: "CUSTOMER" },
+    ...(scopedBranchIds ? { visits: { some: { branchId: { in: scopedBranchIds } } } } : {}),
+    ...(options.status && options.status !== "all" ? { status: options.status } : {}),
+    ...(Object.keys(loyaltyCardFilters).length ? { loyaltyCard: { is: loyaltyCardFilters } } : {}),
+    ...(trimmed
+      ? {
+          OR: [
+            { fullName: { contains: trimmed, mode: "insensitive" } },
+            { email: { contains: trimmed, mode: "insensitive" } },
+            { mobile: { contains: trimmed, mode: "insensitive" } },
+            { username: { contains: trimmed, mode: "insensitive" } },
+            { loyaltyCard: { is: { cardNumber: { contains: trimmed, mode: "insensitive" } } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function memberBranchScope(branchIds?: string[], selectedBranchId?: string) {
+  if (selectedBranchId && selectedBranchId !== "all") {
+    if (Array.isArray(branchIds) && !branchIds.includes(selectedBranchId)) return [];
+    return [selectedBranchId];
+  }
+  return Array.isArray(branchIds) ? branchIds : undefined;
+}
+
+function defaultDateRange() {
+  const today = new Date();
+  const dateTo = formatDateInput(today);
+  const start = new Date(today);
+  start.setDate(start.getDate() - 6);
+  return { dateFrom: formatDateInput(start), dateTo };
+}
+
+function dateRangeFor(dateFrom?: string, dateTo?: string) {
+  const dates = defaultDateRange();
+  const from = dateFrom || dates.dateFrom;
+  const to = dateTo || dates.dateTo;
+  const end = new Date(`${to}T00:00:00+08:00`);
+  end.setDate(end.getDate() + 1);
+  return {
+    start: new Date(`${from}T00:00:00+08:00`),
+    end,
+  };
+}
+
+function formatDateInput(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function paginationPayload(total: number, page: number, pageSize: number) {
+  return {
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    total,
+    from: total ? (page - 1) * pageSize + 1 : 0,
+    to: Math.min(page * pageSize, total),
+  };
+}
+
+function normalizePage(value?: number) {
+  const page = Number.isFinite(value) ? value ?? 1 : 1;
+  return Math.max(1, Math.floor(page));
+}
+
+function normalizePageSize(value?: number, fallback = 10) {
+  if (value === 7 || value === 8 || value === 10 || value === 20 || value === 50) return value;
+  return fallback;
+}
+
 async function requireMemberManager(profileId: string) {
   const profile = await requireBranchScopedProfile();
   if (profile.roles.includes("SUPER_ADMIN")) return profile;
@@ -459,6 +1091,38 @@ async function requireMemberManager(profileId: string) {
   const member = await getMemberDetail(profileId, branchIds);
   if (!member) throw new Error("You do not have permission to manage this member.");
   return profile;
+}
+
+async function requireSuperAdmin() {
+  const profile = await requireBranchScopedProfile();
+  if (!profile.roles.includes("SUPER_ADMIN")) throw new Error("Only Super Admin can perform this action.");
+  return profile;
+}
+
+async function requireBranchManager(branchId: string) {
+  const profile = await requireBranchScopedProfile(branchId);
+  if (profile.roles.includes("SUPER_ADMIN")) return profile;
+  const branchIds = branchIdsForAdmin(profile);
+  if (!branchIds?.includes(branchId)) throw new Error("You do not have permission to manage this branch.");
+  return profile;
+}
+
+async function requireStaffAccountManager(branchId: string, role: AppRole) {
+  const profile = await requireBranchManager(branchId);
+  if (profile.roles.includes("SUPER_ADMIN")) return profile;
+  if (role !== "CASHIER") throw new Error("Branch Admin can only create cashier accounts.");
+  return profile;
+}
+
+async function requireAssignmentManager(branchId: string, role: AppRole) {
+  const profile = await requireBranchManager(branchId);
+  if (profile.roles.includes("SUPER_ADMIN")) return profile;
+  if (role !== "CASHIER") throw new Error("Branch Admin can only manage cashier assignments.");
+  return profile;
+}
+
+function staffEmailForUsername(username: string) {
+  return `${username}@staff.local`;
 }
 
 function revalidateMember(profileId: string) {
@@ -471,11 +1135,27 @@ function revalidateMember(profileId: string) {
   revalidatePath("/profile");
 }
 
+function revalidateBranchSetup(branchId: string) {
+  revalidateAdmin();
+  revalidatePath("/admin/branches");
+  revalidatePath(`/admin/branches/${branchId}`);
+  revalidatePath("/cashier/scan");
+}
+
+function revalidateStaffSetup(branchId: string, profileId?: string) {
+  revalidateBranchSetup(branchId);
+  revalidatePath("/admin/staff");
+  if (profileId) {
+    revalidatePath(`/admin/members/${profileId}`);
+  }
+}
+
 function revalidateAdmin() {
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/approvals");
   revalidatePath("/admin/staff");
   revalidatePath("/admin/members");
+  revalidatePath("/admin/branches");
   revalidatePath("/super-admin/dashboard");
 }
 
