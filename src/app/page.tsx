@@ -3,8 +3,13 @@ import { AppNav } from "@/components/AppNav";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoyaltyCard } from "@/components/loyalty/LoyaltyCard";
+import { getBrandingSettings, getPointsPerVisit } from "@/lib/services/settings";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [branding, pointsPerVisit] = await Promise.all([getBrandingSettings(), getPointsPerVisit()]);
+
   return (
     <>
       <AppNav active="home" />
@@ -12,7 +17,7 @@ export default function Home() {
         <section className="hero" id="card-preview">
           <div>
             <div className="eyebrow">Digital loyalty for branch teams</div>
-            <h1>Loyalty Pass</h1>
+            <h1>{branding.systemName}</h1>
             <p className="lead">
               Customers earn once per business day with a secure QR card. Cashiers scan, the system validates, and admins review exceptions.
             </p>
@@ -26,7 +31,7 @@ export default function Home() {
             </div>
           </div>
           <div>
-            <LoyaltyCard tier="Gold" points={2480} visits={18} />
+            <LoyaltyCard tier="Gold" points={2480} visits={18} systemName={branding.systemName} />
             <div className="grid two" style={{ marginTop: 18 }}>
               <Card>
                 <QrCode />
@@ -45,7 +50,7 @@ export default function Home() {
           <div className="grid three">
             {[
               ["1", "Create a card", "Signup creates the Neon Auth account, profile, card number, and secure QR token."],
-              ["2", "Earn points", "Approved visits add 100 points and update the customer card summary."],
+              ["2", "Earn points", `Approved visits add ${pointsPerVisit} points and update the customer card summary.`],
               ["3", "Redeem rewards", "Milestones unlock by points, with cashier-assisted redemption."],
             ].map(([step, title, body]) => (
               <Card key={step}>
@@ -78,7 +83,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="footer">Loyalty Pass MVP</footer>
+      <footer className="footer">{branding.systemName} MVP</footer>
     </>
   );
 }

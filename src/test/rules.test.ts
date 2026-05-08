@@ -18,6 +18,10 @@ describe("visit eligibility", () => {
     expect(evaluateVisitEligibility(baseInput)).toEqual({ outcome: "AUTO_APPROVED", points: 100 });
   });
 
+  it("auto-approves a clean scan with configured points", () => {
+    expect(evaluateVisitEligibility({ ...baseInput, pointsPerVisit: 150 })).toEqual({ outcome: "AUTO_APPROVED", points: 150 });
+  });
+
   it("blocks invalid qr, inactive card, inactive branch, and unauthorized cashier", () => {
     expect(evaluateVisitEligibility({ ...baseInput, qrFound: false })).toMatchObject({
       outcome: "BLOCKED",

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { rolePriority, roleRedirects } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 
 export function highestRole(roles: string[] = []) {
   return rolePriority.find((role) => roles.includes(role)) ?? "CUSTOMER";
@@ -83,6 +84,11 @@ export async function requireProfile(allowedRoles?: readonly string[]) {
   if (allowedRoles?.length) {
     const allowed = profile.roles.some((role) => allowedRoles.includes(role));
     if (!allowed) redirect(redirectForRoles(profile.roles));
+  }
+
+  const maintenance = await getMaintenanceSettings();
+  if (!canAccessDuringMaintenance({ path: "", roles: profile.roles, maintenanceEnabled: maintenance.maintenanceEnabled })) {
+    redirect("/maintenance");
   }
 
   return profile;

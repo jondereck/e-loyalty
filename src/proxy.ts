@@ -1,6 +1,10 @@
 import { auth } from "@/lib/auth/server";
 
-export default auth.middleware({ loginUrl: "/login" });
+const authProxy = auth.middleware({ loginUrl: "/login" });
+
+export function proxy(request: Parameters<typeof authProxy>[0]) {
+  return authProxy(request);
+}
 
 export const config = {
   matcher: [

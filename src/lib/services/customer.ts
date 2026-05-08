@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { getBusinessTimezone } from "@/lib/services/settings";
 import { businessDayWindow } from "@/lib/time";
 
 export async function getCustomerCard(profileId: string) {
   const now = new Date();
-  const { start, end, nextEligibleAt } = businessDayWindow(now);
+  const businessTimezone = await getBusinessTimezone();
+  const { start, end, nextEligibleAt } = businessDayWindow(now, businessTimezone);
   const profile = await prisma.userProfile.findUniqueOrThrow({
     where: { id: profileId },
     include: {
@@ -99,4 +101,3 @@ export async function getCustomerRewards(profileId: string) {
     })),
   };
 }
-

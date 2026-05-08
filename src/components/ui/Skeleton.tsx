@@ -1,7 +1,8 @@
+import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("skeleton", className)} />;
+export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("skeleton", className)} {...props} />;
 }
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {

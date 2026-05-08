@@ -10,6 +10,7 @@ export type EligibilityInput = {
   approvedVisitToday: boolean;
   approvedOtherBranchToday: boolean;
   suspicious?: boolean;
+  pointsPerVisit?: number;
   now?: Date;
 };
 
@@ -47,10 +48,14 @@ export function evaluateVisitEligibility(input: EligibilityInput): EligibilityRe
   }
   if (input.suspicious) return { outcome: "PENDING", reasonCode: "SUSPICIOUS_ACTIVITY" };
 
-  return { outcome: "AUTO_APPROVED", points: POINTS_PER_VISIT };
+  return { outcome: "AUTO_APPROVED", points: validPoints(input.pointsPerVisit) };
 }
 
 export function rewardStatus(pointsBalance: number, pointsRequired: number, redeemed = false) {
   if (redeemed) return "REDEEMED";
   return pointsBalance >= pointsRequired ? "AVAILABLE" : "LOCKED";
+}
+
+function validPoints(points?: number) {
+  return typeof points === "number" && Number.isInteger(points) && points > 0 ? points : POINTS_PER_VISIT;
 }

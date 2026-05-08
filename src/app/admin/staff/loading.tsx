@@ -1,14 +1,5 @@
-import { AdminListSkeleton } from "@/components/admin/AdminSkeletons";
+import { AdminStaffSkeleton } from "@/components/admin/AdminSkeletons";
 
 export default function Loading() {
-  return (
-    <AdminListSkeleton
-      active="/admin/staff"
-      title="Staff"
-      subtitle="Cashier and branch-admin assignments."
-      tableTitle="Assigned Staff"
-      columns={["Name", "Branch", "Role", "Status", "Manage"]}
-      metrics
-    />
-  );
+  return <AdminStaffSkeleton />;
 }

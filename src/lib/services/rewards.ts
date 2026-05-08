@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/session";
 
 export async function redeemReward(milestoneId: string, qrToken?: string) {
   const cashier = await getCurrentProfile();
   if (!cashier) throw new Error("Not authenticated.");
+  const maintenance = await getMaintenanceSettings();
+  if (!canAccessDuringMaintenance({ path: "/cashier/scan", roles: cashier.roles, maintenanceEnabled: maintenance.maintenanceEnabled })) {
+    throw new Error(maintenance.maintenanceMessage);
+  }
   if (cashier.status !== "ACTIVE") throw new Error("Inactive users cannot redeem rewards.");
   if (!cashier.roles.some((role) => ["CASHIER", "BRANCH_ADMIN", "SUPER_ADMIN"].includes(role))) {
     throw new Error("Only staff can redeem rewards.");

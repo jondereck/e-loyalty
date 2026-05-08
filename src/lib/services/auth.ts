@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
+import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { getAuthUser, redirectForRoles, requireProfile } from "@/lib/services/session";
 import { completeProfileSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
@@ -23,6 +24,11 @@ function buildProfileConflictWhere(email: string, username?: string, mobile?: st
 }
 
 export async function signupAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const maintenance = await getMaintenanceSettings();
+  if (!canAccessDuringMaintenance({ path: "/signup", roles: [], maintenanceEnabled: maintenance.maintenanceEnabled })) {
+    return { message: maintenance.maintenanceMessage };
+  }
+
   const parsed = signupSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
     const errors = parsed.error.flatten().fieldErrors;
@@ -195,6 +201,10 @@ export async function finishAuthSession() {
       metadata: { email: user.email },
     },
   });
+
+  if (!canAccessDuringMaintenance({ path: redirectForRoles(profile.roles), roles: profile.roles, maintenanceEnabled: (await getMaintenanceSettings()).maintenanceEnabled })) {
+    redirect("/maintenance");
+  }
 
   redirect(redirectForRoles(profile.roles));
 }

@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import type { AppRole, Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth/server";
-import { POINTS_PER_VISIT } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { earnKeyFor } from "@/lib/services/visits";
+import { getBusinessTimezone, getPointsPerVisit } from "@/lib/services/settings";
 import { branchIdsForAdmin, requireBranchScopedProfile } from "@/lib/services/session";
 import { computeBusinessDate } from "@/lib/time";
 import {
@@ -22,7 +22,8 @@ import {
 } from "@/lib/validations/admin";
 
 export async function getAdminDashboard(branchIds?: string[]) {
-  const { start, end } = await import("@/lib/time").then((mod) => mod.businessDayWindow());
+  const businessTimezone = await getBusinessTimezone();
+  const { start, end } = await import("@/lib/time").then((mod) => mod.businessDayWindow(new Date(), businessTimezone));
   const scoped = Array.isArray(branchIds);
   const visitScope = scoped ? { branchId: { in: branchIds } } : {};
   const branchScope = scoped ? { id: { in: branchIds } } : {};
@@ -153,8 +154,9 @@ export async function getApprovalDetail(visitId: string) {
       auditEvents: { include: { actor: true }, orderBy: { createdAt: "desc" } },
     },
   });
-  const { start, end } = await import("@/lib/time").then((mod) => mod.businessDayWindow(visit.scannedAt));
-  const businessDate = visit.businessDate || computeBusinessDate(visit.scannedAt);
+  const businessTimezone = await getBusinessTimezone();
+  const { start, end } = await import("@/lib/time").then((mod) => mod.businessDayWindow(visit.scannedAt, businessTimezone));
+  const businessDate = visit.businessDate || computeBusinessDate(visit.scannedAt, businessTimezone);
   const previous = await prisma.visit.findFirst({
     where: {
       loyaltyCardId: visit.loyaltyCardId,
@@ -186,6 +188,9 @@ export async function approveVisitAction(formData: FormData) {
 }
 
 export async function approveVisit(visitId: string, actorId: string, override = false, adminNote?: string | null) {
+  const pointsPerVisit = await getPointsPerVisit();
+  const businessTimezone = await getBusinessTimezone();
+
   await prisma.$transaction(async (tx) => {
     const visit = await tx.visit.findUniqueOrThrow({ where: { id: visitId } });
     if (visit.status !== "PENDING") {
@@ -197,7 +202,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
     });
     if (existingLedger) throw new Error("This visit already has an earn ledger entry.");
 
-    const businessDate = visit.businessDate || computeBusinessDate(visit.scannedAt);
+    const businessDate = visit.businessDate || computeBusinessDate(visit.scannedAt, businessTimezone);
     const earnKey = earnKeyFor(visit.loyaltyCardId, businessDate);
     const earnedToday = await tx.visit.findFirst({
       where: {
@@ -213,7 +218,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
       data: {
         status: "APPROVED",
         approvalStatus: override ? "OVERRIDDEN" : "APPROVED",
-        pointsAwarded: POINTS_PER_VISIT,
+        pointsAwarded: pointsPerVisit,
         businessDate,
         earnKey,
         approvedAt: new Date(),
@@ -228,7 +233,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
         profileId: visit.customerId,
         visitId: visit.id,
         type: "EARN",
-        points: POINTS_PER_VISIT,
+        points: pointsPerVisit,
         description: override ? "Override approved visit earn" : "Admin approved visit earn",
       },
     });
@@ -236,8 +241,8 @@ export async function approveVisit(visitId: string, actorId: string, override = 
     await tx.loyaltyCard.update({
       where: { id: visit.loyaltyCardId },
       data: {
-        pointsBalance: { increment: POINTS_PER_VISIT },
-        totalEarned: { increment: POINTS_PER_VISIT },
+        pointsBalance: { increment: pointsPerVisit },
+        totalEarned: { increment: pointsPerVisit },
         visitsEarned: { increment: 1 },
         lastVisitAt: visit.scannedAt,
       },
@@ -366,7 +371,8 @@ export async function getBranchSetupOptions(branchIds?: string[]) {
 }
 
 export async function getBranchDetail(branchId: string) {
-  const { end } = await import("@/lib/time").then((mod) => mod.businessDayWindow());
+  const businessTimezone = await getBusinessTimezone();
+  const { end } = await import("@/lib/time").then((mod) => mod.businessDayWindow(new Date(), businessTimezone));
   const weekStart = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
   const branch = await prisma.branch.findUniqueOrThrow({
     where: { id: branchId },

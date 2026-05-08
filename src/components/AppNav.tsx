@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { logoutAction } from "@/lib/services/auth";
+import { getBrandingSettings } from "@/lib/services/settings";
 
-export function AppNav({
+export async function AppNav({
   active,
   mode = "public",
   showAdmin = false,
@@ -23,13 +24,14 @@ export function AppNav({
         ["/login", "Login", "login"],
         ["/signup", "Sign up", "signup"],
       ] as const;
+  const branding = await getBrandingSettings();
 
   return (
     <header className="topbar">
       <nav className="nav">
         <Link className="brand" href="/">
-          <span className="logo">L</span>
-          <span>Loyalty Pass</span>
+          <span className="logo">{branding.systemName.charAt(0).toUpperCase()}</span>
+          <span>{branding.systemName}</span>
         </Link>
         <div className="navlinks">
           {links.map(([href, label, key]) => (

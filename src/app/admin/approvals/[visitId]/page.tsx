@@ -6,8 +6,8 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminNoteTextarea } from "@/components/admin/AdminNoteTextarea";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { POINTS_PER_VISIT } from "@/lib/constants";
 import { approveVisitAction, getApprovalDetail, rejectVisitAction } from "@/lib/services/admin";
+import { getPointsPerVisit } from "@/lib/services/settings";
 import { requireBranchScopedProfile } from "@/lib/services/session";
 import { formatDateTime } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ export default async function AdminApprovalDetailPage({
   await requireBranchScopedProfile(data.visit.branchId);
   const visit = data.visit;
   const pending = visit.status === "PENDING";
-  const points = visit.pointsAwarded || POINTS_PER_VISIT;
+  const points = visit.pointsAwarded || (await getPointsPerVisit());
 
   return (
     <AdminShell active="/admin/approvals">

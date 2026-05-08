@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { FlippableLoyaltyCard } from "@/components/loyalty/FlippableLoyaltyCard";
 import { getCustomerCard } from "@/lib/services/customer";
+import { getBrandingSettings } from "@/lib/services/settings";
 import { requireProfile } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CardPage() {
   const profile = await requireProfile(["CUSTOMER"]);
-  const data = await getCustomerCard(profile.id);
+  const [data, branding] = await Promise.all([getCustomerCard(profile.id), getBrandingSettings()]);
   const progressTarget = data.nextReward?.pointsRequired ?? Math.max(data.card.pointsBalance, 1000);
   const progress = Math.min(100, Math.round((data.card.pointsBalance / progressTarget) * 100));
   const firstName = data.profile.fullName.split(" ")[0] ?? data.profile.fullName;
@@ -27,6 +28,7 @@ export default async function CardPage() {
         visits={data.card.visitsEarned}
         qrToken={data.card.qrToken}
         cardNumber={data.card.cardNumber}
+        systemName={branding.systemName}
       />
 
       <div className="lp-mini-card">

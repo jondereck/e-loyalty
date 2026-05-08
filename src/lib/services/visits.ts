@@ -1,8 +1,8 @@
-import { POINTS_PER_VISIT } from "@/lib/constants";
 import { Prisma, type VisitReasonCode, type VisitStatus } from "@/generated/prisma/client";
 import { safeTokenPreview } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { evaluateVisitEligibility } from "@/lib/rules";
+import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit } from "@/lib/services/settings";
 import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/session";
 import { businessDayWindow, computeBusinessDate } from "@/lib/time";
 
@@ -24,6 +24,10 @@ export const validateVisitEligibility = evaluateVisitEligibility;
 export async function scanCustomerQr(payload: ScanPayload) {
   const cashier = await getCurrentProfile();
   if (!cashier) throw new Error("Not authenticated.");
+  const maintenance = await getMaintenanceSettings();
+  if (!canAccessDuringMaintenance({ path: "/cashier/scan", roles: cashier.roles, maintenanceEnabled: maintenance.maintenanceEnabled })) {
+    throw new Error(maintenance.maintenanceMessage);
+  }
   if (cashier.status !== "ACTIVE") throw new Error("Inactive users cannot scan QR codes.");
   if (!cashier.roles.includes("CASHIER") && !cashier.roles.includes("BRANCH_ADMIN") && !cashier.roles.includes("SUPER_ADMIN")) {
     throw new Error("Only staff can scan QR codes.");
@@ -34,9 +38,11 @@ export async function scanCustomerQr(payload: ScanPayload) {
     : activeAssignmentsForRole(cashier, ["CASHIER", "BRANCH_ADMIN"])[0];
   const branchId = payload.branchId ?? assignment?.branchId;
   const now = new Date();
-  const businessDate = computeBusinessDate(now);
-  const { start, end, nextEligibleAt } = businessDayWindow(now);
+  const businessTimezone = await getBusinessTimezone();
+  const businessDate = computeBusinessDate(now, businessTimezone);
+  const { start, end, nextEligibleAt } = businessDayWindow(now, businessTimezone);
   const qrTokenHash = safeTokenPreview(payload.qrToken);
+  const pointsPerVisit = await getPointsPerVisit();
 
   const [card, branch] = await Promise.all([
     prisma.loyaltyCard.findUnique({
@@ -79,6 +85,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     approvedVisitToday: Boolean(approvedToday),
     approvedOtherBranchToday,
     suspicious: payload.suspicious,
+    pointsPerVisit,
   });
 
   if (!card || !branch || result.outcome === "BLOCKED") {
@@ -160,6 +167,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     earnKey,
     qrTokenHash,
     flags,
+    pointsAwarded: result.points,
   }).catch(async (error: unknown) => {
     if (!isUniqueConstraintError(error)) throw error;
     const attempt = await createVisitAttempt(prisma, {
@@ -194,7 +202,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
   return {
     type: "AUTO_APPROVED" as const,
     id: visit.id,
-    message: `Visit approved. ${POINTS_PER_VISIT} points added.`,
+    message: `Visit approved. ${visit.pointsAwarded} points added.`,
   };
 }
 
@@ -210,6 +218,7 @@ export async function autoApproveVisit({
   earnKey,
   qrTokenHash,
   flags,
+  pointsAwarded,
 }: {
   card: ResolvedCard;
   branchId: string;
@@ -218,6 +227,7 @@ export async function autoApproveVisit({
   earnKey: string;
   qrTokenHash: string | null;
   flags: ScanAttemptFlags;
+  pointsAwarded: number;
 }) {
   return prisma.$transaction(async (tx) => {
     const created = await tx.visit.create({
@@ -228,7 +238,7 @@ export async function autoApproveVisit({
         cashierId,
         status: "AUTO_APPROVED",
         approvalStatus: "NOT_REQUIRED",
-        pointsAwarded: POINTS_PER_VISIT,
+        pointsAwarded,
         businessDate,
         earnKey,
         approvedAt: new Date(),
@@ -241,7 +251,7 @@ export async function autoApproveVisit({
         profileId: card.profileId,
         visitId: created.id,
         type: "EARN",
-        points: POINTS_PER_VISIT,
+        points: pointsAwarded,
         description: "Approved visit earn",
       },
     });
@@ -249,8 +259,8 @@ export async function autoApproveVisit({
     await tx.loyaltyCard.update({
       where: { id: card.id },
       data: {
-        pointsBalance: { increment: POINTS_PER_VISIT },
-        totalEarned: { increment: POINTS_PER_VISIT },
+        pointsBalance: { increment: pointsAwarded },
+        totalEarned: { increment: pointsAwarded },
         visitsEarned: { increment: 1 },
         lastVisitAt: created.scannedAt,
       },
@@ -274,7 +284,7 @@ export async function autoApproveVisit({
         actorId: cashierId,
         visitId: created.id,
         action: "VISIT_AUTO_APPROVED",
-        metadata: { points: POINTS_PER_VISIT, businessDate },
+        metadata: { points: pointsAwarded, businessDate },
       },
     });
 

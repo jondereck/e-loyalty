@@ -1,34 +1,27 @@
 import Link from "next/link";
-import { ChevronDown, ClipboardCheck, LayoutDashboard, LogOut, MapPin, Settings, Shield, Sparkles, UserCircle, Users } from "lucide-react";
+import { ChevronDown, LogOut, Sparkles, UserCircle } from "lucide-react";
 import { logoutAction } from "@/lib/services/auth";
+import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import type { CurrentProfile } from "@/lib/services/session";
-
-const links = [
-  { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/members", label: "Members", icon: Users },
-  { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
-  { href: "/admin/staff", label: "Staff", icon: UserCircle },
-  { href: "/admin/branches", label: "Branches", icon: MapPin },
-  { href: "/super-admin/settings", label: "Settings", icon: Settings },
-  { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield },
-];
 
 export function Sidebar({
   active,
   showSuperAdmin = false,
   profile,
+  systemName,
 }: {
   active: string;
   showSuperAdmin?: boolean;
   profile?: CurrentProfile | null;
+  systemName: string;
 }) {
-  const visibleLinks = showSuperAdmin ? links : links.filter((link) => !link.href.startsWith("/super-admin"));
+  const visibleLinks = getVisibleAdminNavLinks(showSuperAdmin);
 
   return (
     <aside className="lp-admin-sidebar">
       <Link className="lp-admin-brand" href="/admin/dashboard">
         <span className="lp-brand-icon"><Sparkles size={18} /></span>
-        <span>Loyalty Pass</span>
+        <span>{systemName}</span>
       </Link>
       {visibleLinks.map((link) => {
         const Icon = link.icon;
