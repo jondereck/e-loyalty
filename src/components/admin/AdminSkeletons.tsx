@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Download,
   FileText,
   Gift,
   LayoutGrid,
@@ -83,10 +82,6 @@ export function AdminSkeletonShell({
           {showShellHeader ? (
             <div className="lp-admin-head">
               <h2>{heading}</h2>
-              <div className="lp-admin-actions">
-                <span className="lp-date">Today</span>
-                <button type="button" className="lp-export"><Download size={14} /> Export</button>
-              </div>
             </div>
           ) : null}
           {children}

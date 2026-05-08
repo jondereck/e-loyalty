@@ -12,8 +12,10 @@ import {
   adjustMemberPointsSchema,
   approveVisitSchema,
   createBranchSchema,
+  deleteStaffAccountSchema,
   createStaffAssignmentSchema,
   createStaffAccountSchema,
+  removeStaffAssignmentSchema,
   rejectVisitSchema,
   updateCardStatusSchema,
   updateBranchSchema,
@@ -497,7 +499,15 @@ export async function listStaff(branchIds?: string[], query?: string) {
 
   return prisma.staffAssignment.findMany({
     where,
-    include: { profile: true, branch: true },
+    include: {
+      profile: {
+        include: {
+          staffAssignments: true,
+          _count: { select: { cashierVisits: true } },
+        },
+      },
+      branch: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -702,7 +712,85 @@ export async function updateStaffAssignmentStatusAction(formData: FormData) {
       },
     },
   });
+  await syncStaffRoleForProfile(assignment.profileId, assignment.role);
   revalidateStaffSetup(assignment.branchId, assignment.profileId);
+}
+
+export async function removeStaffAssignmentAction(formData: FormData) {
+  const parsed = removeStaffAssignmentSchema.parse(Object.fromEntries(formData.entries()));
+  const assignment = await prisma.staffAssignment.findUniqueOrThrow({
+    where: { id: parsed.assignmentId },
+    include: { profile: true },
+  });
+  const actor = await requireAssignmentManager(assignment.branchId, assignment.role);
+  if (actor.id === assignment.profileId) throw new Error("You cannot remove your own staff assignment.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.staffAssignment.delete({ where: { id: assignment.id } });
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.id,
+        action: "STAFF_ASSIGNMENT_REMOVED",
+        metadata: {
+          assignmentId: assignment.id,
+          profileId: assignment.profileId,
+          branchId: assignment.branchId,
+          role: assignment.role,
+          previousStatus: assignment.status,
+        },
+      },
+    });
+  });
+
+  await syncStaffRoleForProfile(assignment.profileId, assignment.role);
+  revalidateStaffSetup(assignment.branchId, assignment.profileId);
+}
+
+export async function deleteStaffAccountAction(formData: FormData) {
+  const parsed = deleteStaffAccountSchema.parse(Object.fromEntries(formData.entries()));
+  const target = await prisma.userProfile.findUniqueOrThrow({
+    where: { id: parsed.profileId },
+    include: {
+      staffAssignments: true,
+      _count: { select: { cashierVisits: true } },
+    },
+  });
+  const actor = await requireStaffProfileDeletionManager(target);
+  if (actor.id === target.id) throw new Error("You cannot delete your own staff account.");
+  if (target.roles.includes("CUSTOMER")) throw new Error("This profile is also a customer. Remove only the staff assignment.");
+  if (target._count.cashierVisits > 0) throw new Error("This staff account has scan history. Remove assignments instead.");
+
+  const canDeleteAllAssignments = target.staffAssignments.every((assignment) => canManageStaffAssignment(actor, assignment.branchId, assignment.role));
+  if (!canDeleteAllAssignments) throw new Error("You can only delete staff accounts fully within your managed scope.");
+
+  const authResult = await auth.admin.removeUser({ userId: target.authUserId });
+  if (authResult.error) throw new Error(authResult.error.message ?? "Unable to delete the auth account.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userProfile.delete({ where: { id: target.id } });
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.id,
+        action: "STAFF_ACCOUNT_DELETED",
+        metadata: {
+          profileId: target.id,
+          authUserId: target.authUserId,
+          roles: target.roles,
+          assignments: target.staffAssignments.map((assignment) => ({
+            branchId: assignment.branchId,
+            role: assignment.role,
+            status: assignment.status,
+          })),
+        },
+      },
+    });
+  });
+
+  revalidateAdmin();
+  revalidatePath("/admin/staff");
+  for (const assignment of target.staffAssignments) {
+    revalidateBranchSetup(assignment.branchId);
+  }
 }
 
 export async function listMembers(branchIds?: string[]) {
@@ -1203,6 +1291,36 @@ async function requireAssignmentManager(branchId: string, role: AppRole) {
   if (profile.roles.includes("SUPER_ADMIN")) return profile;
   if (role !== "CASHIER") throw new Error("Branch Admin can only manage cashier assignments.");
   return profile;
+}
+
+async function requireStaffProfileDeletionManager(target: { staffAssignments: Array<{ branchId: string; role: AppRole }> }) {
+  const profile = await requireBranchScopedProfile();
+  if (profile.roles.includes("SUPER_ADMIN")) return profile;
+  if (!target.staffAssignments.length) throw new Error("This profile has no staff assignments to manage.");
+  const canManageEveryAssignment = target.staffAssignments.every((assignment) => canManageStaffAssignment(profile, assignment.branchId, assignment.role));
+  if (!canManageEveryAssignment) throw new Error("Branch Admin can only delete cashier staff within assigned branches.");
+  return profile;
+}
+
+function canManageStaffAssignment(profile: { roles: AppRole[]; staffAssignments: Array<{ branchId: string; role: AppRole; status: string }> }, branchId: string, role: AppRole) {
+  if (profile.roles.includes("SUPER_ADMIN")) return true;
+  if (role !== "CASHIER") return false;
+  return profile.staffAssignments.some(
+    (assignment) => assignment.branchId === branchId && assignment.role === "BRANCH_ADMIN" && assignment.status === "ACTIVE",
+  );
+}
+
+async function syncStaffRoleForProfile(profileId: string, role: AppRole) {
+  const [profile, activeRoleAssignments] = await Promise.all([
+    prisma.userProfile.findUniqueOrThrow({ where: { id: profileId }, select: { roles: true } }),
+    prisma.staffAssignment.count({ where: { profileId, role, status: "ACTIVE" } }),
+  ]);
+  const nextRoles = activeRoleAssignments > 0
+    ? Array.from(new Set([...profile.roles, role]))
+    : profile.roles.filter((item) => item !== role);
+  if (nextRoles.length !== profile.roles.length || nextRoles.some((item, index) => item !== profile.roles[index])) {
+    await prisma.userProfile.update({ where: { id: profileId }, data: { roles: nextRoles } });
+  }
 }
 
 function staffEmailForUsername(username: string) {

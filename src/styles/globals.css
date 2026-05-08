@@ -895,9 +895,8 @@ h3 {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   margin: 0 auto 12px;
   background: linear-gradient(145deg, #386bff, #834dff);
   color: #fff;
@@ -1481,6 +1480,8 @@ h3 {
 .lp-avatar.small {
   width: 36px;
   height: 36px;
+  display: grid;
+  place-items: center;
   font-size: 13px;
   margin: 0;
 }
@@ -2080,6 +2081,10 @@ h3 {
   overflow: visible;
 }
 
+.lp-staff-panel {
+  overflow: visible;
+}
+
 .lp-row-menu {
   position: relative;
   display: inline-block;
@@ -2112,24 +2117,168 @@ h3 {
 .lp-row-menu-panel {
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   z-index: 20;
-  min-width: 138px;
+  min-width: 156px;
   display: grid;
-  gap: 6px;
-  padding: 8px;
+  gap: 4px;
+  padding: 6px;
   border: 1px solid #e5e9f2;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 14px 32px rgba(28, 36, 67, 0.14);
+  box-shadow: 0 16px 36px rgba(28, 36, 67, 0.16);
 }
 
 .lp-row-menu-panel .btn {
   width: 100%;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 12px;
+  justify-content: flex-start;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
   font-size: 12px;
+  font-weight: 850;
+  box-shadow: none;
+}
+
+.lp-status-menu-action.active {
+  background: #eefaf3;
+  color: #16883f;
+  border: 1px solid #d5f0df;
+}
+
+.lp-status-menu-action.inactive {
+  background: #f7f8fb;
+  color: #4f5d7c;
+  border: 1px solid #e5e9f2;
+}
+
+.lp-status-menu-action.revoked {
+  background: #fff2f3;
+  color: #d53245;
+  border: 1px solid #ffd8dd;
+}
+
+.lp-status-menu-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(28, 36, 67, 0.1);
+}
+
+.lp-status-menu-action:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.lp-status-menu-action:disabled::after {
+  content: "Current";
+  margin-left: auto;
+  color: currentColor;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.72;
+}
+
+.lp-row-menu-trigger {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dfe4ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #354160;
+  cursor: pointer;
+}
+
+.lp-row-menu-trigger:hover,
+.lp-row-menu-trigger[data-state="open"] {
+  border-color: #d9ceff;
+  background: #f0eafd;
+  color: #5638ff;
+}
+
+.lp-dropdown-menu-content {
+  z-index: 80;
+  min-width: 188px;
+  padding: 6px;
+  border: 1px solid #e5e9f2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(28, 36, 67, 0.16);
+}
+
+.lp-dropdown-menu-item {
+  outline: none;
+}
+
+.lp-dropdown-menu-separator {
+  height: 1px;
+  margin: 6px 2px;
+  background: #edf0f6;
+}
+
+.lp-dropdown-form {
+  margin: 0;
+}
+
+.lp-staff-menu-button {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  color: #25304c;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.lp-staff-menu-button em {
+  margin-left: auto;
+  color: currentColor;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+  opacity: 0.72;
+}
+
+.lp-staff-menu-button.active {
+  background: #eefaf3;
+  color: #16883f;
+  border-color: #d5f0df;
+}
+
+.lp-staff-menu-button.inactive {
+  background: #f7f8fb;
+  color: #4f5d7c;
+  border-color: #e5e9f2;
+}
+
+.lp-staff-menu-button.revoked,
+.lp-staff-menu-button.warning {
+  background: #fff8eb;
+  color: #b66a00;
+  border-color: #ffe7bd;
+}
+
+.lp-staff-menu-button.danger {
+  background: #fff2f3;
+  color: #d53245;
+  border-color: #ffd8dd;
+}
+
+.lp-staff-menu-button:hover:not(:disabled),
+.lp-dropdown-menu-item[data-highlighted] .lp-staff-menu-button:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(28, 36, 67, 0.1);
+}
+
+.lp-staff-menu-button:disabled {
+  cursor: default;
+  opacity: 1;
 }
 
 .lp-icon-button {
@@ -2513,6 +2662,8 @@ h3 {
 .lp-avatar.tiny {
   width: 34px;
   height: 34px;
+  display: grid;
+  place-items: center;
   margin: 0;
   font-size: 12px;
   color: #5e43ff;

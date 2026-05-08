@@ -62,3 +62,11 @@ export const updateStaffAssignmentStatusSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]),
 });
 
+export const removeStaffAssignmentSchema = z.object({
+  assignmentId: z.string().min(1),
+});
+
+export const deleteStaffAccountSchema = z.object({
+  profileId: z.string().min(1),
+});
+

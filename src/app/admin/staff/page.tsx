@@ -1,6 +1,6 @@
-import { MoreHorizontal } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
+import { StaffActionsDropdown, StaffActionsProvider } from "@/components/admin/StaffActionsDropdown";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -9,7 +9,6 @@ import {
   createStaffAssignmentAction,
   getStaffSetupData,
   listStaff,
-  updateStaffAssignmentStatusAction,
 } from "@/lib/services/admin";
 import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 
@@ -116,47 +115,70 @@ export default async function AdminStaffPage({
       <form action="/admin/staff" className="lp-staff-toolbar">
         <DebouncedSearchField key={query} defaultValue={query} placeholder="Search staff by name, email, phone, branch, or role..." />
       </form>
-      <div className="lp-panel">
+      <div className="lp-panel lp-staff-panel">
         <h3>Assigned Staff</h3>
         <div className="lp-table-wrap lp-staff-table-wrap">
-          <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Number</th><th>Branch</th><th>Role</th><th>Status</th><th>Manage</th></tr></thead>
-            <tbody>
-              {staff.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td>{assignment.profile.fullName}</td>
-                  <td>{assignment.profile.email}</td>
-                  <td>{assignment.profile.mobile ?? <span className="muted">No number</span>}</td>
-                  <td>{assignment.branch.name}</td>
-                  <td>{assignment.role.replaceAll("_", " ")}</td>
-                  <td><StatusBadge status={assignment.status} /></td>
-                  <td>
-                    {isSuperAdmin || assignment.role === "CASHIER" ? (
-                      <details className="lp-row-menu">
-                        <summary aria-label={`Manage ${assignment.profile.fullName}`}>
-                          <MoreHorizontal size={18} />
-                        </summary>
-                        <div className="lp-row-menu-panel">
-                          {(["ACTIVE", "INACTIVE", "REVOKED"] as const).map((status) => (
-                            <form action={updateStaffAssignmentStatusAction} key={status}>
-                              <input type="hidden" name="assignmentId" value={assignment.id} />
-                              <input type="hidden" name="status" value={status} />
-                              <Button type="submit" variant={assignment.status === status ? "secondary" : "default"} disabled={assignment.status === status}>
-                                {status}
-                              </Button>
-                            </form>
-                          ))}
-                        </div>
-                      </details>
-                    ) : (
-                      <span className="muted">Super Admin only</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!staff.length ? <tr><td colSpan={7}>No staff assignments found.</td></tr> : null}
-            </tbody>
-          </table>
+          <StaffActionsProvider>
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Number</th><th>Branch</th><th>Role</th><th>Status</th><th>Manage</th></tr></thead>
+              <tbody>
+                {staff.map((assignment) => {
+                  const canManage = canManageAssignment({
+                    isSuperAdmin,
+                    branchIds,
+                    branchId: assignment.branchId,
+                    role: assignment.role,
+                    profileId: assignment.profileId,
+                    currentProfileId: profile.id,
+                  });
+                  const canDeleteAccount = canManage && canDeleteStaffAccount({
+                    isSuperAdmin,
+                    branchIds,
+                    currentProfileId: profile.id,
+                    profileId: assignment.profileId,
+                    roles: assignment.profile.roles,
+                    assignments: assignment.profile.staffAssignments,
+                    cashierVisits: assignment.profile._count.cashierVisits,
+                  });
+                  const deleteAccountReason = canManage && !canDeleteAccount ? staffDeleteBlockReason({
+                    isSuperAdmin,
+                    branchIds,
+                    currentProfileId: profile.id,
+                    profileId: assignment.profileId,
+                    roles: assignment.profile.roles,
+                    assignments: assignment.profile.staffAssignments,
+                    cashierVisits: assignment.profile._count.cashierVisits,
+                  }) : undefined;
+
+                  return (
+                    <tr key={assignment.id}>
+                      <td>{assignment.profile.fullName}</td>
+                      <td>{assignment.profile.email}</td>
+                      <td>{assignment.profile.mobile ?? <span className="muted">No number</span>}</td>
+                      <td>{assignment.branch.name}</td>
+                      <td>{assignment.role.replaceAll("_", " ")}</td>
+                      <td><StatusBadge status={assignment.status} /></td>
+                      <td>
+                        {canManage ? (
+                          <StaffActionsDropdown
+                            assignmentId={assignment.id}
+                            profileId={assignment.profileId}
+                            profileName={assignment.profile.fullName}
+                            status={assignment.status}
+                            canDeleteAccount={canDeleteAccount}
+                            deleteAccountReason={deleteAccountReason}
+                          />
+                        ) : (
+                          <span className="muted">Super Admin only</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!staff.length ? <tr><td colSpan={7}>No staff assignments found.</td></tr> : null}
+              </tbody>
+            </table>
+          </StaffActionsProvider>
         </div>
       </div>
     </AdminShell>
@@ -165,5 +187,65 @@ export default async function AdminStaffPage({
 
 function readParam(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function canManageAssignment({
+  isSuperAdmin,
+  branchIds,
+  branchId,
+  role,
+  profileId,
+  currentProfileId,
+}: {
+  isSuperAdmin: boolean;
+  branchIds?: string[];
+  branchId: string;
+  role: string;
+  profileId: string;
+  currentProfileId: string;
+}) {
+  if (isSuperAdmin) return true;
+  if (profileId === currentProfileId) return false;
+  return role === "CASHIER" && Boolean(branchIds?.includes(branchId));
+}
+
+function canDeleteStaffAccount({
+  isSuperAdmin,
+  branchIds,
+  currentProfileId,
+  profileId,
+  roles,
+  assignments,
+  cashierVisits,
+}: {
+  isSuperAdmin: boolean;
+  branchIds?: string[];
+  currentProfileId: string;
+  profileId: string;
+  roles: string[];
+  assignments: Array<{ branchId: string; role: string }>;
+  cashierVisits: number;
+}) {
+  if (profileId === currentProfileId || roles.includes("CUSTOMER") || cashierVisits > 0) return false;
+  if (isSuperAdmin) return true;
+  return assignments.length > 0 && assignments.every((assignment) => assignment.role === "CASHIER" && branchIds?.includes(assignment.branchId));
+}
+
+function staffDeleteBlockReason(input: {
+  isSuperAdmin: boolean;
+  branchIds?: string[];
+  currentProfileId: string;
+  profileId: string;
+  roles: string[];
+  assignments: Array<{ branchId: string; role: string }>;
+  cashierVisits: number;
+}) {
+  if (input.profileId === input.currentProfileId) return "Self";
+  if (input.roles.includes("CUSTOMER")) return "Customer";
+  if (input.cashierVisits > 0) return "Has history";
+  if (!input.isSuperAdmin && !input.assignments.every((assignment) => assignment.role === "CASHIER" && input.branchIds?.includes(assignment.branchId))) {
+    return "No access";
+  }
+  return undefined;
 }
 
