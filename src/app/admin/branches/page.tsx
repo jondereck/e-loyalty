@@ -2,11 +2,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Download, MapPin, Plus, Store } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { CreateBranchForm } from "@/components/admin/BranchForms";
 import { BranchTable } from "@/components/admin/BranchTable";
 import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { createBranchAction, getBranchManagementData } from "@/lib/services/admin";
+import { getBranchManagementData } from "@/lib/services/admin";
 import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
@@ -36,37 +37,7 @@ export default async function AdminBranchesPage({
         <div className="lp-title-actions">
           {canCreate ? (
             <Modal title="Create branch" trigger={<Button type="button" variant="primary"><Plus size={18} /> Create Branch</Button>}>
-              <form action={createBranchAction} className="lp-form-grid">
-                <div className="field">
-                  <label htmlFor="code">Code</label>
-                  <input id="code" name="code" placeholder="MAIN" />
-                </div>
-                <div className="field">
-                  <label htmlFor="name">Name</label>
-                  <input id="name" name="name" placeholder="Main Branch" />
-                </div>
-                <div className="field wide">
-                  <label htmlFor="address">Address</label>
-                  <textarea id="address" name="address" placeholder="Street address, city, province" rows={3} />
-                </div>
-                <div className="field">
-                  <label htmlFor="phone">Phone</label>
-                  <input id="phone" name="phone" placeholder="(02) 8123 4567" />
-                </div>
-                <div className="field">
-                  <label htmlFor="email">Email</label>
-                  <input id="email" name="email" type="email" placeholder="branch@example.com" />
-                </div>
-                <div className="field">
-                  <label htmlFor="status">Status</label>
-                  <select id="status" name="status" defaultValue="ACTIVE">
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="MAINTENANCE">Maintenance</option>
-                  </select>
-                </div>
-                <Button type="submit" variant="primary">Create Branch</Button>
-              </form>
+              <CreateBranchForm />
             </Modal>
           ) : null}
           <Link className="btn secondary" href={exportHref}><Download size={16} /> Export</Link>
@@ -88,7 +59,7 @@ export default async function AdminBranchesPage({
         <Button type="submit" variant="secondary">Filter</Button>
       </form>
 
-      <BranchTable branches={data.branches} canEdit={canEdit} />
+      <BranchTable branches={data.branches} canEdit={canEdit} canDelete={canCreate} />
       <div className="lp-branch-table-footer">
         <span>Showing {data.pagination.from} to {data.pagination.to} of {data.pagination.total} branches</span>
         <div className="lp-pagination">

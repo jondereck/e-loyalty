@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Edit3, Gift, Info, Mail, MapPin, Phone, TrendingUp, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { DeleteBranchForm, UpdateBranchForm } from "@/components/admin/BranchForms";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getBranchDetail, updateBranchAction } from "@/lib/services/admin";
+import { getBranchDetail } from "@/lib/services/admin";
 import { requireBranchScopedProfile } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 
@@ -18,10 +19,11 @@ export default async function AdminBranchDetailPage({
   params: Promise<{ branchId: string }>;
 }) {
   const { branchId } = await params;
-  await requireBranchScopedProfile(branchId);
+  const profile = await requireBranchScopedProfile(branchId);
   const data = await getBranchDetail(branchId).catch(() => null);
   if (!data) notFound();
   const { branch, performance } = data;
+  const canDelete = profile.roles.includes("SUPER_ADMIN");
 
   return (
     <AdminShell active="/admin/branches">
@@ -34,39 +36,13 @@ export default async function AdminBranchDetailPage({
           </div>
           <div className="lp-title-actions">
             <Modal title="Edit branch" trigger={<Button type="button" variant="primary"><Edit3 size={17} /> Edit Branch</Button>}>
-              <form action={updateBranchAction} className="lp-form-grid">
-                <input type="hidden" name="branchId" value={branch.id} />
-                <div className="field">
-                  <label htmlFor="code">Code</label>
-                  <input id="code" name="code" defaultValue={branch.code} />
-                </div>
-                <div className="field">
-                  <label htmlFor="name">Name</label>
-                  <input id="name" name="name" defaultValue={branch.name} />
-                </div>
-                <div className="field wide">
-                  <label htmlFor="address">Address</label>
-                  <textarea id="address" name="address" defaultValue={branch.address ?? ""} rows={3} />
-                </div>
-                <div className="field">
-                  <label htmlFor="phone">Phone</label>
-                  <input id="phone" name="phone" defaultValue={branch.phone ?? ""} />
-                </div>
-                <div className="field">
-                  <label htmlFor="email">Email</label>
-                  <input id="email" name="email" type="email" defaultValue={branch.email ?? ""} />
-                </div>
-                <div className="field">
-                  <label htmlFor="status">Status</label>
-                  <select id="status" name="status" defaultValue={branch.status}>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="MAINTENANCE">Maintenance</option>
-                  </select>
-                </div>
-                <Button type="submit" variant="primary">Save Branch</Button>
-              </form>
+              <UpdateBranchForm branch={branch} />
             </Modal>
+            {canDelete ? (
+              <Modal title="Delete branch" trigger={<Button type="button" variant="danger">Delete Branch</Button>}>
+                <DeleteBranchForm branch={branch} />
+              </Modal>
+            ) : null}
           </div>
         </div>
       </div>

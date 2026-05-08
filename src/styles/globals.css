@@ -2293,6 +2293,15 @@ h3 {
   cursor: pointer;
 }
 
+.lp-icon-button.danger {
+  color: #d53245;
+}
+
+.lp-icon-button.danger:hover {
+  border-color: #ffd8dd;
+  background: #fff2f3;
+}
+
 .lp-branch-table-footer {
   min-height: 56px;
   display: flex;

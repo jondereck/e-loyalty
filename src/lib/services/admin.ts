@@ -12,6 +12,7 @@ import {
   adjustMemberPointsSchema,
   approveVisitSchema,
   createBranchSchema,
+  deleteBranchSchema,
   deleteStaffAccountSchema,
   createStaffAssignmentSchema,
   createStaffAccountSchema,
@@ -437,6 +438,21 @@ export async function createBranchAction(formData: FormData) {
   revalidateBranchSetup(branch.id);
 }
 
+export type BranchActionState = {
+  ok?: boolean;
+  message?: string;
+  errors?: Record<string, string[] | undefined>;
+};
+
+export async function createBranchFormAction(_state: BranchActionState, formData: FormData): Promise<BranchActionState> {
+  try {
+    await createBranchAction(formData);
+    return { ok: true, message: "Branch created." };
+  } catch (error) {
+    return branchActionError(error);
+  }
+}
+
 export async function updateBranchAction(formData: FormData) {
   const parsed = updateBranchSchema.parse(Object.fromEntries(formData.entries()));
   const actor = await requireBranchManager(parsed.branchId);
@@ -479,6 +495,52 @@ export async function updateBranchAction(formData: FormData) {
     },
   });
   revalidateBranchSetup(branch.id);
+}
+
+export async function updateBranchFormAction(_state: BranchActionState, formData: FormData): Promise<BranchActionState> {
+  try {
+    await updateBranchAction(formData);
+    return { ok: true, message: "Branch updated." };
+  } catch (error) {
+    return branchActionError(error);
+  }
+}
+
+export async function deleteBranchFormAction(_state: BranchActionState, formData: FormData): Promise<BranchActionState> {
+  try {
+    const parsed = deleteBranchSchema.parse(Object.fromEntries(formData.entries()));
+    const actor = await requireSuperAdmin();
+    const branch = await prisma.branch.findUniqueOrThrow({
+      where: { id: parsed.branchId },
+      include: { _count: { select: { staffAssignments: true, visits: true, scanAttempts: true, redemptions: true } } },
+    });
+    if (branch._count.staffAssignments > 0) {
+      return { message: "Cannot delete branch while staff are assigned." };
+    }
+    if (branch._count.visits > 0 || branch._count.scanAttempts > 0 || branch._count.redemptions > 0) {
+      return { message: "Cannot delete branch with existing activity history." };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.branch.delete({ where: { id: branch.id } });
+      await tx.auditEvent.create({
+        data: {
+          actorId: actor.id,
+          action: "BRANCH_DELETED",
+          metadata: {
+            branchId: branch.id,
+            code: branch.code,
+            name: branch.name,
+          },
+        },
+      });
+    });
+    revalidateAdmin();
+    revalidatePath("/admin/branches");
+    return { ok: true, message: "Branch deleted." };
+  } catch (error) {
+    return branchActionError(error);
+  }
 }
 
 export async function getBranchExportRows(branchIds?: string[], query?: string) {
@@ -1359,5 +1421,20 @@ function revalidateAdmin() {
   revalidatePath("/admin/members");
   revalidatePath("/admin/branches");
   revalidatePath("/super-admin/dashboard");
+}
+
+function branchActionError(error: unknown): BranchActionState {
+  if (
+    error &&
+    typeof error === "object" &&
+    "flatten" in error &&
+    typeof error.flatten === "function"
+  ) {
+    const flattened = error.flatten() as { fieldErrors?: Record<string, string[] | undefined> };
+    return { errors: flattened.fieldErrors, message: "Please check the branch form." };
+  }
+
+  if (error instanceof Error) return { message: error.message };
+  return { message: "Branch action failed. Please try again." };
 }
 

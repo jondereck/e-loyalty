@@ -41,6 +41,10 @@ export const updateBranchSchema = createBranchSchema.extend({
   branchId: z.string().min(1),
 });
 
+export const deleteBranchSchema = z.object({
+  branchId: z.string().min(1),
+});
+
 export const createStaffAccountSchema = z.object({
   fullName: z.string().trim().min(2, "Staff name is required.").max(120),
   username: z.string().trim().toLowerCase().min(3, "Username must be at least 3 characters.").max(40).regex(/^[a-z0-9._-]+$/, "Use letters, numbers, dots, dashes, or underscores only."),
