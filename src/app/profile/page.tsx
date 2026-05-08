@@ -1,7 +1,7 @@
-import { LogOut, ShieldCheck, UserCircle } from "lucide-react";
+import { ShieldCheck, UserCircle } from "lucide-react";
+import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { AccountSettingsForm } from "@/components/customer/AccountSettingsForm";
 import { CustomerShell } from "@/components/customer/CustomerShell";
-import { Button } from "@/components/ui/Button";
 import { logoutAction } from "@/lib/services/auth";
 import { requireProfile } from "@/lib/services/session";
 
@@ -46,10 +46,7 @@ export default async function ProfilePage() {
       </div>
 
       <form action={logoutAction}>
-        <Button variant="secondary" type="submit" className="lp-mobile-logout">
-          <LogOut size={18} />
-          Logout
-        </Button>
+        <LogoutSubmitButton variant="secondary" className="lp-mobile-logout" />
       </form>
     </CustomerShell>
   );

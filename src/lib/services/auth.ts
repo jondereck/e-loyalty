@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { redirect, RedirectType } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
@@ -9,8 +10,34 @@ import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/servic
 import { getAuthUser, redirectForRoles, requireProfile } from "@/lib/services/session";
 import { completeProfileSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
+const NEON_AUTH_COOKIE_PREFIX = "__Secure-neon-auth";
+const NEON_AUTH_COOKIE_NAMES = [
+  "__Secure-neon-auth.session_token",
+  "__Secure-neon-auth.local.session_data",
+  "__Secure-neon-auth.session_challange",
+] as const;
+
 function firstError(errors: Record<string, string[] | undefined>) {
   return Object.values(errors).flat().find(Boolean) ?? "Please check the form.";
+}
+
+async function clearNeonAuthCookies() {
+  const cookieStore = await cookies();
+  for (const cookie of cookieStore.getAll()) {
+    if (cookie.name.startsWith(NEON_AUTH_COOKIE_PREFIX)) {
+      cookieStore.delete(cookie.name);
+    }
+  }
+
+  for (const name of NEON_AUTH_COOKIE_NAMES) {
+    cookieStore.set(name, "", {
+      path: "/",
+      maxAge: 0,
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+    });
+  }
 }
 
 function buildProfileConflictWhere(email: string, username?: string, mobile?: string) {
@@ -132,8 +159,14 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
 }
 
 export async function logoutAction() {
-  await auth.signOut();
-  redirect("/login");
+  try {
+    await auth.signOut();
+  } catch (error) {
+    console.error("Neon Auth sign-out failed; clearing local auth cookies.", error);
+  }
+
+  await clearNeonAuthCookies();
+  redirect("/login", RedirectType.replace);
 }
 
 export async function finishAuthSession() {

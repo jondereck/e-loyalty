@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { logoutAction } from "@/lib/services/auth";
 import { getBrandingSettings } from "@/lib/services/settings";
 
@@ -41,10 +41,7 @@ export async function AppNav({
           ))}
           {mode === "staff" ? (
             <form action={logoutAction}>
-              <button className="nav-action" type="submit" aria-label="Logout">
-                <LogOut size={15} />
-                Logout
-              </button>
+              <LogoutSubmitButton className="nav-action" iconSize={15} />
             </form>
           ) : null}
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronDown, LogOut, Sparkles, UserCircle } from "lucide-react";
+import { ChevronDown, Sparkles, UserCircle } from "lucide-react";
+import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { logoutAction } from "@/lib/services/auth";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import type { CurrentProfile } from "@/lib/services/session";
@@ -47,10 +48,7 @@ export function Sidebar({
             Manage account
           </Link>
           <form action={logoutAction}>
-            <button type="submit">
-              <LogOut size={15} />
-              Logout
-            </button>
+            <LogoutSubmitButton iconSize={15} />
           </form>
         </div>
       </details>
