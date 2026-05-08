@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { AppRole, Prisma } from "@/generated/prisma/client";
+import type { AppRole, Prisma, StaffAssignmentStatus } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { earnKeyFor } from "@/lib/services/visits";
@@ -492,12 +492,61 @@ export async function listScopedStaffForProfile() {
   return listStaff(branchIdsForAdmin(profile));
 }
 
-export async function listStaff(branchIds?: string[]) {
+export async function listStaff(branchIds?: string[], query?: string) {
+  const where = staffAssignmentWhere(branchIds, query);
+
   return prisma.staffAssignment.findMany({
-    where: Array.isArray(branchIds) ? { branchId: { in: branchIds } } : {},
+    where,
     include: { profile: true, branch: true },
     orderBy: { createdAt: "desc" },
   });
+}
+
+function staffAssignmentWhere(branchIds?: string[], query?: string): Prisma.StaffAssignmentWhereInput {
+  const trimmed = query?.trim();
+  const where: Prisma.StaffAssignmentWhereInput = Array.isArray(branchIds) ? { branchId: { in: branchIds } } : {};
+  if (!trimmed) return where;
+
+  const roleMatches = staffRoleMatches(trimmed);
+  const statusMatches = staffStatusMatches(trimmed);
+
+  return {
+    ...where,
+    OR: [
+      { profile: { fullName: { contains: trimmed, mode: "insensitive" } } },
+      { profile: { email: { contains: trimmed, mode: "insensitive" } } },
+      { profile: { mobile: { contains: trimmed, mode: "insensitive" } } },
+      { profile: { username: { contains: trimmed, mode: "insensitive" } } },
+      { branch: { name: { contains: trimmed, mode: "insensitive" } } },
+      { branch: { code: { contains: trimmed, mode: "insensitive" } } },
+      ...roleMatches.map((role) => ({ role })),
+      ...statusMatches.map((status) => ({ status })),
+    ],
+  };
+}
+
+function staffRoleMatches(query: string): AppRole[] {
+  const normalized = normalizeStaffSearch(query);
+  const matches: AppRole[] = [];
+  if ("cashier".startsWith(normalized)) matches.push("CASHIER");
+  if ("branch_admin".startsWith(normalized) || "branch admin".startsWith(query.trim().toLowerCase()) || normalized === "admin") {
+    matches.push("BRANCH_ADMIN");
+  }
+  return matches;
+}
+
+function staffStatusMatches(query: string): StaffAssignmentStatus[] {
+  const normalized = normalizeStaffSearch(query);
+  const statuses: Array<{ label: string; value: StaffAssignmentStatus }> = [
+    { label: "active", value: "ACTIVE" },
+    { label: "inactive", value: "INACTIVE" },
+    { label: "revoked", value: "REVOKED" },
+  ];
+  return statuses.filter((status) => status.label.startsWith(normalized)).map((status) => status.value);
+}
+
+function normalizeStaffSearch(value: string) {
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
 export async function getStaffSetupData(branchIds?: string[]) {

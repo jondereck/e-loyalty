@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ChevronDown, Sparkles, UserCircle } from "lucide-react";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
-import { logoutAction } from "@/lib/services/auth";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import type { CurrentProfile } from "@/lib/services/session";
 
@@ -47,7 +46,7 @@ export function Sidebar({
             <UserCircle size={15} />
             Manage account
           </Link>
-          <form action={logoutAction}>
+          <form action="/api/auth/logout" method="post">
             <LogoutSubmitButton iconSize={15} />
           </form>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Check, ChevronLeft, ChevronRight, Download, Eye, Filter, Search } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Download, Eye, Filter } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { approveVisitAction, getApprovalManagementData } from "@/lib/services/admin";
@@ -72,10 +73,7 @@ export default async function AdminApprovalsPage({
           <input type="hidden" name="status" value={status} />
           <input type="hidden" name="from" value={data.filters.dateFrom} />
           <input type="hidden" name="to" value={data.filters.dateTo} />
-          <label className="lp-search-field">
-            <Search size={17} />
-            <input name="q" defaultValue={query} placeholder="Search by member, branch, cashier..." />
-          </label>
+          <DebouncedSearchField key={query} defaultValue={query} placeholder="Search by member, branch, cashier..." />
           <Button type="submit" variant="secondary"><Filter size={16} /> Filters</Button>
         </form>
       </div>

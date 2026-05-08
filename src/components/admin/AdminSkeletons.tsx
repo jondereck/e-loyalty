@@ -49,6 +49,7 @@ export function AdminSkeletonShell({
   children: ReactNode;
 }) {
   const sidebarLinks = getVisibleAdminNavLinks(showSuperAdmin);
+  const showShellHeader = heading !== "Loyalty Pass";
 
   return (
     <main className="lp-admin-page">
@@ -69,23 +70,25 @@ export function AdminSkeletonShell({
           })}
           <div className="lp-admin-account lp-admin-account-static">
             <div className="lp-admin-user">
-              <span className="lp-avatar small">LP</span>
+              <Skeleton className="lp-avatar small" />
               <div>
-                <b>Loyalty Pass</b>
-                <span>{showSuperAdmin ? "Super Admin" : "Administrator"}</span>
+                <Skeleton className="lp-skeleton-account-name" />
+                <Skeleton className="lp-skeleton-account-role" />
               </div>
               <ChevronDown size={16} />
             </div>
           </div>
         </aside>
         <section className="lp-admin-main">
-          <div className="lp-admin-head">
-            <h2>{heading}</h2>
-            <div className="lp-admin-actions">
-              <span className="lp-date">Today</span>
-              <button type="button" className="lp-export"><Download size={14} /> Export</button>
+          {showShellHeader ? (
+            <div className="lp-admin-head">
+              <h2>{heading}</h2>
+              <div className="lp-admin-actions">
+                <span className="lp-date">Today</span>
+                <button type="button" className="lp-export"><Download size={14} /> Export</button>
+              </div>
             </div>
-          </div>
+          ) : null}
           {children}
         </section>
       </div>

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Download, MapPin, Plus, Search, Store } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, MapPin, Plus, Store } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { BranchTable } from "@/components/admin/BranchTable";
+import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { createBranchAction, getBranchManagementData } from "@/lib/services/admin";
@@ -78,10 +79,7 @@ export default async function AdminBranchesPage({
       </div>
 
       <form action="/admin/branches" className="lp-branch-toolbar">
-        <label className="lp-search-field">
-          <Search size={16} />
-          <input name="q" defaultValue={query} placeholder="Search branches" />
-        </label>
+        <DebouncedSearchField key={query} defaultValue={query} placeholder="Search branches" />
         <select name="pageSize" defaultValue={String(data.pagination.pageSize)} aria-label="Rows per page">
           <option value="10">10 per page</option>
           <option value="20">20 per page</option>

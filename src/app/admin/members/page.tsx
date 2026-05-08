@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronLeft, ChevronRight, CreditCard, Download, Eye, Filter, MoreVertical, Search, Star, UserCheck, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, CreditCard, Download, Eye, Filter, MoreVertical, Star, UserCheck, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { PageSizeSelect } from "@/components/admin/PageSizeSelect";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -88,10 +89,7 @@ export default async function AdminMembersPage({
         <input type="hidden" name="from" value={data.filters.dateFrom} />
         <input type="hidden" name="to" value={data.filters.dateTo} />
         <input type="hidden" name="pageSize" value={String(data.pagination.pageSize)} />
-        <label className="lp-search-field">
-          <Search size={17} />
-          <input name="q" defaultValue={query} placeholder="Search members by name, email, or phone..." />
-        </label>
+        <DebouncedSearchField key={query} defaultValue={query} placeholder="Search members by name, email, or phone..." />
         <select name="status" defaultValue={status} aria-label="Profile status">
           <option value="all">All Status</option>
           <option value="ACTIVE">Active</option>

@@ -1,11 +1,10 @@
 "use client";
 
-import { useActionState, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { Eye, EyeOff, KeyRound, Loader2, Lock, LogIn, Mail, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { GoogleMark } from "@/components/auth/GoogleMark";
 import { authClient } from "@/lib/auth/client";
-import { loginAction } from "@/lib/services/auth";
 import type { AuthActionState } from "@/lib/validations/auth";
 
 const initialState: AuthActionState = {};
@@ -16,7 +15,7 @@ type ClientAuthResult = {
 };
 
 export function LoginForm() {
-  const [state, action, pending] = useActionState(loginAction, initialState);
+  const [state, setState] = useState<AuthActionState>(initialState);
   const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<"password" | "email-code" | "forgot">("password");
   const [email, setEmail] = useState("");
@@ -24,6 +23,57 @@ export function LoginForm() {
   const [newPassword, setNewPassword] = useState("");
   const [clientMessage, setClientMessage] = useState<string | null>(null);
   const [clientPending, setClientPending] = useState(false);
+  const [passwordPending, setPasswordPending] = useState(false);
+
+  async function submitPasswordSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const identifier = String(formData.get("identifier") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const rememberMe = formData.get("rememberMe") === "true";
+    const errors: AuthActionState["errors"] = {};
+
+    if (identifier.length < 3) errors.identifier = ["Email, mobile, or username is required."];
+    if (!password) errors.password = ["Password is required."];
+    if (Object.keys(errors).length) {
+      setState({ errors, message: "Please check the form." });
+      return;
+    }
+
+    setPasswordPending(true);
+    setClientMessage(null);
+    setState(initialState);
+
+    try {
+      const resolveResponse = await fetch("/api/auth/resolve-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier }),
+      });
+      const resolved = await resolveResponse.json() as { email?: string; message?: string };
+      if (!resolveResponse.ok || !resolved.email) {
+        setState({ message: resolved.message ?? "No account found for that identifier." });
+        return;
+      }
+
+      const result = await authClient.signIn.email({
+        email: resolved.email,
+        password,
+        rememberMe,
+      }) as ClientAuthResult;
+
+      if (result.error) {
+        setState({ message: result.error.message ?? "Invalid login credentials." });
+        return;
+      }
+
+      window.location.href = "/auth/finish";
+    } catch {
+      setState({ message: "Login failed. Please try again." });
+    } finally {
+      setPasswordPending(false);
+    }
+  }
 
   async function startGoogleSignIn() {
     setClientPending(true);
@@ -95,7 +145,7 @@ export function LoginForm() {
   return (
     <div className="auth-form-stack">
       {mode === "password" ? (
-        <form action={action} className="auth-form-stack">
+        <form onSubmit={submitPasswordSignIn} className="auth-form-stack">
           <AuthField
             icon={<Mail size={18} />}
             id="identifier"
@@ -135,8 +185,8 @@ export function LoginForm() {
           </div>
           {state.message ? <p className="error-text">{state.message}</p> : null}
           {clientMessage ? <p className={clientMessage.includes("sent") || clientMessage.includes("updated") ? "success-text" : "error-text"}>{clientMessage}</p> : null}
-          <Button variant="primary" type="submit" disabled={pending || clientPending} className="auth-submit">
-            {pending ? <Loader2 className="spin" size={18} /> : <LogIn size={18} />}
+          <Button variant="primary" type="submit" disabled={passwordPending || clientPending} className="auth-submit">
+            {passwordPending ? <Loader2 className="spin" size={18} /> : <LogIn size={18} />}
             Sign In
           </Button>
         </form>
@@ -223,13 +273,13 @@ export function LoginForm() {
 
       <div className="auth-divider"><span>OR</span></div>
       <div className="auth-provider-row">
-        <Button type="button" variant="secondary" className="auth-provider-button" disabled={clientPending || pending} onClick={startGoogleSignIn}>
+        <Button type="button" variant="secondary" className="auth-provider-button" disabled={clientPending || passwordPending} onClick={startGoogleSignIn}>
           <span className="provider-icon provider-icon--google" aria-hidden="true">
             {clientPending ? <Loader2 className="spin" size={16} /> : <GoogleMark size={18} />}
           </span>
           <span className="provider-label">Continue with Google</span>
         </Button>
-        <Button type="button" variant="secondary" className="auth-provider-button" disabled={clientPending || pending} onClick={() => setMode("email-code")}>
+        <Button type="button" variant="secondary" className="auth-provider-button" disabled={clientPending || passwordPending} onClick={() => setMode("email-code")}>
           <span className="provider-icon provider-icon--key" aria-hidden="true">
             <KeyRound size={16} />
           </span>

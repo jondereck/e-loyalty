@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
+import { resolveLoginIdentifier } from "@/lib/services/login-identifier";
 import { getAuthUser, redirectForRoles, requireProfile } from "@/lib/services/session";
 import { completeProfileSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
@@ -117,21 +118,6 @@ export async function signupAction(_state: AuthActionState, formData: FormData):
   });
 
   redirect("/auth/finish");
-}
-
-export async function resolveLoginIdentifier(identifier: string) {
-  const normalized = identifier.trim().toLowerCase();
-  const raw = identifier.trim();
-  const profile = await prisma.userProfile.findFirst({
-    where: {
-      OR: [{ email: normalized }, { username: normalized }, { mobile: raw }],
-    },
-  });
-
-  return {
-    profile,
-    email: profile?.email ?? (normalized.includes("@") ? normalized : null),
-  };
 }
 
 export async function loginAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {

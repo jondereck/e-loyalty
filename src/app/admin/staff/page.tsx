@@ -1,5 +1,6 @@
 import { MoreHorizontal } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -14,10 +15,16 @@ import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminStaffPage() {
+export default async function AdminStaffPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string | string[] }>;
+}) {
   const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const params = await searchParams;
+  const query = readParam(params.q) ?? "";
   const branchIds = branchIdsForAdmin(profile);
-  const [staff, setup] = await Promise.all([listStaff(branchIds), getStaffSetupData(branchIds)]);
+  const [staff, setup] = await Promise.all([listStaff(branchIds, query), getStaffSetupData(branchIds)]);
   const isSuperAdmin = profile.roles.includes("SUPER_ADMIN");
   const roleOptions = isSuperAdmin ? ["CASHIER", "BRANCH_ADMIN"] : ["CASHIER"];
 
@@ -106,6 +113,9 @@ export default async function AdminStaffPage() {
         <div className="lp-metric"><div><small>Active</small><b>{staff.filter((item) => item.status === "ACTIVE").length}</b><span className="up">Can operate</span></div></div>
         <div className="lp-metric"><div><small>Users</small><b>{new Set(staff.map((item) => item.profileId)).size}</b><span className="up">Unique staff</span></div></div>
       </div>
+      <form action="/admin/staff" className="lp-staff-toolbar">
+        <DebouncedSearchField key={query} defaultValue={query} placeholder="Search staff by name, email, phone, branch, or role..." />
+      </form>
       <div className="lp-panel">
         <h3>Assigned Staff</h3>
         <div className="lp-table-wrap lp-staff-table-wrap">
@@ -151,5 +161,9 @@ export default async function AdminStaffPage() {
       </div>
     </AdminShell>
   );
+}
+
+function readParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
 }
 

@@ -2,7 +2,6 @@ import { ShieldCheck, UserCircle } from "lucide-react";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { AccountSettingsForm } from "@/components/customer/AccountSettingsForm";
 import { CustomerShell } from "@/components/customer/CustomerShell";
-import { logoutAction } from "@/lib/services/auth";
 import { requireProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +44,7 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <form action={logoutAction}>
+      <form action="/api/auth/logout" method="post">
         <LogoutSubmitButton variant="secondary" className="lp-mobile-logout" />
       </form>
     </CustomerShell>
