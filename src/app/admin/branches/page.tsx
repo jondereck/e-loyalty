@@ -25,6 +25,7 @@ export default async function AdminBranchesPage({
   const data = await getBranchManagementData({ branchIds: branchIdsForAdmin(profile), query, page, pageSize });
   const canCreate = profile.roles.includes("SUPER_ADMIN");
   const canEdit = profile.roles.includes("SUPER_ADMIN") || profile.roles.includes("BRANCH_ADMIN");
+  const canDelete = profile.roles.includes("SUPER_ADMIN");
   const exportHref = `/api/admin/branches/export${query ? `?q=${encodeURIComponent(query)}` : ""}`;
 
   return (
@@ -59,7 +60,7 @@ export default async function AdminBranchesPage({
         <Button type="submit" variant="secondary">Filter</Button>
       </form>
 
-      <BranchTable branches={data.branches} canEdit={canEdit} />
+      <BranchTable branches={data.branches} canEdit={canEdit} canDelete={canDelete} />
       <div className="lp-branch-table-footer">
         <span>Showing {data.pagination.from} to {data.pagination.to} of {data.pagination.total} branches</span>
         <div className="lp-pagination">

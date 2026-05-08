@@ -323,7 +323,7 @@ export async function rejectVisit(visitId: string, actorId: string, reason: stri
 }
 
 const branchInclude = {
-  _count: { select: { visits: true, staffAssignments: true } },
+  _count: { select: { visits: true, staffAssignments: true, scanAttempts: true, redemptions: true } },
 } satisfies Prisma.BranchInclude;
 
 export type BranchListOptions = {
@@ -669,7 +669,7 @@ export async function createStaffAccountAction(formData: FormData) {
   });
   if (existingProfile) throw new Error("Username is already used by another account.");
 
-  const result = await auth.signUp.email({
+  const result = await auth.admin.createUser({
     email: syntheticEmail,
     password: parsed.password,
     name: parsed.fullName,
@@ -680,41 +680,47 @@ export async function createStaffAccountAction(formData: FormData) {
   const authUserId = authUser.user?.id;
   if (!authUserId) throw new Error("Auth account was created, but no auth user id was returned.");
 
-  const profile = await prisma.$transaction(async (tx) => {
-    const created = await tx.userProfile.create({
-      data: {
-        authUserId,
-        fullName: parsed.fullName,
-        username: parsed.username,
-        email: syntheticEmail,
-        roles: [parsed.role],
-      },
-    });
+  let profile: { id: string };
+  try {
+    profile = await prisma.$transaction(async (tx) => {
+      const created = await tx.userProfile.create({
+        data: {
+          authUserId,
+          fullName: parsed.fullName,
+          username: parsed.username,
+          email: syntheticEmail,
+          roles: [parsed.role],
+        },
+      });
 
-    await tx.staffAssignment.create({
-      data: {
-        profileId: created.id,
-        branchId: parsed.branchId,
-        role: parsed.role,
-        status: parsed.assignmentStatus,
-      },
-    });
-
-    await tx.auditEvent.create({
-      data: {
-        actorId: actor.id,
-        action: "STAFF_ACCOUNT_CREATED",
-        metadata: {
+      await tx.staffAssignment.create({
+        data: {
           profileId: created.id,
           branchId: parsed.branchId,
           role: parsed.role,
-          username: parsed.username,
+          status: parsed.assignmentStatus,
         },
-      },
-    });
+      });
 
-    return created;
-  });
+      await tx.auditEvent.create({
+        data: {
+          actorId: actor.id,
+          action: "STAFF_ACCOUNT_CREATED",
+          metadata: {
+            profileId: created.id,
+            branchId: parsed.branchId,
+            role: parsed.role,
+            username: parsed.username,
+          },
+        },
+      });
+
+      return created;
+    });
+  } catch (error) {
+    await removeAuthUserAfterFailedStaffCreate(authUserId);
+    throw error;
+  }
 
   revalidateStaffSetup(parsed.branchId, profile.id);
 }
@@ -1555,6 +1561,17 @@ async function syncStaffRoleForProfile(profileId: string, role: AppRole) {
 
 function staffEmailForUsername(username: string) {
   return `${username}@staff.local`;
+}
+
+async function removeAuthUserAfterFailedStaffCreate(authUserId: string) {
+  try {
+    const result = await auth.admin.removeUser({ userId: authUserId });
+    if (result.error) {
+      console.error("Unable to remove auth user after failed staff account creation.", result.error);
+    }
+  } catch (error) {
+    console.error("Unable to remove auth user after failed staff account creation.", error);
+  }
 }
 
 function revalidateMember(profileId: string) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Eye, MoreHorizontal, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
+import { BranchActionsDropdown } from "@/components/admin/BranchActionsDropdown";
 import { UpdateBranchForm } from "@/components/admin/BranchForms";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -7,6 +8,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 export function BranchTable({
   branches,
   canEdit = false,
+  canDelete = false,
 }: {
   branches: Array<{
     id: string;
@@ -16,9 +18,10 @@ export function BranchTable({
     phone?: string | null;
     email?: string | null;
     status: string;
-    _count?: { visits?: number; staffAssignments?: number };
+    _count?: { visits?: number; staffAssignments?: number; scanAttempts?: number; redemptions?: number };
   }>;
   canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   return (
     <div className="lp-panel lp-branch-table-panel">
@@ -54,14 +57,8 @@ export function BranchTable({
                       <Modal title="Edit branch" trigger={<button type="button" className="lp-icon-button" aria-label={`Edit ${branch.name}`}><Pencil size={15} /></button>}>
                         <UpdateBranchForm branch={branch} />
                       </Modal>
-                    ) : (
-                      <Link className="lp-icon-button" href={`/admin/branches/${branch.id}`} aria-label={`View ${branch.name}`}>
-                        <Eye size={15} />
-                      </Link>
-                    )}
-                    <Link className="lp-icon-button" href={`/admin/branches/${branch.id}`} aria-label={`Open ${branch.name} details`}>
-                      <MoreHorizontal size={16} />
-                    </Link>
+                    ) : null}
+                    <BranchActionsDropdown branchId={branch.id} branchName={branch.name} counts={branch._count} canDelete={canDelete} />
                   </div>
                 </td>
               </tr>
