@@ -210,9 +210,9 @@ export function AdminMembersSkeleton() {
       </div>
 
       <AdminDataTableSkeleton
-        columns={["Name", "Contact", "Card Number", "Points", "Visits", "Last Visit", "Status", "Actions"]}
+        columns={["Name", "Contact", "Card Number", "Points", "Visits", "Last Visit", "Status", "Action"]}
         rowCount={3}
-        columnKinds={{ Name: "person", Contact: "copy", Status: "status", Actions: "actions" }}
+        columnKinds={{ Name: "person", Contact: "copy", Status: "status", Action: "actions" }}
         footer
       />
     </AdminSkeletonShell>
@@ -245,9 +245,9 @@ export function AdminBranchesSkeleton() {
 
       <AdminDataTableSkeleton
         title="All Branches"
-        columns={["Code", "Branch", "Visits", "Staff", "Status", "Actions"]}
+        columns={["Code", "Branch", "Visits", "Staff", "Status", "Action"]}
         rowCount={3}
-        columnKinds={{ Branch: "copy", Status: "status", Actions: "actions" }}
+        columnKinds={{ Branch: "copy", Status: "status", Action: "actions" }}
         footer
       />
     </AdminSkeletonShell>
@@ -284,9 +284,9 @@ export function AdminApprovalsSkeleton() {
 
       <AdminDataTableSkeleton
         title="All Scans"
-        columns={["Scan Time", "Member", "Branch", "Cashier", "Conflict", "Status", "Actions"]}
+        columns={["Scan Time", "Member", "Branch", "Cashier", "Conflict", "Status", "Action"]}
         rowCount={4}
-        columnKinds={{ Member: "person", Branch: "copy", Cashier: "person", Status: "status", Actions: "actions" }}
+        columnKinds={{ Member: "person", Branch: "copy", Cashier: "person", Status: "status", Action: "actions" }}
         footer
       />
     </AdminSkeletonShell>
@@ -314,9 +314,9 @@ export function AdminStaffSkeleton() {
 
       <AdminDataTableSkeleton
         title="Assigned Staff"
-        columns={["Name", "Email", "Number", "Branch", "Role", "Status", "Manage"]}
+        columns={["Name", "Email", "Number", "Branch", "Role", "Status", "Action"]}
         rowCount={3}
-        columnKinds={{ Email: "copy", Number: "text", Status: "status", Manage: "actions" }}
+        columnKinds={{ Email: "copy", Number: "text", Status: "status", Action: "actions" }}
       />
     </AdminSkeletonShell>
   );

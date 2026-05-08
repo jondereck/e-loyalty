@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { DeleteBranchForm, UpdateBranchForm } from "@/components/admin/BranchForms";
+import { Eye, MoreHorizontal, Pencil } from "lucide-react";
+import { UpdateBranchForm } from "@/components/admin/BranchForms";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export function BranchTable({
   branches,
   canEdit = false,
-  canDelete = false,
 }: {
   branches: Array<{
     id: string;
@@ -20,7 +19,6 @@ export function BranchTable({
     _count?: { visits?: number; staffAssignments?: number };
   }>;
   canEdit?: boolean;
-  canDelete?: boolean;
 }) {
   return (
     <div className="lp-panel lp-branch-table-panel">
@@ -34,7 +32,7 @@ export function BranchTable({
               <th>Visits</th>
               <th>Staff</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -61,11 +59,6 @@ export function BranchTable({
                         <Eye size={15} />
                       </Link>
                     )}
-                    {canDelete ? (
-                      <Modal title="Delete branch" trigger={<button type="button" className="lp-icon-button danger" aria-label={`Delete ${branch.name}`}><Trash2 size={15} /></button>}>
-                        <DeleteBranchForm branch={branch} />
-                      </Modal>
-                    ) : null}
                     <Link className="lp-icon-button" href={`/admin/branches/${branch.id}`} aria-label={`Open ${branch.name} details`}>
                       <MoreHorizontal size={16} />
                     </Link>

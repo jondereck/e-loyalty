@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, Calendar, Check, Clock, CreditCard, FileText, MapPin, PackageCheck, ShieldCheck, User, X } from "lucide-react";
+import { AdminActionMessage, AdminExternalSubmitButton, AdminMutationForm } from "@/components/admin/AdminMutationForm";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminNoteTextarea } from "@/components/admin/AdminNoteTextarea";
-import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { approveVisitAction, getApprovalDetail, rejectVisitAction } from "@/lib/services/admin";
+import { getApprovalDetail } from "@/lib/services/admin";
 import { getPointsPerVisit } from "@/lib/services/settings";
 import { requireBranchScopedProfile } from "@/lib/services/session";
 import { formatDateTime } from "@/lib/utils";
@@ -37,8 +37,8 @@ export default async function AdminApprovalDetailPage({
           </div>
           {pending ? (
             <div className="lp-title-actions">
-              <Button form="approval-decision-form" variant="success" type="submit"><Check size={20} /> Approve</Button>
-              <Button form="approval-decision-form" formAction={rejectVisitAction} variant="danger" type="submit"><X size={20} /> Reject</Button>
+              <AdminExternalSubmitButton form="approval-decision-form" name="intent" value="approve" label="Approve" pendingLabel="Approving" variant="success"><Check size={20} /></AdminExternalSubmitButton>
+              <AdminExternalSubmitButton form="approval-decision-form" name="intent" value="reject" label="Reject" pendingLabel="Rejecting" variant="danger"><X size={20} /></AdminExternalSubmitButton>
             </div>
           ) : null}
         </div>
@@ -83,7 +83,7 @@ export default async function AdminApprovalDetailPage({
         <h3><span className="lp-panel-icon"><FileText size={18} /></span> Notes</h3>
         <p>Add notes about this approval (optional).</p>
         {pending ? (
-          <form id="approval-decision-form" action={approveVisitAction} className="lp-note-form">
+          <AdminMutationForm id="approval-decision-form" action="/api/admin/approvals" className="lp-note-form">
             <input type="hidden" name="visitId" value={visit.id} />
             <input type="hidden" name="reason" value="Rejected by admin review" />
             <AdminNoteTextarea
@@ -93,7 +93,8 @@ export default async function AdminApprovalDetailPage({
               maxLength={500}
               defaultValue={visit.adminNote ?? ""}
             />
-          </form>
+            <AdminActionMessage className="lp-note-message" />
+          </AdminMutationForm>
         ) : (
           <div className="lp-readonly-note">{visit.adminNote || visit.reason || "No notes recorded."}</div>
         )}

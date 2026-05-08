@@ -2218,6 +2218,16 @@ h3 {
 
 .lp-dropdown-form {
   margin: 0;
+  width: 100%;
+}
+
+.lp-inline-mutation-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.lp-contents-form {
+  display: contents;
 }
 
 .lp-staff-menu-button {

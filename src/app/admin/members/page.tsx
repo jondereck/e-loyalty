@@ -120,7 +120,7 @@ export default async function AdminMembersPage({
                 <th>Visits</th>
                 <th>Last Visit</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>

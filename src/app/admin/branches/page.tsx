@@ -59,7 +59,7 @@ export default async function AdminBranchesPage({
         <Button type="submit" variant="secondary">Filter</Button>
       </form>
 
-      <BranchTable branches={data.branches} canEdit={canEdit} canDelete={canCreate} />
+      <BranchTable branches={data.branches} canEdit={canEdit} />
       <div className="lp-branch-table-footer">
         <span>Showing {data.pagination.from} to {data.pagination.to} of {data.pagination.total} branches</span>
         <div className="lp-pagination">

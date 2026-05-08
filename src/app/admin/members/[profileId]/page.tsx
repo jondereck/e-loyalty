@@ -3,14 +3,9 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft, CreditCard, Mail, Phone, Shield, Star, TrendingUp, User, WalletCards } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { Button } from "@/components/ui/Button";
+import { AdjustMemberPointsForm, MemberCardStatusForm, MemberProfileStatusActions } from "@/components/admin/MemberActions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import {
-  adjustMemberPointsAction,
-  getMemberDetail,
-  updateMemberCardStatusAction,
-  updateMemberProfileStatusAction,
-} from "@/lib/services/admin";
+import { getMemberDetail } from "@/lib/services/admin";
 import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 
@@ -38,13 +33,11 @@ export default async function AdminMemberDetailPage({
           </div>
           <div className="lp-title-actions">
             {card ? (
-              <form action={updateMemberCardStatusAction}>
-                <input type="hidden" name="profileId" value={member.id} />
-                <input type="hidden" name="status" value={card.status === "BLOCKED" ? "ACTIVE" : "BLOCKED"} />
-                <Button type="submit" variant={card.status === "BLOCKED" ? "success" : "danger"}>
-                  {card.status === "BLOCKED" ? "Unblock Card" : "Block Card"}
-                </Button>
-              </form>
+              <MemberCardStatusForm
+                profileId={member.id}
+                nextStatus={card.status === "BLOCKED" ? "ACTIVE" : "BLOCKED"}
+                blocked={card.status === "BLOCKED"}
+              />
             ) : null}
           </div>
         </div>
@@ -84,28 +77,13 @@ export default async function AdminMemberDetailPage({
       <div className="lp-approval-detail-grid">
         <section className="lp-panel lp-action-panel">
           <h3>Manage Member</h3>
-          <div className="lp-inline-action-grid">
-            {(["ACTIVE", "INACTIVE", "SUSPENDED"] as const).map((status) => (
-              <form action={updateMemberProfileStatusAction} key={status}>
-                <input type="hidden" name="profileId" value={member.id} />
-                <input type="hidden" name="status" value={status} />
-                <Button type="submit" variant={member.status === status ? "secondary" : "default"} disabled={member.status === status}>
-                  {status.replaceAll("_", " ")}
-                </Button>
-              </form>
-            ))}
-          </div>
+          <MemberProfileStatusActions profileId={member.id} currentStatus={member.status} />
         </section>
 
         <section className="lp-panel lp-action-panel">
           <h3>Adjust Points</h3>
           {card ? (
-            <form action={adjustMemberPointsAction} className="lp-adjust-form">
-              <input type="hidden" name="profileId" value={member.id} />
-              <input name="points" type="number" step="1" placeholder="100 or -50" />
-              <textarea name="reason" placeholder="Reason for adjustment" />
-              <Button type="submit" variant="primary">Save Adjustment</Button>
-            </form>
+            <AdjustMemberPointsForm profileId={member.id} />
           ) : (
             <p className="muted">This member does not have a loyalty card to adjust.</p>
           )}

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { MoreHorizontal, Trash2, UserMinus } from "lucide-react";
+import { AdminMutationForm, AdminPlainSubmitButton } from "@/components/admin/AdminMutationForm";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,11 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import {
-  deleteStaffAccountAction,
-  removeStaffAssignmentAction,
-  updateStaffAssignmentStatusAction,
-} from "@/lib/services/admin";
 
 type StaffStatus = "ACTIVE" | "INACTIVE" | "REVOKED";
 
@@ -63,55 +59,56 @@ export function StaffActionsDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent className="lp-staff-actions-menu">
         {(["ACTIVE", "INACTIVE", "REVOKED"] as const).map((nextStatus) => (
-          <DropdownMenuItem key={nextStatus} asChild disabled={status === nextStatus}>
-            <form action={updateStaffAssignmentStatusAction} className="lp-dropdown-form">
+          <DropdownMenuItem key={nextStatus} disabled={status === nextStatus} onSelect={(event) => event.preventDefault()}>
+            <AdminMutationForm action="/api/admin/staff" method="PATCH" className="lp-dropdown-form">
+              <input type="hidden" name="intent" value="status" />
               <input type="hidden" name="assignmentId" value={assignmentId} />
               <input type="hidden" name="status" value={nextStatus} />
-              <button
-                type="submit"
+              <AdminPlainSubmitButton
                 className={`lp-staff-menu-button ${nextStatus.toLowerCase()}`}
                 disabled={status === nextStatus}
+                pendingLabel={<span>Saving...</span>}
               >
                 <span>{statusLabel(nextStatus)}</span>
                 {status === nextStatus ? <em>Current</em> : null}
-              </button>
-            </form>
+              </AdminPlainSubmitButton>
+            </AdminMutationForm>
           </DropdownMenuItem>
         ))}
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild>
-          <form
-            action={removeStaffAssignmentAction}
+        <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+          <AdminMutationForm
+            action="/api/admin/staff"
+            method="DELETE"
             className="lp-dropdown-form"
-            onSubmit={(event) => {
-              if (!window.confirm(`Remove ${profileName}'s assignment from this branch?`)) event.preventDefault();
-            }}
+            confirm={`Remove ${profileName}'s assignment from this branch?`}
           >
+            <input type="hidden" name="intent" value="remove-assignment" />
             <input type="hidden" name="assignmentId" value={assignmentId} />
-            <button type="submit" className="lp-staff-menu-button warning">
+            <AdminPlainSubmitButton className="lp-staff-menu-button warning" pendingLabel={<span>Removing...</span>}>
               <UserMinus size={15} />
               <span>Remove assignment</span>
-            </button>
-          </form>
+            </AdminPlainSubmitButton>
+          </AdminMutationForm>
         </DropdownMenuItem>
 
         {canDeleteAccount ? (
-          <DropdownMenuItem asChild>
-            <form
-              action={deleteStaffAccountAction}
+          <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+            <AdminMutationForm
+              action="/api/admin/staff"
+              method="DELETE"
               className="lp-dropdown-form"
-              onSubmit={(event) => {
-                if (!window.confirm(`Delete ${profileName}'s staff account? This cannot be undone.`)) event.preventDefault();
-              }}
+              confirm={`Delete ${profileName}'s staff account? This cannot be undone.`}
             >
+              <input type="hidden" name="intent" value="delete-account" />
               <input type="hidden" name="profileId" value={profileId} />
-              <button type="submit" className="lp-staff-menu-button danger">
+              <AdminPlainSubmitButton className="lp-staff-menu-button danger" pendingLabel={<span>Deleting...</span>}>
                 <Trash2 size={15} />
                 <span>Delete account</span>
-              </button>
-            </form>
+              </AdminPlainSubmitButton>
+            </AdminMutationForm>
           </DropdownMenuItem>
         ) : deleteAccountReason ? (
           <DropdownMenuItem disabled>

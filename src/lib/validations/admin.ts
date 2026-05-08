@@ -66,6 +66,15 @@ export const updateStaffAssignmentStatusSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]),
 });
 
+export const updateStaffAssignmentSchema = z.object({
+  assignmentId: z.string().min(1),
+  fullName: z.string().trim().min(2, "Staff name is required.").max(120),
+  mobile: z.string().trim().max(40).optional().transform((value) => value || null),
+  branchId: z.string().min(1),
+  role: z.enum(["CASHIER", "BRANCH_ADMIN"]),
+  status: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]),
+});
+
 export const removeStaffAssignmentSchema = z.object({
   assignmentId: z.string().min(1),
 });

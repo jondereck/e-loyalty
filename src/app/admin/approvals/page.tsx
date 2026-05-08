@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Check, ChevronLeft, ChevronRight, Download, Eye, Filter } from "lucide-react";
+import { AdminIconMutationForm } from "@/components/admin/AdminMutationForm";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { approveVisitAction, getApprovalManagementData } from "@/lib/services/admin";
+import { getApprovalManagementData } from "@/lib/services/admin";
 import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 import { formatDateTime } from "@/lib/utils";
 
@@ -90,7 +91,7 @@ export default async function AdminApprovalsPage({
                 <th>Cashier</th>
                 <th>Conflict</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -120,12 +121,13 @@ export default async function AdminApprovalsPage({
                         <Eye size={15} />
                       </Link>
                       {visit.status === "PENDING" ? (
-                        <form action={approveVisitAction}>
-                          <input type="hidden" name="visitId" value={visit.id} />
-                          <button type="submit" className="lp-icon-button" aria-label={`Approve ${visit.customer.fullName}`}>
-                            <Check size={16} />
-                          </button>
-                        </form>
+                        <AdminIconMutationForm
+                          action="/api/admin/approvals"
+                          fields={{ intent: "approve", visitId: visit.id }}
+                          label={`Approve ${visit.customer.fullName}`}
+                        >
+                          <Check size={16} />
+                        </AdminIconMutationForm>
                       ) : null}
                     </div>
                   </td>

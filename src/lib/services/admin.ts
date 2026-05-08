@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { AppRole, Prisma, StaffAssignmentStatus } from "@/generated/prisma/client";
+import type { AdminMutationResult } from "@/lib/admin/mutations";
+import { adminMutationError } from "@/lib/admin/mutations";
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { earnKeyFor } from "@/lib/services/visits";
@@ -20,6 +22,7 @@ import {
   rejectVisitSchema,
   updateCardStatusSchema,
   updateBranchSchema,
+  updateStaffAssignmentSchema,
   updateMemberProfileStatusSchema,
   updateStaffAssignmentStatusSchema,
 } from "@/lib/validations/admin";
@@ -190,6 +193,15 @@ export async function approveVisitAction(formData: FormData) {
   revalidateAdmin();
 }
 
+export async function approveVisitFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await approveVisitAction(formData);
+    return { ok: true, message: "Visit approved." };
+  } catch (error) {
+    return adminMutationError(error, "Approval failed. Please try again.");
+  }
+}
+
 export async function approveVisit(visitId: string, actorId: string, override = false, adminNote?: string | null) {
   const pointsPerVisit = await getPointsPerVisit();
   const businessTimezone = await getBusinessTimezone();
@@ -270,6 +282,15 @@ export async function rejectVisitAction(formData: FormData) {
 
   await rejectVisit(parsed.visitId, actor.id, parsed.reason, parsed.adminNote);
   revalidateAdmin();
+}
+
+export async function rejectVisitFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await rejectVisitAction(formData);
+    return { ok: true, message: "Visit rejected." };
+  } catch (error) {
+    return adminMutationError(error, "Rejection failed. Please try again.");
+  }
 }
 
 export async function rejectVisit(visitId: string, actorId: string, reason: string, adminNote?: string | null) {
@@ -438,18 +459,14 @@ export async function createBranchAction(formData: FormData) {
   revalidateBranchSetup(branch.id);
 }
 
-export type BranchActionState = {
-  ok?: boolean;
-  message?: string;
-  errors?: Record<string, string[] | undefined>;
-};
+export type BranchActionState = AdminMutationResult;
 
 export async function createBranchFormAction(_state: BranchActionState, formData: FormData): Promise<BranchActionState> {
   try {
     await createBranchAction(formData);
     return { ok: true, message: "Branch created." };
   } catch (error) {
-    return branchActionError(error);
+    return adminMutationError(error, "Branch action failed. Please try again.");
   }
 }
 
@@ -502,7 +519,7 @@ export async function updateBranchFormAction(_state: BranchActionState, formData
     await updateBranchAction(formData);
     return { ok: true, message: "Branch updated." };
   } catch (error) {
-    return branchActionError(error);
+    return adminMutationError(error, "Branch action failed. Please try again.");
   }
 }
 
@@ -539,7 +556,7 @@ export async function deleteBranchFormAction(_state: BranchActionState, formData
     revalidatePath("/admin/branches");
     return { ok: true, message: "Branch deleted." };
   } catch (error) {
-    return branchActionError(error);
+    return adminMutationError(error, "Branch action failed. Please try again.");
   }
 }
 
@@ -702,6 +719,15 @@ export async function createStaffAccountAction(formData: FormData) {
   revalidateStaffSetup(parsed.branchId, profile.id);
 }
 
+export async function createStaffAccountFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await createStaffAccountAction(formData);
+    return { ok: true, message: "Staff account created." };
+  } catch (error) {
+    return adminMutationError(error, "Staff account creation failed. Please try again.");
+  }
+}
+
 export async function createStaffAssignmentAction(formData: FormData) {
   const parsed = createStaffAssignmentSchema.parse(Object.fromEntries(formData.entries()));
   const actor = await requireStaffAccountManager(parsed.branchId, parsed.role);
@@ -747,6 +773,94 @@ export async function createStaffAssignmentAction(formData: FormData) {
   revalidateStaffSetup(parsed.branchId, profile.id);
 }
 
+export async function createStaffAssignmentFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await createStaffAssignmentAction(formData);
+    return { ok: true, message: "Staff assignment saved." };
+  } catch (error) {
+    return adminMutationError(error, "Staff assignment failed. Please try again.");
+  }
+}
+
+export async function updateStaffAssignmentAction(formData: FormData) {
+  const parsed = updateStaffAssignmentSchema.parse(Object.fromEntries(formData.entries()));
+  const assignment = await prisma.staffAssignment.findUniqueOrThrow({
+    where: { id: parsed.assignmentId },
+    include: { profile: true },
+  });
+  const actor = await requireAssignmentManager(assignment.branchId, assignment.role);
+  await requireStaffAccountManager(parsed.branchId, parsed.role);
+
+  const existingAssignment = await prisma.staffAssignment.findFirst({
+    where: {
+      id: { not: assignment.id },
+      profileId: assignment.profileId,
+      branchId: parsed.branchId,
+      role: parsed.role,
+    },
+    select: { id: true },
+  });
+  if (existingAssignment) throw new Error("This staff profile already has that branch and role assignment.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userProfile.update({
+      where: { id: assignment.profileId },
+      data: {
+        fullName: parsed.fullName,
+        mobile: parsed.mobile,
+      },
+    });
+
+    await tx.staffAssignment.update({
+      where: { id: assignment.id },
+      data: {
+        branchId: parsed.branchId,
+        role: parsed.role,
+        status: parsed.status,
+      },
+    });
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.id,
+        action: "STAFF_ASSIGNMENT_UPDATED",
+        metadata: {
+          assignmentId: assignment.id,
+          profileId: assignment.profileId,
+          previous: {
+            fullName: assignment.profile.fullName,
+            mobile: assignment.profile.mobile,
+            branchId: assignment.branchId,
+            role: assignment.role,
+            status: assignment.status,
+          },
+          next: {
+            fullName: parsed.fullName,
+            mobile: parsed.mobile,
+            branchId: parsed.branchId,
+            role: parsed.role,
+            status: parsed.status,
+          },
+        },
+      },
+    });
+  });
+
+  await syncStaffRoleForProfile(assignment.profileId, assignment.role);
+  await syncStaffRoleForProfile(assignment.profileId, parsed.role);
+  revalidateStaffSetup(assignment.branchId, assignment.profileId);
+  if (assignment.branchId !== parsed.branchId) revalidateStaffSetup(parsed.branchId, assignment.profileId);
+}
+
+export async function updateStaffAssignmentFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await updateStaffAssignmentAction(formData);
+    return { ok: true, message: "Staff assignment updated." };
+  } catch (error) {
+    return adminMutationError(error, "Staff update failed. Please try again.");
+  }
+}
+
 export async function updateStaffAssignmentStatusAction(formData: FormData) {
   const parsed = updateStaffAssignmentStatusSchema.parse(Object.fromEntries(formData.entries()));
   const assignment = await prisma.staffAssignment.findUniqueOrThrow({
@@ -778,6 +892,15 @@ export async function updateStaffAssignmentStatusAction(formData: FormData) {
   revalidateStaffSetup(assignment.branchId, assignment.profileId);
 }
 
+export async function updateStaffAssignmentStatusFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await updateStaffAssignmentStatusAction(formData);
+    return { ok: true, message: "Staff status updated." };
+  } catch (error) {
+    return adminMutationError(error, "Staff status update failed. Please try again.");
+  }
+}
+
 export async function removeStaffAssignmentAction(formData: FormData) {
   const parsed = removeStaffAssignmentSchema.parse(Object.fromEntries(formData.entries()));
   const assignment = await prisma.staffAssignment.findUniqueOrThrow({
@@ -806,6 +929,15 @@ export async function removeStaffAssignmentAction(formData: FormData) {
 
   await syncStaffRoleForProfile(assignment.profileId, assignment.role);
   revalidateStaffSetup(assignment.branchId, assignment.profileId);
+}
+
+export async function removeStaffAssignmentFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await removeStaffAssignmentAction(formData);
+    return { ok: true, message: "Staff assignment removed." };
+  } catch (error) {
+    return adminMutationError(error, "Staff assignment removal failed. Please try again.");
+  }
 }
 
 export async function deleteStaffAccountAction(formData: FormData) {
@@ -852,6 +984,15 @@ export async function deleteStaffAccountAction(formData: FormData) {
   revalidatePath("/admin/staff");
   for (const assignment of target.staffAssignments) {
     revalidateBranchSetup(assignment.branchId);
+  }
+}
+
+export async function deleteStaffAccountFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await deleteStaffAccountAction(formData);
+    return { ok: true, message: "Staff account deleted." };
+  } catch (error) {
+    return adminMutationError(error, "Staff account deletion failed. Please try again.");
   }
 }
 
@@ -1062,6 +1203,15 @@ export async function updateMemberCardStatusAction(formData: FormData) {
   revalidateMember(member.id);
 }
 
+export async function updateMemberCardStatusFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await updateMemberCardStatusAction(formData);
+    return { ok: true, message: "Card status updated." };
+  } catch (error) {
+    return adminMutationError(error, "Card status update failed. Please try again.");
+  }
+}
+
 export async function updateMemberProfileStatusAction(formData: FormData) {
   const parsed = updateMemberProfileStatusSchema.parse(Object.fromEntries(formData.entries()));
   const actor = await requireMemberManager(parsed.profileId);
@@ -1085,6 +1235,15 @@ export async function updateMemberProfileStatusAction(formData: FormData) {
     }),
   ]);
   revalidateMember(member.id);
+}
+
+export async function updateMemberProfileStatusFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await updateMemberProfileStatusAction(formData);
+    return { ok: true, message: "Member status updated." };
+  } catch (error) {
+    return adminMutationError(error, "Member status update failed. Please try again.");
+  }
 }
 
 export async function adjustMemberPointsAction(formData: FormData) {
@@ -1131,6 +1290,15 @@ export async function adjustMemberPointsAction(formData: FormData) {
     }),
   ]);
   revalidateMember(member.id);
+}
+
+export async function adjustMemberPointsFormAction(formData: FormData): Promise<AdminMutationResult> {
+  try {
+    await adjustMemberPointsAction(formData);
+    return { ok: true, message: "Point adjustment saved." };
+  } catch (error) {
+    return adminMutationError(error, "Point adjustment failed. Please try again.");
+  }
 }
 
 async function countScopedUsers(branchIds?: string[]) {
@@ -1422,19 +1590,3 @@ function revalidateAdmin() {
   revalidatePath("/admin/branches");
   revalidatePath("/super-admin/dashboard");
 }
-
-function branchActionError(error: unknown): BranchActionState {
-  if (
-    error &&
-    typeof error === "object" &&
-    "flatten" in error &&
-    typeof error.flatten === "function"
-  ) {
-    const flattened = error.flatten() as { fieldErrors?: Record<string, string[] | undefined> };
-    return { errors: flattened.fieldErrors, message: "Please check the branch form." };
-  }
-
-  if (error instanceof Error) return { message: error.message };
-  return { message: "Branch action failed. Please try again." };
-}
-
