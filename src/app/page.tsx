@@ -1,13 +1,23 @@
+import { redirect } from "next/navigation";
 import { ArrowRight, BadgeCheck, Gift, QrCode } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoyaltyCard } from "@/components/loyalty/LoyaltyCard";
+import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
 import { getBrandingSettings, getPointsPerVisit } from "@/lib/services/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const user = await getAuthUser();
+  if (user) {
+    const profile = await getCurrentProfile();
+    if (!profile) redirect("/complete-profile");
+    if (profile.status !== "ACTIVE") redirect("/login?error=suspended");
+    redirect(redirectForRoles(profile.roles));
+  }
+
   const [branding, pointsPerVisit] = await Promise.all([getBrandingSettings(), getPointsPerVisit()]);
 
   return (

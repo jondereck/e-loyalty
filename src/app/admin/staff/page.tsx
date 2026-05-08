@@ -1,3 +1,4 @@
+import { MoreHorizontal } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -107,36 +108,43 @@ export default async function AdminStaffPage() {
       </div>
       <div className="lp-panel">
         <h3>Assigned Staff</h3>
-        <div className="lp-table-wrap">
+        <div className="lp-table-wrap lp-staff-table-wrap">
           <table>
-            <thead><tr><th>Name</th><th>Branch</th><th>Role</th><th>Status</th><th>Manage</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Number</th><th>Branch</th><th>Role</th><th>Status</th><th>Manage</th></tr></thead>
             <tbody>
               {staff.map((assignment) => (
                 <tr key={assignment.id}>
                   <td>{assignment.profile.fullName}</td>
+                  <td>{assignment.profile.email}</td>
+                  <td>{assignment.profile.mobile ?? <span className="muted">No number</span>}</td>
                   <td>{assignment.branch.name}</td>
                   <td>{assignment.role.replaceAll("_", " ")}</td>
                   <td><StatusBadge status={assignment.status} /></td>
                   <td>
                     {isSuperAdmin || assignment.role === "CASHIER" ? (
-                      <div className="actions">
-                        {(["ACTIVE", "INACTIVE", "REVOKED"] as const).map((status) => (
-                          <form action={updateStaffAssignmentStatusAction} key={status}>
-                            <input type="hidden" name="assignmentId" value={assignment.id} />
-                            <input type="hidden" name="status" value={status} />
-                            <Button type="submit" variant={assignment.status === status ? "secondary" : "default"} disabled={assignment.status === status}>
-                              {status}
-                            </Button>
-                          </form>
-                        ))}
-                      </div>
+                      <details className="lp-row-menu">
+                        <summary aria-label={`Manage ${assignment.profile.fullName}`}>
+                          <MoreHorizontal size={18} />
+                        </summary>
+                        <div className="lp-row-menu-panel">
+                          {(["ACTIVE", "INACTIVE", "REVOKED"] as const).map((status) => (
+                            <form action={updateStaffAssignmentStatusAction} key={status}>
+                              <input type="hidden" name="assignmentId" value={assignment.id} />
+                              <input type="hidden" name="status" value={status} />
+                              <Button type="submit" variant={assignment.status === status ? "secondary" : "default"} disabled={assignment.status === status}>
+                                {status}
+                              </Button>
+                            </form>
+                          ))}
+                        </div>
+                      </details>
                     ) : (
                       <span className="muted">Super Admin only</span>
                     )}
                   </td>
                 </tr>
               ))}
-              {!staff.length ? <tr><td colSpan={5}>No staff assignments found.</td></tr> : null}
+              {!staff.length ? <tr><td colSpan={7}>No staff assignments found.</td></tr> : null}
             </tbody>
           </table>
         </div>

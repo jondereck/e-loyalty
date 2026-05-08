@@ -40,7 +40,7 @@ type MetricItem = {
 export function AdminSkeletonShell({
   active = "/admin/dashboard",
   heading = active.includes("dashboard") ? "Admin Dashboard" : "Loyalty Pass",
-  showSuperAdmin = active.startsWith("/super-admin"),
+  showSuperAdmin = true,
   children,
 }: {
   active?: string;
@@ -316,9 +316,9 @@ export function AdminStaffSkeleton() {
 
       <AdminDataTableSkeleton
         title="Assigned Staff"
-        columns={["Name", "Branch", "Role", "Status", "Manage"]}
+        columns={["Name", "Email", "Number", "Branch", "Role", "Status", "Manage"]}
         rowCount={3}
-        columnKinds={{ Status: "status", Manage: "actions" }}
+        columnKinds={{ Email: "copy", Number: "text", Status: "status", Manage: "actions" }}
       />
     </AdminSkeletonShell>
   );

@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   MapPin,
   Settings,
-  Shield,
   UserCircle,
   Users,
 } from "lucide-react";
@@ -23,7 +22,6 @@ export const adminNavLinks: AdminNavLink[] = [
   { href: "/admin/staff", label: "Staff", icon: UserCircle },
   { href: "/admin/branches", label: "Branches", icon: MapPin },
   { href: "/super-admin/settings", label: "Settings", icon: Settings, superAdminOnly: true },
-  { href: "/super-admin/dashboard", label: "Super Admin", icon: Shield, superAdminOnly: true },
 ];
 
 export function getVisibleAdminNavLinks(showSuperAdmin = false) {

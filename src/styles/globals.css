@@ -148,6 +148,33 @@ textarea {
   opacity: 0.7;
 }
 
+.lp-route-loader {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  background: #f8f9fd;
+  color: #48506c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.lp-loader-mark {
+  width: 38px;
+  height: 38px;
+  border: 3px solid #e4e7f1;
+  border-top-color: #684bff;
+  border-radius: 50%;
+  animation: lp-spin 0.8s linear infinite;
+}
+
+@keyframes lp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .hero {
   min-height: 72vh;
   display: grid;
@@ -868,12 +895,15 @@ h3 {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin: 0 auto 12px;
   background: linear-gradient(145deg, #386bff, #834dff);
   color: #fff;
   font-weight: 900;
+  line-height: 1;
+  text-align: center;
 }
 
 .lp-profile-card h2 {
@@ -1460,7 +1490,7 @@ h3 {
   font-size: 13px;
 }
 
-.lp-admin-user span {
+.lp-admin-user div span {
   font-size: 11px;
   color: #66708f;
 }
@@ -2038,6 +2068,62 @@ h3 {
 .lp-row-actions {
   display: flex;
   gap: 8px;
+}
+
+.lp-staff-table-wrap {
+  overflow: visible;
+}
+
+.lp-row-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.lp-row-menu summary {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dfe4ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #354160;
+  cursor: pointer;
+  list-style: none;
+}
+
+.lp-row-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.lp-row-menu[open] summary,
+.lp-row-menu summary:hover {
+  border-color: #d9ceff;
+  background: #f0eafd;
+  color: #5638ff;
+}
+
+.lp-row-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  min-width: 138px;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #e5e9f2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(28, 36, 67, 0.14);
+}
+
+.lp-row-menu-panel .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
 }
 
 .lp-icon-button {
