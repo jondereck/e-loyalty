@@ -24,6 +24,7 @@ Add these in Vercel Project Settings for Production and Preview:
 - `DATABASE_URL`: production PostgreSQL connection string. Use SSL for hosted Postgres.
 - `NEON_AUTH_BASE_URL`: deployed app origin, for example `https://app.example.com`.
 - `NEON_AUTH_COOKIE_SECRET`: long random secret. Do not reuse the development value.
+- `NEON_AUTH_COOKIE_DOMAIN`: optional. Leave unset unless auth cookies must be shared across subdomains, for example `.example.com`.
 
 Seed variables are optional and should only be configured for controlled seed runs:
 

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Loader2, LogOut } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
 import { Button } from "@/components/ui/Button";
 
 type LogoutSubmitButtonProps = {
@@ -24,7 +23,6 @@ export function LogoutSubmitButton({
   async function handleLogout() {
     setPending(true);
     try {
-      await authClient.signOut();
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (error) {
       console.error("Logout failed; redirecting to login.", error);

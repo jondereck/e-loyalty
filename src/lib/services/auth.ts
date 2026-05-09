@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect, RedirectType } from "next/navigation";
+import { getExpiredAuthCookieOptions, getNeonAuthCookieNames, shouldUseSecureAuthCookies } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
@@ -11,33 +12,18 @@ import { resolveLoginIdentifier } from "@/lib/services/login-identifier";
 import { getAuthUser, redirectForRoles, requireProfile } from "@/lib/services/session";
 import { completeProfileSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
-const NEON_AUTH_COOKIE_PREFIX = "__Secure-neon-auth";
-const NEON_AUTH_COOKIE_NAMES = [
-  "__Secure-neon-auth.session_token",
-  "__Secure-neon-auth.local.session_data",
-  "__Secure-neon-auth.session_challange",
-] as const;
-
 function firstError(errors: Record<string, string[] | undefined>) {
   return Object.values(errors).flat().find(Boolean) ?? "Please check the form.";
 }
 
 async function clearNeonAuthCookies() {
   const cookieStore = await cookies();
-  for (const cookie of cookieStore.getAll()) {
-    if (cookie.name.startsWith(NEON_AUTH_COOKIE_PREFIX)) {
-      cookieStore.delete(cookie.name);
-    }
-  }
+  const cookieOptions = getExpiredAuthCookieOptions({
+    secure: shouldUseSecureAuthCookies(),
+  });
 
-  for (const name of NEON_AUTH_COOKIE_NAMES) {
-    cookieStore.set(name, "", {
-      path: "/",
-      maxAge: 0,
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-    });
+  for (const name of getNeonAuthCookieNames(cookieStore.getAll())) {
+    cookieStore.set(name, "", cookieOptions);
   }
 }
 
