@@ -38,9 +38,11 @@ export function BranchList({ branches }: { branches: Branch[] }) {
       });
 
       withDistance.sort((a, b) => {
-        if (a.distance !== undefined && b.distance !== undefined) return a.distance - b.distance;
-        if (a.distance !== undefined) return -1;
-        if (b.distance !== undefined) return 1;
+        const distA = (a as any).distance;
+        const distB = (b as any).distance;
+        if (distA !== undefined && distB !== undefined) return distA - distB;
+        if (distA !== undefined) return -1;
+        if (distB !== undefined) return 1;
         return 0;
       });
 
