@@ -24,7 +24,7 @@ export function MobilePageSkeleton({
       </div>
       {withTabbar ? (
         <div className="lp-mobile-tabbar lp-skeleton-tabbar" aria-hidden="true">
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 5 }).map((_, index) => (
             <div className="lp-skeleton-tab" key={index}>
               <Skeleton className="lp-skeleton-tab-icon" />
               <Skeleton className="lp-skeleton-tab-label" />
