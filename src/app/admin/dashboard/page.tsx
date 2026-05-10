@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Activity, Gift, LayoutGrid, TrendingUp, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { PointsChart, VisitTrendChart } from "@/components/admin/AnalyticsCharts";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getAdminDashboard, listPendingApprovals } from "@/lib/services/admin";
+import { getAdminDashboard, getVisitAnalytics, listPendingApprovals } from "@/lib/services/admin";
 import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 import { compactNumber, formatTime } from "@/lib/utils";
 
@@ -12,7 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboardPage() {
   const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
   const branchIds = branchIdsForAdmin(profile);
-  const [dashboard, pending] = await Promise.all([getAdminDashboard(branchIds), listPendingApprovals(branchIds)]);
+  const [dashboard, pending, analytics] = await Promise.all([
+    getAdminDashboard(branchIds),
+    listPendingApprovals(branchIds),
+    getVisitAnalytics(branchIds),
+  ]);
 
   return (
     <AdminShell active="/admin/dashboard">
@@ -24,7 +29,21 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="lp-admin-grid">
-        <section className="lp-panel">
+        <section className="lp-panel span-6">
+          <h3>Visit Trends (Last 30 Days)</h3>
+          <div style={{ padding: "0 16px 16px" }}>
+            <VisitTrendChart data={analytics} />
+          </div>
+        </section>
+
+        <section className="lp-panel span-6">
+          <h3>Points Distribution</h3>
+          <div style={{ padding: "0 16px 16px" }}>
+            <PointsChart data={analytics} />
+          </div>
+        </section>
+
+        <section className="lp-panel span-4">
           <h3>Pending Scans</h3>
           <div className="lp-table-wrap">
             <table>
@@ -47,12 +66,12 @@ export default async function AdminDashboardPage() {
           <Link className="lp-panel-foot" href="/admin/approvals">View all pending</Link>
         </section>
 
-        <section className="lp-panel">
+        <section className="lp-panel span-5">
           <h3>Branch Performance</h3>
           <div className="lp-table-wrap">
             <table>
               <thead>
-                <tr><th>Branch</th><th>Visits</th><th>Points Earned</th><th>Staff</th><th>Activity</th></tr>
+                <tr><th>Branch</th><th>Visits</th><th>Staff</th><th>Activity</th></tr>
               </thead>
               <tbody>
                 {dashboard.branches.map((branch) => {
@@ -62,7 +81,6 @@ export default async function AdminDashboardPage() {
                     <tr key={branch.id}>
                       <td>{branch.name}</td>
                       <td>{compactNumber(visits)}</td>
-                      <td>{compactNumber(visits * 100)}</td>
                       <td>{branch._count.staffAssignments}</td>
                       <td><span className="lp-bar"><i style={{ width: `${width}%` }} /></span></td>
                     </tr>
@@ -74,7 +92,7 @@ export default async function AdminDashboardPage() {
           <Link className="lp-panel-foot" href="/admin/branches">View full report</Link>
         </section>
 
-        <section className="lp-panel">
+        <section className="lp-panel span-3">
           <h3>Recent Activity</h3>
           <div className="lp-activity">
             {dashboard.recentActivity.map((event) => (

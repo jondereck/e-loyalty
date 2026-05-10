@@ -1,7 +1,8 @@
-import { Bell } from "lucide-react";
+import { Bell, TrendingUp } from "lucide-react";
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { FlippableLoyaltyCard } from "@/components/loyalty/FlippableLoyaltyCard";
 import { getCustomerCard } from "@/lib/services/customer";
+import { getTierDetails } from "@/lib/tiers";
 import { getBrandingSettings } from "@/lib/services/settings";
 import { requireProfile } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function CardPage() {
   const profile = await requireProfile(["CUSTOMER"]);
   const [data, branding] = await Promise.all([getCustomerCard(profile.id), getBrandingSettings()]);
+  const tier = getTierDetails(data.card.totalEarned);
   const progressTarget = data.nextReward?.pointsRequired ?? Math.max(data.card.pointsBalance, 1000);
   const progress = Math.min(100, Math.round((data.card.pointsBalance / progressTarget) * 100));
   const firstName = data.profile.fullName.split(" ")[0] ?? data.profile.fullName;
@@ -23,13 +25,25 @@ export default async function CardPage() {
       </div>
 
       <FlippableLoyaltyCard
-        tier={data.card.tier}
+        tier={tier.tier}
         points={data.card.pointsBalance}
         visits={data.card.visitsEarned}
         qrToken={data.card.qrToken}
         cardNumber={data.card.cardNumber}
         systemName={branding.systemName}
       />
+
+      <div className="lp-mini-card">
+        <div className="lp-mini-head">
+          <div>
+            <b>Tier Progress</b>
+            <span>{tier.nextTier ? `${compactNumber(tier.pointsToNext)} pts to ${tier.nextTier}` : "Highest tier reached"}</span>
+          </div>
+          <span className="lp-pill green"><TrendingUp size={12} /> {tier.multiplier}x Multiplier</span>
+        </div>
+        <strong>{tier.tier} Tier</strong>
+        <div className="lp-progress"><i style={{ width: `${tier.progressPercentage}%` }} /></div>
+      </div>
 
       <div className="lp-mini-card">
         <div className="lp-mini-head">

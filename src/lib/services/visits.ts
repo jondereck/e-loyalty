@@ -2,6 +2,7 @@ import { Prisma, type VisitReasonCode, type VisitStatus } from "@/generated/pris
 import { safeTokenPreview } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { evaluateVisitEligibility } from "@/lib/rules";
+import { getTierDetails } from "@/lib/tiers";
 import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit } from "@/lib/services/settings";
 import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/session";
 import { businessDayWindow, computeBusinessDate } from "@/lib/time";
@@ -16,7 +17,9 @@ type AttemptDb = Pick<typeof prisma, "auditEvent" | "scanAttempt">;
 type ResolvedCard = {
   id: string;
   profileId: string;
-  profile: { status: string };
+  totalEarned: number;
+  status: "ACTIVE" | "BLOCKED";
+  profile: { status: "ACTIVE" | "INACTIVE" | "SUSPENDED" };
 };
 
 export const validateVisitEligibility = evaluateVisitEligibility;
@@ -48,7 +51,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     prisma.loyaltyCard.findUnique({
       where: { qrToken: payload.qrToken },
       include: { profile: true },
-    }),
+    }) as Promise<ResolvedCard | null>,
     branchId ? prisma.branch.findUnique({ where: { id: branchId } }) : null,
   ]);
 
@@ -73,6 +76,9 @@ export async function scanCustomerQr(payload: ScanPayload) {
     qrTokenHash,
     multipleBranchSameDay: approvedOtherBranchToday,
   });
+
+  const tierDetails = card ? getTierDetails(card.totalEarned) : null;
+
   const result = evaluateVisitEligibility({
     qrFound: Boolean(card),
     cardStatus: card?.status,
@@ -86,6 +92,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     approvedOtherBranchToday,
     suspicious: payload.suspicious,
     pointsPerVisit,
+    multiplier: tierDetails?.multiplier,
   });
 
   if (!card || !branch || result.outcome === "BLOCKED") {
@@ -256,12 +263,15 @@ export async function autoApproveVisit({
       },
     });
 
+    const nextTier = getTierDetails(card.totalEarned + pointsAwarded).tier;
+
     await tx.loyaltyCard.update({
       where: { id: card.id },
       data: {
         pointsBalance: { increment: pointsAwarded },
         totalEarned: { increment: pointsAwarded },
         visitsEarned: { increment: 1 },
+        tier: nextTier,
         lastVisitAt: created.scannedAt,
       },
     });

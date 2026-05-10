@@ -15,6 +15,8 @@ type BranchFormData = {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: string;
   _count?: { staffAssignments?: number; visits?: number };
 };
@@ -44,6 +46,16 @@ export function CreateBranchForm() {
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" placeholder="branch@example.com" />
         <AdminFieldError name="email" />
+      </div>
+      <div className="field">
+        <label htmlFor="latitude">Latitude</label>
+        <input id="latitude" name="latitude" type="number" step="any" placeholder="14.5995" />
+        <AdminFieldError name="latitude" />
+      </div>
+      <div className="field">
+        <label htmlFor="longitude">Longitude</label>
+        <input id="longitude" name="longitude" type="number" step="any" placeholder="120.9842" />
+        <AdminFieldError name="longitude" />
       </div>
       <div className="field">
         <label htmlFor="status">Status</label>
@@ -85,6 +97,16 @@ export function UpdateBranchForm({ branch }: { branch: BranchFormData }) {
         <label htmlFor={`email-${branch.id}`}>Email</label>
         <input id={`email-${branch.id}`} name="email" type="email" defaultValue={branch.email ?? ""} />
         <AdminFieldError name="email" />
+      </div>
+      <div className="field">
+        <label htmlFor={`latitude-${branch.id}`}>Latitude</label>
+        <input id={`latitude-${branch.id}`} name="latitude" type="number" step="any" defaultValue={branch.latitude ?? ""} />
+        <AdminFieldError name="latitude" />
+      </div>
+      <div className="field">
+        <label htmlFor={`longitude-${branch.id}`}>Longitude</label>
+        <input id={`longitude-${branch.id}`} name="longitude" type="number" step="any" defaultValue={branch.longitude ?? ""} />
+        <AdminFieldError name="longitude" />
       </div>
       <div className="field">
         <label htmlFor={`status-${branch.id}`}>Status</label>

@@ -129,7 +129,7 @@ export function AdminDetailGridSkeleton({ panels = 2, rows = 5 }: { panels?: num
 export function AdminDashboardSkeleton({
   active = "/admin/dashboard",
   heading = "Admin Dashboard",
-  showSuperAdmin = false,
+  showSuperAdmin = true,
 }: {
   active?: string;
   heading?: string;
@@ -146,11 +146,46 @@ export function AdminDashboardSkeleton({
     <AdminSkeletonShell active={active} heading={heading} showSuperAdmin={showSuperAdmin}>
       <MetricGrid items={items} variant="dashboard" />
       <div className="lp-admin-grid">
-        <AdminTablePanelSkeleton title="Pending Scans" footer="View all pending" />
-        <AdminTablePanelSkeleton title="Branch Performance" columns={["Branch", "Visits", "Points Earned", "Staff", "Activity"]} footer="View full report" />
-        <AdminActivityPanelSkeleton />
+        <section className="lp-panel span-6">
+          <h3>Visit Trends (Last 30 Days)</h3>
+          <div style={{ padding: "0 16px 16px" }}>
+            <ChartSkeleton height={200} />
+          </div>
+        </section>
+
+        <section className="lp-panel span-6">
+          <h3>Points Distribution</h3>
+          <div style={{ padding: "0 16px 16px" }}>
+            <ChartSkeleton height={200} />
+          </div>
+        </section>
+
+        <AdminTablePanelSkeleton className="span-4" title="Pending Scans" footer="View all pending" rows={5} />
+        <AdminTablePanelSkeleton className="span-5" title="Branch Performance" columns={["Branch", "Visits", "Staff", "Activity"]} footer="View full report" rows={4} />
+        <AdminActivityPanelSkeleton className="span-3" />
       </div>
     </AdminSkeletonShell>
+  );
+}
+
+function ChartSkeleton({ height = 200 }: { height?: number }) {
+  return (
+    <div style={{ height, position: "relative", padding: "20px 0 10px" }}>
+      <div style={{ position: "absolute", inset: "20px 0 10px", display: "flex", alignItems: "flex-end", gap: 4 }}>
+        {Array.from({ length: 24 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            style={{
+              flex: 1,
+              height: `${40 + Math.sin(i * 0.5) * 20 + Math.random() * 10}%`,
+              opacity: 0.2 + (i * 0.02),
+              borderRadius: "2px"
+            }}
+          />
+        ))}
+      </div>
+      <Skeleton style={{ position: "absolute", bottom: "10px", left: 0, right: 0, height: "2px", opacity: 0.5 }} />
+    </div>
   );
 }
 
@@ -506,14 +541,16 @@ export function AdminTablePanelSkeleton({
   columns = ["Time", "Member", "Branch", "Cashier", "Status"],
   rows = 1,
   footer,
+  className,
 }: {
   title?: string;
   columns?: string[];
   rows?: number;
   footer?: string;
+  className?: string;
 }) {
   return (
-    <section className="lp-panel">
+    <section className={className ? `lp-panel ${className}` : "lp-panel"}>
       <h3>{title}</h3>
       <div className="lp-table-wrap">
         <table>
@@ -542,14 +579,16 @@ export function AdminTablePanelSkeleton({
   );
 }
 
-export function AdminActivityPanelSkeleton() {
+import { Activity } from "lucide-react";
+
+export function AdminActivityPanelSkeleton({ className }: { className?: string }) {
   return (
-    <section className="lp-panel">
+    <section className={className ? `lp-panel ${className}` : "lp-panel"}>
       <h3>Recent Activity</h3>
       <div className="lp-activity">
         {Array.from({ length: 5 }).map((_, index) => (
           <div className="lp-activity-item" key={index}>
-            <Skeleton className="lp-skeleton-activity-icon" />
+            <span style={{ opacity: 0.3 }}><Activity size={15} /></span>
             <div>
               <Skeleton className="lp-skeleton-activity-title" />
               <Skeleton className="lp-skeleton-activity-subtitle" />
