@@ -129,7 +129,7 @@ export function AdminDetailGridSkeleton({ panels = 2, rows = 5 }: { panels?: num
 export function AdminDashboardSkeleton({
   active = "/admin/dashboard",
   heading = "Admin Dashboard",
-  showSuperAdmin = false,
+  showSuperAdmin = true,
 }: {
   active?: string;
   heading?: string;
@@ -170,19 +170,21 @@ export function AdminDashboardSkeleton({
 
 function ChartSkeleton({ height = 200 }: { height?: number }) {
   return (
-    <div style={{ height, display: "flex", alignItems: "flex-end", gap: 8, padding: "20px 0 10px" }}>
-      {Array.from({ length: 12 }).map((_, i) => (
-        <Skeleton
-          key={i}
-          className="lp-skeleton-chart-bar"
-          style={{
-            flex: 1,
-            height: `${Math.floor(Math.random() * 60) + 20}%`,
-            borderRadius: "4px 4px 0 0",
-            opacity: 0.5 + (i * 0.04)
-          }}
-        />
-      ))}
+    <div style={{ height, position: "relative", padding: "20px 0 10px" }}>
+      <div style={{ position: "absolute", inset: "20px 0 10px", display: "flex", alignItems: "flex-end", gap: 4 }}>
+        {Array.from({ length: 24 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            style={{
+              flex: 1,
+              height: `${40 + Math.sin(i * 0.5) * 20 + Math.random() * 10}%`,
+              opacity: 0.2 + (i * 0.02),
+              borderRadius: "2px"
+            }}
+          />
+        ))}
+      </div>
+      <Skeleton style={{ position: "absolute", bottom: "10px", left: 0, right: 0, height: "2px", opacity: 0.5 }} />
     </div>
   );
 }
@@ -577,6 +579,8 @@ export function AdminTablePanelSkeleton({
   );
 }
 
+import { Activity } from "lucide-react";
+
 export function AdminActivityPanelSkeleton({ className }: { className?: string }) {
   return (
     <section className={className ? `lp-panel ${className}` : "lp-panel"}>
@@ -584,7 +588,7 @@ export function AdminActivityPanelSkeleton({ className }: { className?: string }
       <div className="lp-activity">
         {Array.from({ length: 5 }).map((_, index) => (
           <div className="lp-activity-item" key={index}>
-            <Skeleton className="lp-skeleton-activity-icon" />
+            <span style={{ opacity: 0.3 }}><Activity size={15} /></span>
             <div>
               <Skeleton className="lp-skeleton-activity-title" />
               <Skeleton className="lp-skeleton-activity-subtitle" />
