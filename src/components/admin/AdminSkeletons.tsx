@@ -177,7 +177,7 @@ function ChartSkeleton({ height = 200 }: { height?: number }) {
             key={i}
             style={{
               flex: 1,
-              height: `${40 + Math.sin(i * 0.5) * 20 + Math.random() * 10}%`,
+              height: `${40 + Math.sin(i * 0.5) * 20 + (i % 3) * 5}%`,
               opacity: 0.2 + (i * 0.02),
               borderRadius: "2px"
             }}

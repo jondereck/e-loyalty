@@ -48,6 +48,10 @@ describe("rewards settings validation", () => {
     expect(
       rewardsSettingsSchema.parse({
         pointsPerVisit: "120",
+        tiers: [
+          { key: "STARTER", name: "Starter", threshold: 0, multiplier: 1.0 },
+          { key: "SILVER", name: "Silver", threshold: 1000, multiplier: 1.1 },
+        ],
         rewards: [
           {
             id: "reward-1",
@@ -61,6 +65,7 @@ describe("rewards settings validation", () => {
       }),
     ).toMatchObject({
       pointsPerVisit: 120,
+      tiers: [{ threshold: 0 }, { threshold: 1000 }],
       rewards: [{ pointsRequired: 1000, pointsCost: 0 }],
     });
   });
@@ -69,11 +74,25 @@ describe("rewards settings validation", () => {
     expect(() =>
       rewardsSettingsSchema.parse({
         pointsPerVisit: 100,
+        tiers: [{ key: "STARTER", name: "Starter", threshold: 0, multiplier: 1.0 }],
         rewards: [
           { name: "Free Drink", description: "First reward.", pointsRequired: 1000, pointsCost: 0, status: "AVAILABLE" },
           { name: "free drink", description: "Duplicate reward.", pointsRequired: 2000, pointsCost: 0, status: "DISABLED" },
         ],
       }),
     ).toThrow("Reward names must be unique.");
+  });
+
+  it("rejects non-ascending tier thresholds", () => {
+    expect(() =>
+      rewardsSettingsSchema.parse({
+        pointsPerVisit: 100,
+        tiers: [
+          { key: "STARTER", name: "Starter", threshold: 1000, multiplier: 1.0 },
+          { key: "SILVER", name: "Silver", threshold: 500, multiplier: 1.1 },
+        ],
+        rewards: [],
+      }),
+    ).toThrow("Tier thresholds must be in ascending order.");
   });
 });

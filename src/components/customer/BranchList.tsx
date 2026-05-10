@@ -12,9 +12,33 @@ type Branch = {
   longitude: number | null;
 };
 
+type BranchWithDistance = Branch & { distance?: number };
+
 export function BranchList({ branches }: { branches: Branch[] }) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [sortedBranches, setSortedBranches] = useState<(Branch & { distance?: number })[]>(branches);
+
+  const sortedBranches = (() => {
+    if (!userLocation) return branches;
+
+    const withDistance: BranchWithDistance[] = branches.map((b) => {
+      if (b.latitude !== null && b.longitude !== null) {
+        const dist = calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude);
+        return { ...b, distance: dist };
+      }
+      return b;
+    });
+
+    withDistance.sort((a, b) => {
+      const distA = a.distance;
+      const distB = b.distance;
+      if (distA !== undefined && distB !== undefined) return distA - distB;
+      if (distA !== undefined) return -1;
+      if (distB !== undefined) return 1;
+      return 0;
+    });
+
+    return withDistance;
+  })();
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -27,28 +51,6 @@ export function BranchList({ branches }: { branches: Branch[] }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (userLocation) {
-      const withDistance = branches.map((b) => {
-        if (b.latitude !== null && b.longitude !== null) {
-          const dist = calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude);
-          return { ...b, distance: dist };
-        }
-        return b;
-      });
-
-      withDistance.sort((a, b) => {
-        const distA = (a as any).distance;
-        const distB = (b as any).distance;
-        if (distA !== undefined && distB !== undefined) return distA - distB;
-        if (distA !== undefined) return -1;
-        if (distB !== undefined) return 1;
-        return 0;
-      });
-
-      setSortedBranches(withDistance);
-    }
-  }, [userLocation, branches]);
 
   return (
     <div className="lp-branch-list">

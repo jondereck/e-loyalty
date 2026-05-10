@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { getTierDetails } from "@/lib/tiers";
 import { earnKeyFor } from "@/lib/services/visits";
-import { getBusinessTimezone, getPointsPerVisit } from "@/lib/services/settings";
+import { getBusinessTimezone, getPointsPerVisit, getTierSettings } from "@/lib/services/settings";
 import { branchIdsForAdmin, requireBranchScopedProfile } from "@/lib/services/session";
 import { computeBusinessDate } from "@/lib/time";
 import {
@@ -77,7 +77,6 @@ export async function getAdminDashboard(branchIds?: string[]) {
 }
 
 export async function getVisitAnalytics(branchIds?: string[]) {
-  const businessTimezone = await getBusinessTimezone();
   const now = new Date();
   const start = new Date(now);
   start.setDate(start.getDate() - 30);
@@ -252,6 +251,7 @@ export async function approveVisitFormAction(formData: FormData): Promise<AdminM
 export async function approveVisit(visitId: string, actorId: string, override = false, adminNote?: string | null) {
   const pointsPerVisit = await getPointsPerVisit();
   const businessTimezone = await getBusinessTimezone();
+  const tierSettings = await getTierSettings();
 
   await prisma.$transaction(async (tx) => {
     const visit = await tx.visit.findUniqueOrThrow({ where: { id: visitId } });
@@ -276,7 +276,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
     if (earnedToday) throw new Error("Customer already earned for this business day.");
 
     const card = await tx.loyaltyCard.findUniqueOrThrow({ where: { id: visit.loyaltyCardId } });
-    const { multiplier } = getTierDetails(card.totalEarned);
+    const { multiplier } = getTierDetails(card.totalEarned, tierSettings);
     const finalPoints = Math.round(pointsPerVisit * multiplier);
 
     await tx.visit.update({
@@ -304,7 +304,7 @@ export async function approveVisit(visitId: string, actorId: string, override = 
       },
     });
 
-    const nextTier = getTierDetails(card.totalEarned + finalPoints).tier;
+    const nextTier = getTierDetails(card.totalEarned + finalPoints, tierSettings).tier;
 
     await tx.loyaltyCard.update({
       where: { id: visit.loyaltyCardId },

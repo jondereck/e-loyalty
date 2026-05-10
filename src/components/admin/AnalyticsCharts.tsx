@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,7 +10,6 @@ import {
   Area,
   BarChart,
   Bar,
-  Legend,
   Cell,
 } from "recharts";
 
@@ -37,7 +34,9 @@ export function VisitTrendChart({ data }: { data: AnalyticsData[] }) {
           <XAxis
             dataKey="date"
             tickFormatter={(str) => {
-              const [y, m, d] = str.split("-");
+              const parts = str.split("-");
+              const m = parts[1];
+              const d = parts[2];
               return `${m}/${d}`;
             }}
             fontSize={11}
@@ -86,7 +85,9 @@ export function PointsChart({ data }: { data: AnalyticsData[] }) {
           <XAxis
             dataKey="date"
             tickFormatter={(str) => {
-              const [y, m, d] = str.split("-");
+              const parts = str.split("-");
+              const m = parts[1];
+              const d = parts[2];
               return `${m}/${d}`;
             }}
             fontSize={11}

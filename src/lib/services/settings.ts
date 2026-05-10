@@ -14,6 +14,7 @@ import {
 } from "@/lib/settings-options";
 
 export const POINTS_PER_VISIT_SETTING_KEY = "points_per_visit";
+export const TIERS_SETTING_KEY = "loyalty_tiers";
 export const SYSTEM_NAME_SETTING_KEY = "system_name";
 export const SUPPORT_EMAIL_SETTING_KEY = "support_email";
 export const BUSINESS_TIMEZONE_SETTING_KEY = "business_timezone";
@@ -38,11 +39,26 @@ export type SettingsReward = {
   status: "AVAILABLE" | "DISABLED";
 };
 
+export type TierSetting = {
+  key: string;
+  name: string;
+  threshold: number;
+  multiplier: number;
+};
+
 export type SuperAdminSettingsData = {
   general: GeneralSettingsData;
   pointsPerVisit: number;
+  tiers: TierSetting[];
   rewards: SettingsReward[];
 };
+
+export const defaultTiers: TierSetting[] = [
+  { key: "STARTER", name: "Starter", threshold: 0, multiplier: 1.0 },
+  { key: "SILVER", name: "Silver", threshold: 1000, multiplier: 1.1 },
+  { key: "GOLD", name: "Gold", threshold: 5000, multiplier: 1.2 },
+  { key: "PLATINUM", name: "Platinum", threshold: 10000, multiplier: 1.5 },
+];
 
 export type GeneralSettingsData = typeof generalSettingsDefaults;
 
@@ -60,10 +76,29 @@ const rewardSettingsSchema = z.object({
   status: z.enum(["AVAILABLE", "DISABLED"]),
 });
 
+export const tierSettingsSchema = z.object({
+  key: z.string(),
+  name: z.string().trim().min(2).max(40),
+  threshold: z.coerce.number().int().min(0).max(1_000_000),
+  multiplier: z.coerce.number().min(1.0).max(10.0),
+});
+
 export const rewardsSettingsSchema = z.object({
   pointsPerVisit: z.coerce.number().int().min(1).max(100_000),
+  tiers: z.array(tierSettingsSchema).min(1).max(10),
   rewards: z.array(rewardSettingsSchema).max(50),
 }).superRefine((value, ctx) => {
+  // Validate tiers thresholds are ascending
+  for (let i = 1; i < value.tiers.length; i++) {
+    if (value.tiers[i].threshold <= value.tiers[i - 1].threshold) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Tier thresholds must be in ascending order.",
+        path: ["tiers", i, "threshold"],
+      });
+    }
+  }
+
   const names = new Set<string>();
   value.rewards.forEach((reward, index) => {
     const normalized = reward.name.toLowerCase();
@@ -164,10 +199,24 @@ export async function getGeneralSettings(): Promise<GeneralSettingsData> {
   };
 }
 
+export async function getTierSettings(): Promise<TierSetting[]> {
+  const setting = await safeSettingsRead(
+    () => prisma.systemSetting.findUnique({ where: { key: TIERS_SETTING_KEY } }),
+    null
+  );
+
+  if (setting && Array.isArray(setting.value)) {
+    return setting.value as TierSetting[];
+  }
+
+  return defaultTiers;
+}
+
 export async function getSuperAdminSettings(): Promise<SuperAdminSettingsData> {
-  const [general, pointsPerVisit, rewards] = await Promise.all([
+  const [general, pointsPerVisit, tiers, rewards] = await Promise.all([
     getGeneralSettings(),
     getPointsPerVisit(),
+    getTierSettings(),
     prisma.rewardMilestone.findMany({
       orderBy: [{ pointsRequired: "asc" }, { name: "asc" }],
       select: {
@@ -184,6 +233,7 @@ export async function getSuperAdminSettings(): Promise<SuperAdminSettingsData> {
   return {
     general,
     pointsPerVisit,
+    tiers,
     rewards: rewards.map((reward) => ({
       ...reward,
       status: reward.status === "DISABLED" ? "DISABLED" : "AVAILABLE",
@@ -224,6 +274,12 @@ export async function saveRewardsSettings(input: RewardsSettingsInput) {
       where: { key: POINTS_PER_VISIT_SETTING_KEY },
       update: { value: parsed.pointsPerVisit },
       create: { key: POINTS_PER_VISIT_SETTING_KEY, value: parsed.pointsPerVisit },
+    });
+
+    await tx.systemSetting.upsert({
+      where: { key: TIERS_SETTING_KEY },
+      update: { value: parsed.tiers },
+      create: { key: TIERS_SETTING_KEY, value: parsed.tiers },
     });
 
     const existing = await tx.rewardMilestone.findMany({

@@ -24,6 +24,7 @@ import {
   Shield,
   Star,
   ToggleLeft,
+  TrendingUp,
   Trash2,
   UserCog,
   Wrench,
@@ -69,6 +70,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
   const [updateLastCheckedAt, setUpdateLastCheckedAt] = useState(initialSettings.general.updateLastCheckedAt);
   const [updateAppVersion, setUpdateAppVersion] = useState(initialSettings.general.updateAppVersion);
   const [pointsPerVisit, setPointsPerVisit] = useState(String(initialSettings.pointsPerVisit));
+  const [tiers, setTiers] = useState(initialSettings.tiers);
   const [rewards, setRewards] = useState<DraftReward[]>(() => initialSettings.rewards.map(toDraftReward));
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +89,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
         const saved = activeTab === "rewards"
           ? await saveRewardsSettingsAction({
               pointsPerVisit,
+              tiers,
               rewards: rewards.map((reward) => ({
                 id: reward.id,
                 name: reward.name,
@@ -166,6 +169,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
     setUpdateLastCheckedAt(saved.general.updateLastCheckedAt);
     setUpdateAppVersion(saved.general.updateAppVersion);
     setPointsPerVisit(String(saved.pointsPerVisit));
+    setTiers(saved.tiers);
     setRewards(saved.rewards.map(toDraftReward));
   }
 
@@ -235,8 +239,10 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
       {activeTab === "rewards" ? (
         <RewardsTab
           pointsPerVisit={pointsPerVisit}
+          tiers={tiers}
           rewards={visibleRewards}
           onPointsChange={setPointsPerVisit}
+          onTiersChange={setTiers}
           onRewardChange={updateReward}
           onAddReward={addReward}
           onRemoveReward={removeOrDisableReward}
@@ -395,42 +401,91 @@ function SettingsInputRow({
   );
 }
 
+import type { TierSetting } from "@/lib/services/settings";
+
 function RewardsTab({
   pointsPerVisit,
+  tiers,
   rewards,
   onPointsChange,
+  onTiersChange,
   onRewardChange,
   onAddReward,
   onRemoveReward,
 }: {
   pointsPerVisit: string;
+  tiers: TierSetting[];
   rewards: DraftReward[];
   onPointsChange: (value: string) => void;
+  onTiersChange: (value: TierSetting[]) => void;
   onRewardChange: (clientKey: string, patch: Partial<DraftReward>) => void;
   onAddReward: () => void;
   onRemoveReward: (clientKey: string) => void;
 }) {
+  function updateTier(index: number, patch: Partial<TierSetting>) {
+    onTiersChange(tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)));
+  }
+
   return (
     <div className="lp-settings-rewards">
-      <section className="lp-settings-card">
-        <SettingsCardTitle icon={Star} title="Points Rules" />
-        <p className="lp-settings-card-copy">Customize how many points customers earn per approved visit.</p>
-        <label className="lp-settings-field">
-          <span>Points per approved visit</span>
-          <input
-            min={1}
-            max={100000}
-            type="number"
-            inputMode="numeric"
-            value={pointsPerVisit}
-            onChange={(event) => onPointsChange(event.target.value)}
-          />
-        </label>
-        <div className="lp-settings-note compact">
-          <Info size={18} />
-          <span>This value is used by new auto-approved scans and admin-approved visits.</span>
-        </div>
-      </section>
+      <div className="lp-settings-grid two">
+        <section className="lp-settings-card">
+          <SettingsCardTitle icon={Star} title="Points Rules" />
+          <p className="lp-settings-card-copy">Customize how many points customers earn per approved visit.</p>
+          <label className="lp-settings-field">
+            <span>Points per approved visit</span>
+            <input
+              min={1}
+              max={100000}
+              type="number"
+              inputMode="numeric"
+              value={pointsPerVisit}
+              onChange={(event) => onPointsChange(event.target.value)}
+            />
+          </label>
+          <div className="lp-settings-note compact">
+            <Info size={18} />
+            <span>This value is used by new auto-approved scans and admin-approved visits.</span>
+          </div>
+        </section>
+
+        <section className="lp-settings-card">
+          <SettingsCardTitle icon={TrendingUp} title="Loyalty Tiers" />
+          <p className="lp-settings-card-copy">Adjust multipliers and thresholds for customer progression.</p>
+          <div className="lp-settings-tier-list">
+            {tiers.map((tier, index) => (
+              <div key={tier.key} className="lp-settings-tier-row">
+                <div className="lp-settings-reward-icon">
+                  <Star size={16} />
+                </div>
+                <label className="wide">
+                  <span>Tier Name</span>
+                  <input value={tier.name} onChange={(e) => updateTier(index, { name: e.target.value })} />
+                </label>
+                <label>
+                  <span>Threshold</span>
+                  <input
+                    type="number"
+                    value={tier.threshold}
+                    disabled={index === 0}
+                    onChange={(e) => updateTier(index, { threshold: Number(e.target.value) })}
+                  />
+                </label>
+                <label>
+                  <span>Multiplier</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    value={tier.multiplier}
+                    onChange={(e) => updateTier(index, { multiplier: Number(e.target.value) })}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
 
       <section className="lp-settings-card lp-settings-reward-list-card">
         <div className="lp-settings-section-head">
