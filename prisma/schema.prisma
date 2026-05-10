@@ -140,6 +140,8 @@ model Branch {
   visits           Visit[]
   scanAttempts     ScanAttempt[]
   redemptions      RewardRedemption[]
+  latitude         Float?
+  longitude        Float?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 }

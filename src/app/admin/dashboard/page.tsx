@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Activity, Gift, LayoutGrid, TrendingUp, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { PointsChart, VisitTrendChart } from "@/components/admin/AnalyticsCharts";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getAdminDashboard, listPendingApprovals } from "@/lib/services/admin";
+import { getAdminDashboard, getVisitAnalytics, listPendingApprovals } from "@/lib/services/admin";
 import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
 import { compactNumber, formatTime } from "@/lib/utils";
 
@@ -12,7 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboardPage() {
   const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
   const branchIds = branchIdsForAdmin(profile);
-  const [dashboard, pending] = await Promise.all([getAdminDashboard(branchIds), listPendingApprovals(branchIds)]);
+  const [dashboard, pending, analytics] = await Promise.all([
+    getAdminDashboard(branchIds),
+    listPendingApprovals(branchIds),
+    getVisitAnalytics(branchIds),
+  ]);
 
   return (
     <AdminShell active="/admin/dashboard">
@@ -24,6 +29,16 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="lp-admin-grid">
+        <section className="lp-panel wide">
+          <h3>Visit Trends (Last 30 Days)</h3>
+          <VisitTrendChart data={analytics} />
+        </section>
+
+        <section className="lp-panel wide">
+          <h3>Points Distribution</h3>
+          <PointsChart data={analytics} />
+        </section>
+
         <section className="lp-panel">
           <h3>Pending Scans</h3>
           <div className="lp-table-wrap">

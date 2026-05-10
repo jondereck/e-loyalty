@@ -6,6 +6,7 @@ import type { AdminMutationResult } from "@/lib/admin/mutations";
 import { adminMutationError } from "@/lib/admin/mutations";
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
+import { getTierDetails } from "@/lib/tiers";
 import { earnKeyFor } from "@/lib/services/visits";
 import { getBusinessTimezone, getPointsPerVisit } from "@/lib/services/settings";
 import { branchIdsForAdmin, requireBranchScopedProfile } from "@/lib/services/session";
@@ -73,6 +74,52 @@ export async function getAdminDashboard(branchIds?: string[]) {
     redemptionRate,
     recentActivity,
   };
+}
+
+export async function getVisitAnalytics(branchIds?: string[]) {
+  const businessTimezone = await getBusinessTimezone();
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(start.getDate() - 30);
+  start.setHours(0, 0, 0, 0);
+
+  const scoped = Array.isArray(branchIds);
+  const where = {
+    status: { in: ["AUTO_APPROVED", "APPROVED"] },
+    scannedAt: { gte: start },
+    ...(scoped ? { branchId: { in: branchIds } } : {}),
+  } satisfies Prisma.VisitWhereInput;
+
+  const visits = await prisma.visit.findMany({
+    where,
+    select: {
+      scannedAt: true,
+      pointsAwarded: true,
+      businessDate: true,
+    },
+    orderBy: { scannedAt: "asc" },
+  });
+
+  const dailyMap = new Map<string, { date: string; visits: number; points: number }>();
+
+  // Fill in all days for the last 30 days
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    dailyMap.set(dateStr, { date: dateStr, visits: 0, points: 0 });
+  }
+
+  visits.forEach((v) => {
+    const dateStr = v.businessDate || v.scannedAt.toISOString().slice(0, 10);
+    const entry = dailyMap.get(dateStr);
+    if (entry) {
+      entry.visits += 1;
+      entry.points += v.pointsAwarded;
+    }
+  });
+
+  return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export async function listPendingApprovals(branchIds?: string[]) {
@@ -228,12 +275,16 @@ export async function approveVisit(visitId: string, actorId: string, override = 
     });
     if (earnedToday) throw new Error("Customer already earned for this business day.");
 
+    const card = await tx.loyaltyCard.findUniqueOrThrow({ where: { id: visit.loyaltyCardId } });
+    const { multiplier } = getTierDetails(card.totalEarned);
+    const finalPoints = Math.round(pointsPerVisit * multiplier);
+
     await tx.visit.update({
       where: { id: visit.id },
       data: {
         status: "APPROVED",
         approvalStatus: override ? "OVERRIDDEN" : "APPROVED",
-        pointsAwarded: pointsPerVisit,
+        pointsAwarded: finalPoints,
         businessDate,
         earnKey,
         approvedAt: new Date(),
@@ -248,17 +299,20 @@ export async function approveVisit(visitId: string, actorId: string, override = 
         profileId: visit.customerId,
         visitId: visit.id,
         type: "EARN",
-        points: pointsPerVisit,
+        points: finalPoints,
         description: override ? "Override approved visit earn" : "Admin approved visit earn",
       },
     });
 
+    const nextTier = getTierDetails(card.totalEarned + finalPoints).tier;
+
     await tx.loyaltyCard.update({
       where: { id: visit.loyaltyCardId },
       data: {
-        pointsBalance: { increment: pointsPerVisit },
-        totalEarned: { increment: pointsPerVisit },
+        pointsBalance: { increment: finalPoints },
+        totalEarned: { increment: finalPoints },
         visitsEarned: { increment: 1 },
+        tier: nextTier,
         lastVisitAt: visit.scannedAt,
       },
     });
@@ -452,6 +506,8 @@ export async function createBranchAction(formData: FormData) {
         address: branch.address,
         phone: branch.phone,
         email: branch.email,
+        latitude: branch.latitude,
+        longitude: branch.longitude,
         status: branch.status,
       },
     },
@@ -483,6 +539,8 @@ export async function updateBranchAction(formData: FormData) {
       address: parsed.address,
       phone: parsed.phone,
       email: parsed.email,
+      latitude: parsed.latitude,
+      longitude: parsed.longitude,
       status: parsed.status,
     },
   });
@@ -498,6 +556,8 @@ export async function updateBranchAction(formData: FormData) {
           address: previous.address,
           phone: previous.phone,
           email: previous.email,
+          latitude: previous.latitude,
+          longitude: previous.longitude,
           status: previous.status,
         },
         next: {
@@ -506,6 +566,8 @@ export async function updateBranchAction(formData: FormData) {
           address: branch.address,
           phone: branch.phone,
           email: branch.email,
+          latitude: branch.latitude,
+          longitude: branch.longitude,
           status: branch.status,
         },
       },

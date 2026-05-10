@@ -34,6 +34,8 @@ export const createBranchSchema = z.object({
   address: z.string().trim().max(240).optional().transform((value) => value || null),
   phone: z.string().trim().max(40).optional().transform((value) => value || null),
   email: z.string().trim().max(120).optional().transform((value) => value || null).pipe(z.string().email("Enter a valid email.").nullable()),
+  latitude: z.coerce.number().min(-90).max(90).optional().nullable(),
+  longitude: z.coerce.number().min(-180).max(180).optional().nullable(),
   status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]).default("ACTIVE"),
 });
 

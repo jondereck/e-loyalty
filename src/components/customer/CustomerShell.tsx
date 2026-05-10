@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Gift, History, Home, UserCircle } from "lucide-react";
+import { Gift, History, Home, MapPin, UserCircle } from "lucide-react";
 
-type CustomerTab = "card" | "rewards" | "history" | "profile";
+type CustomerTab = "card" | "rewards" | "history" | "profile" | "branches";
 
 const tabs = [
   { key: "card", href: "/card", label: "Home", icon: Home },
+  { key: "branches", href: "/branches", label: "Branches", icon: MapPin },
   { key: "rewards", href: "/rewards", label: "Rewards", icon: Gift },
   { key: "history", href: "/history", label: "History", icon: History },
   { key: "profile", href: "/profile", label: "Account", icon: UserCircle },
