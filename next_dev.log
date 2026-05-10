@@ -1,0 +1,52 @@
+
+> e-loyalty@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 568ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+○ Compiling /login ...
+System settings read failed; using defaults. Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].systemSetting.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/[root-of-the-server]__0dgqw1i._.js:991:169
+
+  988     return setting?.value;
+  989 }
+  990 async function readSettings(keys) {
+→ 991     const settings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].systemSetting.findMany(
+
+    at <unknown> (src/lib/services/settings.ts:291:47)
+    at async readSettings (src/lib/services/settings.ts:291:20)
+    at async safeSettingsRead (src/lib/services/settings.ts:300:12)
+    at async getGeneralSettings (src/lib/services/settings.ts:138:18)
+    at async getBrandingSettings (src/lib/services/settings.ts:120:19)
+    at async LoginPage (src/app/login/page.tsx:10:37)
+  289 |
+  290 | async function readSettings(keys: string[]) {
+> 291 |   const settings = await prisma.systemSetting.findMany({
+      |                                               ^
+  292 |     where: { key: { in: keys } },
+  293 |     select: { key: true, value: true },
+  294 |   }); {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'SystemSetting' },
+  clientVersion: '7.8.0'
+}
+⨯ TypeError: fetch failed
+    at ignore-listed frames {
+  digest: '2901833604',
+  [cause]: AggregateError:
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /login 200 in 11.4s (next.js: 8.4s, application-code: 3.0s)
+[browser] Uncaught TypeError: fetch failed

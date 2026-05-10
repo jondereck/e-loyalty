@@ -659,7 +659,32 @@ h3 {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #6c4df6, #ffb453);
+  background: linear-gradient(90deg, #6c4df6, #9f6bff 45%, #ffb453);
+  box-shadow: 0 0 12px rgba(108, 77, 246, 0.3);
+}
+
+.lp-card-hint {
+  text-align: center;
+  font-size: 11px;
+  color: #66708f;
+  margin-top: 8px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.lp-notification-wrapper {
+  position: relative;
+}
+
+.lp-notification-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--red);
+  border-radius: 50%;
+  border: 1.5px solid #fbfcff;
 }
 
 .lp-status-grid {
@@ -949,7 +974,7 @@ h3 {
   background: rgba(255, 255, 255, 0.88);
   border-top: 1px solid #e8ebf3;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   backdrop-filter: blur(20px);
 }
 
@@ -3184,7 +3209,7 @@ h3 {
   transform: translateX(-50%);
   width: min(520px, calc(100% - 28px));
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
   padding: 8px;
   border: 1px solid var(--hairline);

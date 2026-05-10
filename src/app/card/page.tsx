@@ -6,6 +6,7 @@ import { getTierDetails } from "@/lib/tiers";
 import { getBrandingSettings } from "@/lib/services/settings";
 import { requireProfile } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
+import { BUSINESS_TIMEZONE } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -17,14 +18,36 @@ export default async function CardPage() {
   const progress = Math.min(100, Math.round((data.card.pointsBalance / progressTarget) * 100));
   const firstName = data.profile.fullName.split(" ")[0] ?? data.profile.fullName;
 
+  // Dynamic greeting based on current time in business timezone
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: BUSINESS_TIMEZONE,
+  });
+  const hour = parseInt(formatter.format(new Date()));
+  let greeting = "Good morning";
+  let emoji = "☀️";
+
+  if (hour >= 12 && hour < 18) {
+    greeting = "Good afternoon";
+    emoji = "🌇";
+  } else if (hour >= 18 || hour < 5) {
+    greeting = "Good evening";
+    emoji = "🌙";
+  }
+
   return (
     <CustomerShell active="card" eyebrow="Customer Card" title={data.profile.fullName}>
       <div className="lp-mobile-topbar">
-        <div className="lp-greeting">Good morning,<br /><b>{firstName}</b></div>
-        <Bell size={20} />
+        <div className="lp-greeting">{greeting}, {emoji}<br /><b>{firstName}</b></div>
+        <div className="lp-notification-wrapper">
+          <Bell size={20} />
+          <div className="lp-notification-dot" />
+        </div>
       </div>
 
-      <FlippableLoyaltyCard
+      <div style={{ position: 'relative', marginBottom: '24px' }}>
+        <FlippableLoyaltyCard
         tier={tier.tier}
         points={data.card.pointsBalance}
         visits={data.card.visitsEarned}
@@ -32,6 +55,10 @@ export default async function CardPage() {
         cardNumber={data.card.cardNumber}
         systemName={branding.systemName}
       />
+      <div className="lp-card-hint">
+        Tap card to show QR code
+      </div>
+      </div>
 
       <div className="lp-mini-card">
         <div className="lp-mini-head">
