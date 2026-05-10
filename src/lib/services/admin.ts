@@ -7,6 +7,7 @@ import { adminMutationError } from "@/lib/admin/mutations";
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { getTierDetails } from "@/lib/tiers";
+import { createNotification } from "@/lib/services/notifications";
 import { earnKeyFor } from "@/lib/services/visits";
 import { getBusinessTimezone, getPointsPerVisit } from "@/lib/services/settings";
 import { branchIdsForAdmin, requireBranchScopedProfile } from "@/lib/services/session";
@@ -325,6 +326,14 @@ export async function approveVisit(visitId: string, actorId: string, override = 
         metadata: { previousStatus: visit.status, businessDate, adminNote },
       },
     });
+
+    await createNotification({
+      userId: visit.customerId,
+      title: "Visit Approved!",
+      message: `Your visit at ${visit.branchId} has been approved. You earned ${finalPoints} points!`,
+      type: "SUCCESS",
+      link: "/history",
+    });
   });
 }
 
@@ -353,8 +362,8 @@ export async function rejectVisit(visitId: string, actorId: string, reason: stri
     throw new Error("Only pending visits can be rejected.");
   }
 
-  await prisma.$transaction([
-    prisma.visit.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.visit.update({
       where: { id: visit.id },
       data: {
         status: "REJECTED",
@@ -364,16 +373,23 @@ export async function rejectVisit(visitId: string, actorId: string, reason: stri
         rejectedAt: new Date(),
         reviewedById: actorId,
       },
-    }),
-    prisma.auditEvent.create({
+    });
+    await tx.auditEvent.create({
       data: {
         actorId,
         visitId: visit.id,
         action: "VISIT_REJECTED",
         metadata: { reason, adminNote, previousStatus: visit.status },
       },
-    }),
-  ]);
+    });
+    await createNotification({
+      userId: visit.customerId,
+      title: "Visit Rejected",
+      message: `Your visit at ${visit.branchId} was not approved. Reason: ${reason}`,
+      type: "ERROR",
+      link: "/history",
+    });
+  });
 }
 
 const branchInclude = {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import {
   AdminActionMessage,
@@ -7,6 +8,7 @@ import {
   AdminMutationForm,
   AdminSubmitButton,
 } from "@/components/admin/AdminMutationForm";
+import { MapPicker } from "@/components/admin/MapPicker";
 
 type BranchFormData = {
   id: string;
@@ -22,8 +24,18 @@ type BranchFormData = {
 };
 
 export function CreateBranchForm() {
+  const [address, setAddress] = useState("");
+
   return (
     <AdminMutationForm action="/api/admin/branches" className="lp-form-grid" resetOnSuccess>
+      <div className="field wide mb-4">
+        <label className="mb-2 block">Locate on Map</label>
+        <MapPicker
+          onLocationSelect={(lat, lng, addr) => {
+            if (addr) setAddress(addr);
+          }}
+        />
+      </div>
       <div className="field">
         <label htmlFor="code">Code</label>
         <input id="code" name="code" placeholder="MAIN" />
@@ -36,7 +48,14 @@ export function CreateBranchForm() {
       </div>
       <div className="field wide">
         <label htmlFor="address">Address</label>
-        <textarea id="address" name="address" placeholder="Street address, city, province" rows={3} />
+        <textarea
+          id="address"
+          name="address"
+          placeholder="Street address, city, province"
+          rows={3}
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+        />
       </div>
       <div className="field">
         <label htmlFor="phone">Phone</label>
@@ -46,16 +65,6 @@ export function CreateBranchForm() {
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" placeholder="branch@example.com" />
         <AdminFieldError name="email" />
-      </div>
-      <div className="field">
-        <label htmlFor="latitude">Latitude</label>
-        <input id="latitude" name="latitude" type="number" step="any" placeholder="14.5995" />
-        <AdminFieldError name="latitude" />
-      </div>
-      <div className="field">
-        <label htmlFor="longitude">Longitude</label>
-        <input id="longitude" name="longitude" type="number" step="any" placeholder="120.9842" />
-        <AdminFieldError name="longitude" />
       </div>
       <div className="field">
         <label htmlFor="status">Status</label>
@@ -72,9 +81,21 @@ export function CreateBranchForm() {
 }
 
 export function UpdateBranchForm({ branch }: { branch: BranchFormData }) {
+  const [address, setAddress] = useState(branch.address ?? "");
+
   return (
     <AdminMutationForm action="/api/admin/branches" method="PATCH" className="lp-form-grid">
       <input type="hidden" name="branchId" value={branch.id} />
+      <div className="field wide mb-4">
+        <label className="mb-2 block">Locate on Map</label>
+        <MapPicker
+          defaultLat={branch.latitude}
+          defaultLng={branch.longitude}
+          onLocationSelect={(lat, lng, addr) => {
+            if (addr) setAddress(addr);
+          }}
+        />
+      </div>
       <div className="field">
         <label htmlFor={`code-${branch.id}`}>Code</label>
         <input id={`code-${branch.id}`} name="code" defaultValue={branch.code} />
@@ -87,7 +108,13 @@ export function UpdateBranchForm({ branch }: { branch: BranchFormData }) {
       </div>
       <div className="field wide">
         <label htmlFor={`address-${branch.id}`}>Address</label>
-        <textarea id={`address-${branch.id}`} name="address" defaultValue={branch.address ?? ""} rows={3} />
+        <textarea
+          id={`address-${branch.id}`}
+          name="address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          rows={3}
+        />
       </div>
       <div className="field">
         <label htmlFor={`phone-${branch.id}`}>Phone</label>
@@ -97,16 +124,6 @@ export function UpdateBranchForm({ branch }: { branch: BranchFormData }) {
         <label htmlFor={`email-${branch.id}`}>Email</label>
         <input id={`email-${branch.id}`} name="email" type="email" defaultValue={branch.email ?? ""} />
         <AdminFieldError name="email" />
-      </div>
-      <div className="field">
-        <label htmlFor={`latitude-${branch.id}`}>Latitude</label>
-        <input id={`latitude-${branch.id}`} name="latitude" type="number" step="any" defaultValue={branch.latitude ?? ""} />
-        <AdminFieldError name="latitude" />
-      </div>
-      <div className="field">
-        <label htmlFor={`longitude-${branch.id}`}>Longitude</label>
-        <input id={`longitude-${branch.id}`} name="longitude" type="number" step="any" defaultValue={branch.longitude ?? ""} />
-        <AdminFieldError name="longitude" />
       </div>
       <div className="field">
         <label htmlFor={`status-${branch.id}`}>Status</label>

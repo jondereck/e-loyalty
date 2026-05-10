@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
+import { NotificationBell } from "@/components/NotificationBell";
 import { getBrandingSettings } from "@/lib/services/settings";
 
 export async function AppNav({
@@ -39,9 +40,12 @@ export async function AppNav({
             </Link>
           ))}
           {mode === "staff" ? (
-            <form action="/api/auth/logout" method="post">
-              <LogoutSubmitButton className="nav-action" iconSize={15} />
-            </form>
+            <>
+              <NotificationBell />
+              <form action="/api/auth/logout" method="post">
+                <LogoutSubmitButton className="nav-action" iconSize={15} />
+              </form>
+            </>
           ) : null}
         </div>
       </nav>
