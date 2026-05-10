@@ -6,21 +6,26 @@ import { getCurrentProfile } from "@/lib/services/session";
 export async function AdminShell({
   active,
   children,
+  title,
+  showSuperAdmin,
 }: {
   active: string;
   children: ReactNode;
+  title?: string;
+  showSuperAdmin?: boolean;
 }) {
   const [profile, branding] = await Promise.all([getCurrentProfile(), getBrandingSettings()]);
-  const showHeader = active.includes("dashboard");
+  const isSuperAdmin = showSuperAdmin ?? profile?.roles.includes("SUPER_ADMIN");
+  const displayTitle = title ?? (active.includes("dashboard") ? "Admin Dashboard" : undefined);
 
   return (
     <main className="lp-admin-page">
       <div className="lp-admin-window">
-        <Sidebar active={active} showSuperAdmin={profile?.roles.includes("SUPER_ADMIN")} profile={profile} systemName={branding.systemName} />
+        <Sidebar active={active} showSuperAdmin={isSuperAdmin} profile={profile} systemName={branding.systemName} />
         <section className="lp-admin-main">
-          {showHeader ? (
+          {displayTitle ? (
             <div className="lp-admin-head">
-              <h2>Admin Dashboard</h2>
+              <h2>{displayTitle}</h2>
             </div>
           ) : null}
           {children}

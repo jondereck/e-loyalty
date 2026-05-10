@@ -102,6 +102,7 @@ model UserProfile {
   cashierVisits    Visit[]            @relation("CashierVisits")
   ledgerEntries    PointLedger[]
   redemptions      RewardRedemption[]
+  notifications    Notification[]
   auditEvents      AuditEvent[]       @relation("ActorAuditEvents")
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
@@ -266,6 +267,21 @@ model AuditEvent {
   action    String
   metadata  Json?
   createdAt DateTime     @default(now())
+}
+
+model Notification {
+  id        String      @id @default(cuid())
+  userId    String
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String
+  isRead    Boolean     @default(false)
+  link      String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId])
 }
 
 model SystemSetting {

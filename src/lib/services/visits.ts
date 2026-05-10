@@ -1,6 +1,7 @@
 import { Prisma, type VisitReasonCode, type VisitStatus } from "@/generated/prisma/client";
 import { safeTokenPreview } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/services/notifications";
 import { evaluateVisitEligibility } from "@/lib/rules";
 import { getTierDetails } from "@/lib/tiers";
 import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit } from "@/lib/services/settings";
@@ -18,6 +19,7 @@ type ResolvedCard = {
   id: string;
   profileId: string;
   totalEarned: number;
+  pointsBalance: number;
   status: "ACTIVE" | "BLOCKED";
   profile: { status: "ACTIVE" | "INACTIVE" | "SUSPENDED" };
 };
@@ -162,6 +164,28 @@ export async function scanCustomerQr(payload: ScanPayload) {
       return created;
     });
 
+    const admins = await prisma.userProfile.findMany({
+      where: {
+        OR: [
+          { roles: { has: "SUPER_ADMIN" } },
+          { staffAssignments: { some: { branchId: branch.id, role: "BRANCH_ADMIN", status: "ACTIVE" } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      admins.map((admin) =>
+        createNotification({
+          userId: admin.id,
+          title: "New Visit Approval",
+          message: `A visit at ${branch.name} requires approval.`,
+          type: "INFO",
+          link: `/admin/approvals/${visit.id}`,
+        }),
+      ),
+    );
+
     return { type: "PENDING" as const, id: visit.id, message: "Scan needs admin approval." };
   }
 
@@ -296,6 +320,14 @@ export async function autoApproveVisit({
         action: "VISIT_AUTO_APPROVED",
         metadata: { points: pointsAwarded, businessDate },
       },
+    });
+
+    await createNotification({
+      userId: card.profileId,
+      title: "Points Earned!",
+      message: `You've earned ${pointsAwarded} points at ${created.branchId}. Your new balance is ${card.pointsBalance + pointsAwarded}.`,
+      type: "SUCCESS",
+      link: "/history",
     });
 
     return created;

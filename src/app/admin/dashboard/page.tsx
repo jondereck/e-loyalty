@@ -21,11 +21,50 @@ export default async function AdminDashboardPage() {
 
   return (
     <AdminShell active="/admin/dashboard">
-      <div className="lp-metrics">
-        <AdminMetric label="Total Members" value={dashboard.customerUsers} sub={`${dashboard.staffUsers} staff users`} icon={<Users size={22} />} />
-        <AdminMetric label="Visits Today" value={dashboard.visitsToday} sub={`${dashboard.approvedVisits} approved today`} icon={<TrendingUp size={22} />} />
-        <AdminMetric label="Pending Reviews" value={dashboard.pendingApprovals} sub={`${dashboard.rejectedVisits} rejected today`} icon={<LayoutGrid size={22} />} tone="orange" />
-        <AdminMetric label="Redemption Rate" value={`${dashboard.redemptionRate}%`} sub={`${dashboard.redemptions} redemptions`} icon={<Gift size={22} />} tone="green" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <Users size={24} />
+            </div>
+            <div>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Members</p>
+                <h4 className="text-2xl font-bold text-slate-900">{compactNumber(dashboard.customerUsers)}</h4>
+                <p className="text-[10px] text-slate-400 mt-1">{dashboard.staffUsers} staff users</p>
+            </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <TrendingUp size={24} />
+            </div>
+            <div>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Visits Today</p>
+                <h4 className="text-2xl font-bold text-slate-900">{dashboard.visitsToday}</h4>
+                <p className="text-[10px] text-emerald-600 mt-1">{dashboard.approvedVisits} approved today</p>
+            </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                <LayoutGrid size={24} />
+            </div>
+            <div>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Pending Reviews</p>
+                <h4 className="text-2xl font-bold text-slate-900">{dashboard.pendingApprovals}</h4>
+                <p className="text-[10px] text-amber-600 mt-1">{dashboard.rejectedVisits} rejected today</p>
+            </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                <Gift size={24} />
+            </div>
+            <div>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Redemption Rate</p>
+                <h4 className="text-2xl font-bold text-slate-900">{dashboard.redemptionRate}%</h4>
+                <p className="text-[10px] text-slate-400 mt-1">{dashboard.redemptions} redemptions</p>
+            </div>
+        </div>
       </div>
 
       <div className="lp-admin-grid">
