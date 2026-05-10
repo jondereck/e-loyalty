@@ -44,6 +44,10 @@ describe("maintenance access", () => {
 });
 
 describe("rewards settings validation", () => {
+  const defaultTiers = [
+    { name: "Starter", threshold: 0, multiplier: 1.0, color: "#7a50ff" },
+  ];
+
   it("accepts points and reward milestone settings", () => {
     expect(
       rewardsSettingsSchema.parse({
@@ -58,10 +62,12 @@ describe("rewards settings validation", () => {
             status: "AVAILABLE",
           },
         ],
+        tiers: defaultTiers,
       }),
     ).toMatchObject({
       pointsPerVisit: 120,
       rewards: [{ pointsRequired: 1000, pointsCost: 0 }],
+      tiers: defaultTiers,
     });
   });
 
@@ -73,6 +79,7 @@ describe("rewards settings validation", () => {
           { name: "Free Drink", description: "First reward.", pointsRequired: 1000, pointsCost: 0, status: "AVAILABLE" },
           { name: "free drink", description: "Duplicate reward.", pointsRequired: 2000, pointsCost: 0, status: "DISABLED" },
         ],
+        tiers: defaultTiers,
       }),
     ).toThrow("Reward names must be unique.");
   });

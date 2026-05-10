@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { getTierDetails } from "@/lib/tiers";
 import { createNotification } from "@/lib/services/notifications";
 import { earnKeyFor } from "@/lib/services/visits";
-import { getBusinessTimezone, getPointsPerVisit } from "@/lib/services/settings";
+import { getBusinessTimezone, getPointsPerVisit, getTierSettings } from "@/lib/services/settings";
 import { branchIdsForAdmin, requireBranchScopedProfile } from "@/lib/services/session";
 import { computeBusinessDate } from "@/lib/time";
 import {
@@ -277,8 +277,9 @@ export async function approveVisit(visitId: string, actorId: string, override = 
     if (earnedToday) throw new Error("Customer already earned for this business day.");
 
     const card = await tx.loyaltyCard.findUniqueOrThrow({ where: { id: visit.loyaltyCardId } });
-    const { multiplier } = getTierDetails(card.totalEarned);
-    const finalPoints = Math.round(pointsPerVisit * multiplier);
+    const tiers = await getTierSettings();
+    const currentTierDetails = getTierDetails(card.totalEarned, tiers);
+    const finalPoints = Math.round(pointsPerVisit * currentTierDetails.multiplier);
 
     await tx.visit.update({
       where: { id: visit.id },
@@ -305,7 +306,18 @@ export async function approveVisit(visitId: string, actorId: string, override = 
       },
     });
 
-    const nextTier = getTierDetails(card.totalEarned + finalPoints).tier;
+    const nextTierDetails = getTierDetails(card.totalEarned + finalPoints, tiers);
+    const nextTier = nextTierDetails.tier;
+
+    if (nextTier !== currentTierDetails.tier) {
+      await createNotification({
+        userId: visit.customerId,
+        title: "Tier Leveled Up!",
+        message: `Congratulations! You've reached the ${nextTier} tier. You now have a ${nextTierDetails.multiplier}x point multiplier!`,
+        type: "SUCCESS",
+        link: "/card",
+      });
+    }
 
     await tx.loyaltyCard.update({
       where: { id: visit.loyaltyCardId },

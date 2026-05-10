@@ -70,6 +70,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
   const [updateAppVersion, setUpdateAppVersion] = useState(initialSettings.general.updateAppVersion);
   const [pointsPerVisit, setPointsPerVisit] = useState(String(initialSettings.pointsPerVisit));
   const [rewards, setRewards] = useState<DraftReward[]>(() => initialSettings.rewards.map(toDraftReward));
+  const [tiers, setTiers] = useState<SettingsTier[]>(initialSettings.tiers);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -95,6 +96,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
                 pointsCost: reward.pointsCost,
                 status: reward.status,
               })),
+              tiers,
             })
           : await saveGeneralSettingsAction({
               systemName,
@@ -167,6 +169,26 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
     setUpdateAppVersion(saved.general.updateAppVersion);
     setPointsPerVisit(String(saved.pointsPerVisit));
     setRewards(saved.rewards.map(toDraftReward));
+    setTiers(saved.tiers);
+  }
+
+  function addTier() {
+    setTiers(current => [
+      ...current,
+      { name: "New Tier", threshold: 0, multiplier: 1.0, color: "#7a50ff" }
+    ]);
+  }
+
+  function updateTier(index: number, patch: Partial<SettingsTier>) {
+    setTiers(current => {
+      const next = [...current];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
+  }
+
+  function removeTier(index: number) {
+    setTiers(current => current.filter((_, i) => i !== index));
   }
 
   return (
@@ -236,10 +258,14 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
         <RewardsTab
           pointsPerVisit={pointsPerVisit}
           rewards={visibleRewards}
+          tiers={tiers}
           onPointsChange={setPointsPerVisit}
           onRewardChange={updateReward}
           onAddReward={addReward}
           onRemoveReward={removeOrDisableReward}
+          onTierChange={updateTier}
+          onAddTier={addTier}
+          onRemoveTier={removeTier}
         />
       ) : null}
       {activeTab === "system" ? <SystemTab /> : null}
@@ -398,39 +424,90 @@ function SettingsInputRow({
 function RewardsTab({
   pointsPerVisit,
   rewards,
+  tiers,
   onPointsChange,
   onRewardChange,
   onAddReward,
   onRemoveReward,
+  onTierChange,
+  onAddTier,
+  onRemoveTier,
 }: {
   pointsPerVisit: string;
   rewards: DraftReward[];
+  tiers: SettingsTier[];
   onPointsChange: (value: string) => void;
   onRewardChange: (clientKey: string, patch: Partial<DraftReward>) => void;
   onAddReward: () => void;
   onRemoveReward: (clientKey: string) => void;
+  onTierChange: (index: number, patch: Partial<SettingsTier>) => void;
+  onAddTier: () => void;
+  onRemoveTier: (index: number) => void;
 }) {
   return (
     <div className="lp-settings-rewards">
-      <section className="lp-settings-card">
-        <SettingsCardTitle icon={Star} title="Points Rules" />
-        <p className="lp-settings-card-copy">Customize how many points customers earn per approved visit.</p>
-        <label className="lp-settings-field">
-          <span>Points per approved visit</span>
-          <input
-            min={1}
-            max={100000}
-            type="number"
-            inputMode="numeric"
-            value={pointsPerVisit}
-            onChange={(event) => onPointsChange(event.target.value)}
-          />
-        </label>
-        <div className="lp-settings-note compact">
-          <Info size={18} />
-          <span>This value is used by new auto-approved scans and admin-approved visits.</span>
-        </div>
-      </section>
+      <div className="lp-settings-grid">
+        <section className="lp-settings-card">
+          <SettingsCardTitle icon={Star} title="Points Rules" />
+          <p className="lp-settings-card-copy">Customize how many points customers earn per approved visit.</p>
+          <label className="lp-settings-field">
+            <span>Points per approved visit</span>
+            <input
+              min={1}
+              max={100000}
+              type="number"
+              inputMode="numeric"
+              value={pointsPerVisit}
+              onChange={(event) => onPointsChange(event.target.value)}
+            />
+          </label>
+          <div className="lp-settings-note compact">
+            <Info size={18} />
+            <span>This value is used by new auto-approved scans and admin-approved visits.</span>
+          </div>
+        </section>
+
+        <section className="lp-settings-card">
+          <div className="lp-settings-section-head">
+            <SettingsCardTitle icon={Sparkles} title="Loyalty Tiers" />
+            <button type="button" className="lp-settings-outline-button" onClick={onAddTier}>
+              <Plus size={17} />
+              Add Tier
+            </button>
+          </div>
+          <p className="lp-settings-card-copy">Define loyalty levels and multipliers based on total points earned.</p>
+          <div className="lp-settings-reward-list">
+            {tiers.map((tier, index) => (
+              <div key={index} className="lp-settings-reward-row">
+                <div className="lp-settings-reward-icon" style={{ backgroundColor: tier.color, color: "#fff", borderColor: "transparent" }}>
+                  <Star size={18} />
+                </div>
+                <label>
+                  <span>Name</span>
+                  <input value={tier.name} onChange={(e) => onTierChange(index, { name: e.target.value })} />
+                </label>
+                <label>
+                  <span>Threshold</span>
+                  <input type="number" min={0} value={tier.threshold} onChange={(e) => onTierChange(index, { threshold: Number(e.target.value) })} />
+                </label>
+                <label>
+                  <span>Multiplier</span>
+                  <input type="number" step="0.1" min={1} value={tier.multiplier} onChange={(e) => onTierChange(index, { multiplier: Number(e.target.value) })} />
+                </label>
+                <label>
+                  <span>Color</span>
+                  <div className="flex gap-2 items-center">
+                    <input type="color" className="p-0 h-10 w-10 overflow-hidden cursor-pointer" value={tier.color} onChange={(e) => onTierChange(index, { color: e.target.value })} />
+                  </div>
+                </label>
+                <button type="button" className="lp-settings-icon-button danger" onClick={() => onRemoveTier(index)}>
+                  <Trash2 size={17} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
 
       <section className="lp-settings-card lp-settings-reward-list-card">
         <div className="lp-settings-section-head">
