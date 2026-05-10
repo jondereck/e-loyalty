@@ -8,9 +8,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   Legend,
+  Cell,
 } from "recharts";
 
 type AnalyticsData = {
@@ -21,37 +24,54 @@ type AnalyticsData = {
 
 export function VisitTrendChart({ data }: { data: AnalyticsData[] }) {
   return (
-    <div style={{ width: "100%", height: 300, marginTop: 20 }}>
+    <div style={{ width: "100%", height: 260, padding: "10px 0" }}>
       <ResponsiveContainer>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id="visitGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#5d51ff" stopOpacity={0.15}/>
+              <stop offset="95%" stopColor="#5d51ff" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f1f5f9" />
           <XAxis
             dataKey="date"
-            tickFormatter={(str) => str.slice(5)}
-            fontSize={12}
-            tick={{ fill: "#666" }}
+            tickFormatter={(str) => {
+              const [y, m, d] = str.split("-");
+              return `${m}/${d}`;
+            }}
+            fontSize={11}
+            tick={{ fill: "#94a3b8" }}
             axisLine={false}
             tickLine={false}
+            dy={10}
           />
           <YAxis
-            fontSize={12}
-            tick={{ fill: "#666" }}
+            fontSize={11}
+            tick={{ fill: "#94a3b8" }}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip
-            contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            contentStyle={{
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+              fontSize: 12,
+              fontWeight: 600
+            }}
           />
-          <Line
+          <Area
             type="monotone"
             dataKey="visits"
-            stroke="#8884d8"
+            stroke="#5d51ff"
             strokeWidth={3}
-            dot={{ r: 4, fill: "#8884d8", strokeWidth: 0 }}
-            activeDot={{ r: 6 }}
+            fillOpacity={1}
+            fill="url(#visitGradient)"
             name="Visits"
+            animationDuration={1200}
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
@@ -59,34 +79,49 @@ export function VisitTrendChart({ data }: { data: AnalyticsData[] }) {
 
 export function PointsChart({ data }: { data: AnalyticsData[] }) {
   return (
-    <div style={{ width: "100%", height: 300, marginTop: 20 }}>
+    <div style={{ width: "100%", height: 260, padding: "10px 0" }}>
       <ResponsiveContainer>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+        <BarChart data={data} barGap={0}>
+          <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f1f5f9" />
           <XAxis
             dataKey="date"
-            tickFormatter={(str) => str.slice(5)}
-            fontSize={12}
-            tick={{ fill: "#666" }}
+            tickFormatter={(str) => {
+              const [y, m, d] = str.split("-");
+              return `${m}/${d}`;
+            }}
+            fontSize={11}
+            tick={{ fill: "#94a3b8" }}
             axisLine={false}
             tickLine={false}
+            dy={10}
           />
           <YAxis
-            fontSize={12}
-            tick={{ fill: "#666" }}
+            fontSize={11}
+            tick={{ fill: "#94a3b8" }}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip
-            contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            cursor={{ fill: "#f8fafc" }}
+            contentStyle={{
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+              fontSize: 12,
+              fontWeight: 600
+            }}
           />
-          <Legend />
           <Bar
             dataKey="points"
-            fill="#82ca9d"
-            radius={[4, 4, 0, 0]}
-            name="Points Earned"
-          />
+            fill="#10b981"
+            radius={[6, 6, 0, 0]}
+            name="Points"
+            animationDuration={1500}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.points > 0 ? "#10b981" : "#e2e8f0"} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

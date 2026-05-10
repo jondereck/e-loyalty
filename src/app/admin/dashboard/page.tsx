@@ -29,17 +29,21 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="lp-admin-grid">
-        <section className="lp-panel wide">
+        <section className="lp-panel span-6">
           <h3>Visit Trends (Last 30 Days)</h3>
-          <VisitTrendChart data={analytics} />
+          <div style={{ padding: "0 16px 16px" }}>
+            <VisitTrendChart data={analytics} />
+          </div>
         </section>
 
-        <section className="lp-panel wide">
+        <section className="lp-panel span-6">
           <h3>Points Distribution</h3>
-          <PointsChart data={analytics} />
+          <div style={{ padding: "0 16px 16px" }}>
+            <PointsChart data={analytics} />
+          </div>
         </section>
 
-        <section className="lp-panel">
+        <section className="lp-panel span-4">
           <h3>Pending Scans</h3>
           <div className="lp-table-wrap">
             <table>
@@ -62,12 +66,12 @@ export default async function AdminDashboardPage() {
           <Link className="lp-panel-foot" href="/admin/approvals">View all pending</Link>
         </section>
 
-        <section className="lp-panel">
+        <section className="lp-panel span-5">
           <h3>Branch Performance</h3>
           <div className="lp-table-wrap">
             <table>
               <thead>
-                <tr><th>Branch</th><th>Visits</th><th>Points Earned</th><th>Staff</th><th>Activity</th></tr>
+                <tr><th>Branch</th><th>Visits</th><th>Staff</th><th>Activity</th></tr>
               </thead>
               <tbody>
                 {dashboard.branches.map((branch) => {
@@ -77,7 +81,6 @@ export default async function AdminDashboardPage() {
                     <tr key={branch.id}>
                       <td>{branch.name}</td>
                       <td>{compactNumber(visits)}</td>
-                      <td>{compactNumber(visits * 100)}</td>
                       <td>{branch._count.staffAssignments}</td>
                       <td><span className="lp-bar"><i style={{ width: `${width}%` }} /></span></td>
                     </tr>
@@ -89,7 +92,7 @@ export default async function AdminDashboardPage() {
           <Link className="lp-panel-foot" href="/admin/branches">View full report</Link>
         </section>
 
-        <section className="lp-panel">
+        <section className="lp-panel span-3">
           <h3>Recent Activity</h3>
           <div className="lp-activity">
             {dashboard.recentActivity.map((event) => (
