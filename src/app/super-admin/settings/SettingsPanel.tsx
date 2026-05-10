@@ -22,6 +22,7 @@ import {
   Server,
   Settings,
   Shield,
+  Sparkles,
   Star,
   ToggleLeft,
   Trash2,
@@ -41,7 +42,7 @@ import {
   type DateFormatOption,
   type TimezoneOption,
 } from "@/lib/settings-options";
-import type { SettingsReward, SuperAdminSettingsData } from "@/lib/services/settings";
+import type { SettingsReward, SettingsTier, SuperAdminSettingsData } from "@/lib/services/settings";
 
 type TabKey = "general" | "rewards" | "system" | "security" | "notifications";
 type DraftReward = Omit<SettingsReward, "id"> & {

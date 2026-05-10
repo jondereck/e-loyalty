@@ -1,4 +1,5 @@
 import { Bell, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { FlippableLoyaltyCard } from "@/components/loyalty/FlippableLoyaltyCard";
 import { getCustomerCard } from "@/lib/services/customer";
