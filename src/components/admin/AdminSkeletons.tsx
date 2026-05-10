@@ -146,11 +146,44 @@ export function AdminDashboardSkeleton({
     <AdminSkeletonShell active={active} heading={heading} showSuperAdmin={showSuperAdmin}>
       <MetricGrid items={items} variant="dashboard" />
       <div className="lp-admin-grid">
-        <AdminTablePanelSkeleton title="Pending Scans" footer="View all pending" />
-        <AdminTablePanelSkeleton title="Branch Performance" columns={["Branch", "Visits", "Points Earned", "Staff", "Activity"]} footer="View full report" />
-        <AdminActivityPanelSkeleton />
+        <section className="lp-panel span-6">
+          <h3>Visit Trends (Last 30 Days)</h3>
+          <div style={{ padding: "0 16px 16px" }}>
+            <ChartSkeleton height={200} />
+          </div>
+        </section>
+
+        <section className="lp-panel span-6">
+          <h3>Points Distribution</h3>
+          <div style={{ padding: "0 16px 16px" }}>
+            <ChartSkeleton height={200} />
+          </div>
+        </section>
+
+        <AdminTablePanelSkeleton className="span-4" title="Pending Scans" footer="View all pending" rows={5} />
+        <AdminTablePanelSkeleton className="span-5" title="Branch Performance" columns={["Branch", "Visits", "Staff", "Activity"]} footer="View full report" rows={4} />
+        <AdminActivityPanelSkeleton className="span-3" />
       </div>
     </AdminSkeletonShell>
+  );
+}
+
+function ChartSkeleton({ height = 200 }: { height?: number }) {
+  return (
+    <div style={{ height, display: "flex", alignItems: "flex-end", gap: 8, padding: "20px 0 10px" }}>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className="lp-skeleton-chart-bar"
+          style={{
+            flex: 1,
+            height: `${Math.floor(Math.random() * 60) + 20}%`,
+            borderRadius: "4px 4px 0 0",
+            opacity: 0.5 + (i * 0.04)
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -506,14 +539,16 @@ export function AdminTablePanelSkeleton({
   columns = ["Time", "Member", "Branch", "Cashier", "Status"],
   rows = 1,
   footer,
+  className,
 }: {
   title?: string;
   columns?: string[];
   rows?: number;
   footer?: string;
+  className?: string;
 }) {
   return (
-    <section className="lp-panel">
+    <section className={className ? `lp-panel ${className}` : "lp-panel"}>
       <h3>{title}</h3>
       <div className="lp-table-wrap">
         <table>
@@ -542,9 +577,9 @@ export function AdminTablePanelSkeleton({
   );
 }
 
-export function AdminActivityPanelSkeleton() {
+export function AdminActivityPanelSkeleton({ className }: { className?: string }) {
   return (
-    <section className="lp-panel">
+    <section className={className ? `lp-panel ${className}` : "lp-panel"}>
       <h3>Recent Activity</h3>
       <div className="lp-activity">
         {Array.from({ length: 5 }).map((_, index) => (

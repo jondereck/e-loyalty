@@ -73,9 +73,11 @@ export function BranchList({ branches }: { branches: Branch[] }) {
             )}
           </div>
           <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-              branch.address || branch.name
-            )}`}
+            href={`https://www.google.com/maps/search/?api=1&query=${
+              branch.latitude !== null && branch.longitude !== null
+                ? `${branch.latitude},${branch.longitude}`
+                : encodeURIComponent(branch.address || branch.name)
+            }`}
             target="_blank"
             rel="noopener noreferrer"
             className="lp-icon-button"
