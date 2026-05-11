@@ -4774,7 +4774,7 @@ h3 {
 
 .lp-home {
   min-height: 100vh;
-  padding: 12px 34px 36px;
+  padding: 10px 12px 32px;
   background:
     linear-gradient(135deg, rgba(214, 226, 255, 0.92), rgba(247, 244, 255, 0.94) 52%, rgba(230, 242, 255, 0.95)),
     #eef3ff;
@@ -4814,7 +4814,8 @@ h3 {
 }
 
 .lp-home-desktop-shell {
-  width: min(100%, 1396px);
+  width: 100%;
+  max-width: none;
   min-height: 1016px;
   margin: 0 auto;
   overflow: hidden;
@@ -4926,16 +4927,16 @@ h3 {
 .lp-home-hero {
   min-height: 540px;
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(500px, 1.08fr);
-  gap: 24px;
+  grid-template-columns: minmax(520px, 0.86fr) minmax(720px, 1.14fr);
+  gap: 36px;
   align-items: start;
-  padding: 34px 16px 0;
+  padding: 34px 24px 0;
   position: relative;
   z-index: 1;
 }
 
 .lp-home-hero-copy {
-  max-width: 560px;
+  max-width: 650px;
 }
 
 .lp-home-eyebrow {
@@ -5121,12 +5122,36 @@ h3 {
   position: relative;
 }
 
+.lp-home-hero-visual:before {
+  content: "";
+  position: absolute;
+  inset: 38px -34px 28px 96px;
+  border-radius: 42px;
+  background:
+    repeating-radial-gradient(ellipse at 82% 48%, transparent 0 34px, rgba(255, 255, 255, 0.22) 35px, transparent 37px),
+    linear-gradient(120deg, rgba(255, 255, 255, 0) 0%, rgba(235, 230, 255, 0.58) 38%, rgba(210, 190, 255, 0.88) 100%);
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.lp-home-hero-visual:after {
+  content: "";
+  position: absolute;
+  inset: 130px -64px 48px 210px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(118, 86, 255, 0.18), rgba(255, 255, 255, 0.08));
+  filter: blur(28px);
+  pointer-events: none;
+}
+
 .lp-home-hero-image {
-  width: min(690px, 112%);
+  width: min(800px, 105%);
   height: auto;
   max-width: none;
-  margin: -44px -62px -72px -26px;
+  margin: -54px -32px -76px -10px;
   object-fit: contain;
+  position: relative;
+  z-index: 1;
 }
 
 .lp-home-pass-card {
