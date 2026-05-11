@@ -25,6 +25,7 @@ model UserProfile {
   staffAssignments StaffAssignment[]
   cashierVisits    Visit[]            @relation("CashierVisits")
   visits           Visit[]            @relation("CustomerVisits")
+  notifications    Notification[]
 }
 
 model LoyaltyCard {
@@ -268,4 +269,24 @@ enum VisitReasonCode {
   MANUAL_REVIEW_REQUIRED
   RECEIPT_CONFLICT
   SYSTEM_ERROR
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
 }

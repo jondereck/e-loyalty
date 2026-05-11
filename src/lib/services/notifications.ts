@@ -2,6 +2,18 @@ import { prisma } from "@/lib/prisma";
 
 export type NotificationType = "INFO" | "SUCCESS" | "WARNING" | "ERROR";
 
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  isRead: boolean;
+  link: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export async function createNotification({
   userId,
   title,
@@ -26,14 +38,15 @@ export async function createNotification({
   });
 }
 
-export async function getNotifications(userId: string | undefined, limit = 20) {
+export async function getNotifications(userId: string | undefined, limit = 20): Promise<Notification[]> {
   if (!userId) return [];
   try {
-    return await prisma.notification.findMany({
+    const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: limit,
     });
+    return notifications as unknown as Notification[];
   } catch (error) {
     console.error("Failed to fetch notifications:", error);
     return [];
