@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronDown, Sparkles, UserCircle } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import type { CurrentProfile } from "@/lib/services/session";

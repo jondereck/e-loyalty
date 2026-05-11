@@ -70,6 +70,27 @@ export function NotificationBell() {
     }
   };
 
+  const handleQuickApprove = async (e: React.MouseEvent, visitId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const formData = new FormData();
+      formData.append("visitId", visitId);
+      formData.append("intent", "approve");
+
+      const response = await fetch("/api/admin/approvals", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        fetchNotifications();
+      }
+    } catch (error) {
+      console.error("Quick approve failed:", error);
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "SUCCESS":
@@ -132,12 +153,22 @@ export function NotificationBell() {
                     {notification.message}
                   </p>
                   {notification.link && (
-                    <Link
-                      href={notification.link}
-                      className="mt-2 inline-block text-xs font-medium text-indigo-600 hover:underline"
-                    >
-                      View details
-                    </Link>
+                    <div className="mt-2 flex items-center gap-3">
+                      <Link
+                        href={notification.link}
+                        className="text-xs font-medium text-indigo-600 hover:underline"
+                      >
+                        View details
+                      </Link>
+                      {notification.link.includes("/admin/approvals/") && (
+                        <button
+                          onClick={(e) => handleQuickApprove(e, notification.link!.split("/").pop()!)}
+                          className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold hover:bg-emerald-700 transition-colors"
+                        >
+                          Quick Approve
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </DropdownMenuItem>

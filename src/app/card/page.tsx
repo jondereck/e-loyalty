@@ -1,9 +1,10 @@
 import { Bell, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { FlippableLoyaltyCard } from "@/components/loyalty/FlippableLoyaltyCard";
 import { getCustomerCard } from "@/lib/services/customer";
 import { getTierDetails } from "@/lib/tiers";
-import { getBrandingSettings } from "@/lib/services/settings";
+import { getBrandingSettings, getTierSettings } from "@/lib/services/settings";
 import { requireProfile } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 import { BUSINESS_TIMEZONE } from "@/lib/constants";
@@ -12,8 +13,12 @@ export const dynamic = "force-dynamic";
 
 export default async function CardPage() {
   const profile = await requireProfile(["CUSTOMER"]);
-  const [data, branding] = await Promise.all([getCustomerCard(profile.id), getBrandingSettings()]);
-  const tier = getTierDetails(data.card.totalEarned);
+  const [data, branding, tiers] = await Promise.all([
+    getCustomerCard(profile.id),
+    getBrandingSettings(),
+    getTierSettings(),
+  ]);
+  const tier = getTierDetails(data.card.totalEarned, tiers);
   const progressTarget = data.nextReward?.pointsRequired ?? Math.max(data.card.pointsBalance, 1000);
   const progress = Math.min(100, Math.round((data.card.pointsBalance / progressTarget) * 100));
   const firstName = data.profile.fullName.split(" ")[0] ?? data.profile.fullName;
@@ -40,15 +45,16 @@ export default async function CardPage() {
     <CustomerShell active="card" eyebrow="Customer Card" title={data.profile.fullName}>
       <div className="lp-mobile-topbar">
         <div className="lp-greeting">{greeting}, {emoji}<br /><b>{firstName}</b></div>
-        <div className="lp-notification-wrapper">
+        <Link href="/notifications" className="lp-notification-wrapper">
           <Bell size={20} />
           <div className="lp-notification-dot" />
-        </div>
+        </Link>
       </div>
 
       <div style={{ position: 'relative', marginBottom: '24px' }}>
         <FlippableLoyaltyCard
         tier={tier.tier}
+        color={tier.color}
         points={data.card.pointsBalance}
         visits={data.card.visitsEarned}
         qrToken={data.card.qrToken}

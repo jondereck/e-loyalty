@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/services/notifications";
 import { evaluateVisitEligibility } from "@/lib/rules";
 import { getTierDetails } from "@/lib/tiers";
-import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit } from "@/lib/services/settings";
+import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit, getTierSettings } from "@/lib/services/settings";
 import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/session";
 import { businessDayWindow, computeBusinessDate } from "@/lib/time";
 
@@ -79,7 +79,8 @@ export async function scanCustomerQr(payload: ScanPayload) {
     multipleBranchSameDay: approvedOtherBranchToday,
   });
 
-  const tierDetails = card ? getTierDetails(card.totalEarned) : null;
+  const tiers = await getTierSettings();
+  const currentTierDetails = card ? getTierDetails(card.totalEarned, tiers) : null;
 
   const result = evaluateVisitEligibility({
     qrFound: Boolean(card),
@@ -94,7 +95,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     approvedOtherBranchToday,
     suspicious: payload.suspicious,
     pointsPerVisit,
-    multiplier: tierDetails?.multiplier,
+    multiplier: currentTierDetails?.multiplier,
   });
 
   if (!card || !branch || result.outcome === "BLOCKED") {
@@ -199,6 +200,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     qrTokenHash,
     flags,
     pointsAwarded: result.points,
+    tiers,
   }).catch(async (error: unknown) => {
     if (!isUniqueConstraintError(error)) throw error;
     const attempt = await createVisitAttempt(prisma, {
@@ -250,6 +252,7 @@ export async function autoApproveVisit({
   qrTokenHash,
   flags,
   pointsAwarded,
+  tiers,
 }: {
   card: ResolvedCard;
   branchId: string;
@@ -259,6 +262,7 @@ export async function autoApproveVisit({
   qrTokenHash: string | null;
   flags: ScanAttemptFlags;
   pointsAwarded: number;
+  tiers: any[]; // SettingsTier[]
 }) {
   return prisma.$transaction(async (tx) => {
     const created = await tx.visit.create({
@@ -287,7 +291,19 @@ export async function autoApproveVisit({
       },
     });
 
-    const nextTier = getTierDetails(card.totalEarned + pointsAwarded).tier;
+    const currentTierDetails = getTierDetails(card.totalEarned, tiers);
+    const nextTierDetails = getTierDetails(card.totalEarned + pointsAwarded, tiers);
+    const nextTier = nextTierDetails.tier;
+
+    if (nextTier !== currentTierDetails.tier) {
+      await createNotification({
+        userId: card.profileId,
+        title: "Tier Leveled Up!",
+        message: `Congratulations! You've reached the ${nextTier} tier. You now have a ${nextTierDetails.multiplier}x point multiplier!`,
+        type: "SUCCESS",
+        link: "/card",
+      });
+    }
 
     await tx.loyaltyCard.update({
       where: { id: card.id },

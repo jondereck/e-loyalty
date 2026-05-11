@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminActionMessage, AdminMutationForm, AdminSubmitButton } from "@/components/admin/AdminMutationForm";
+import { AdminMutationForm, AdminSubmitButton } from "@/components/admin/AdminMutationForm";
 
 export function MemberCardStatusForm({
   profileId,
@@ -58,7 +58,6 @@ export function AdjustMemberPointsForm({ profileId }: { profileId: string }) {
       <input type="hidden" name="profileId" value={profileId} />
       <input name="points" type="number" step="1" placeholder="100 or -50" />
       <textarea name="reason" placeholder="Reason for adjustment" />
-      <AdminActionMessage className="lp-adjust-message" />
       <AdminSubmitButton label="Save Adjustment" pendingLabel="Saving adjustment" />
     </AdminMutationForm>
   );

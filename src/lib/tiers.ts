@@ -1,42 +1,35 @@
-import { TIER_THRESHOLDS, TIER_MULTIPLIERS, type TierName } from "./constants";
+import type { SettingsTier } from "./services/settings";
 
-export function getTierDetails(totalEarned: number) {
-  let currentTier: TierName = "STARTER";
+export function getTierDetails(totalEarned: number, tiers: SettingsTier[]) {
+  // Sort tiers by threshold descending to find the current tier
+  const sortedTiers = [...tiers].sort((a, b) => b.threshold - a.threshold);
 
-  if (totalEarned >= TIER_THRESHOLDS.PLATINUM) {
-    currentTier = "PLATINUM";
-  } else if (totalEarned >= TIER_THRESHOLDS.GOLD) {
-    currentTier = "GOLD";
-  } else if (totalEarned >= TIER_THRESHOLDS.SILVER) {
-    currentTier = "SILVER";
-  }
+  const currentTierIndex = sortedTiers.findIndex(t => totalEarned >= t.threshold);
+  const currentTier = currentTierIndex !== -1 ? sortedTiers[currentTierIndex] : tiers[0];
 
-  const multiplier = TIER_MULTIPLIERS[currentTier];
+  const multiplier = currentTier.multiplier;
 
-  let nextTier: TierName | null = null;
+  // Next tier is the one just above the current threshold
+  const ascendingTiers = [...tiers].sort((a, b) => a.threshold - b.threshold);
+  const nextTierIndex = ascendingTiers.findIndex(t => t.threshold > currentTier.threshold);
+  const nextTier = nextTierIndex !== -1 ? ascendingTiers[nextTierIndex] : null;
+
   let pointsToNext = 0;
   let progressPercentage = 100;
 
-  if (currentTier === "STARTER") {
-    nextTier = "SILVER";
-    pointsToNext = TIER_THRESHOLDS.SILVER - totalEarned;
-    progressPercentage = (totalEarned / TIER_THRESHOLDS.SILVER) * 100;
-  } else if (currentTier === "SILVER") {
-    nextTier = "GOLD";
-    pointsToNext = TIER_THRESHOLDS.GOLD - totalEarned;
-    const range = TIER_THRESHOLDS.GOLD - TIER_THRESHOLDS.SILVER;
-    progressPercentage = ((totalEarned - TIER_THRESHOLDS.SILVER) / range) * 100;
-  } else if (currentTier === "GOLD") {
-    nextTier = "PLATINUM";
-    pointsToNext = TIER_THRESHOLDS.PLATINUM - totalEarned;
-    const range = TIER_THRESHOLDS.PLATINUM - TIER_THRESHOLDS.GOLD;
-    progressPercentage = ((totalEarned - TIER_THRESHOLDS.GOLD) / range) * 100;
+  if (nextTier) {
+    pointsToNext = nextTier.threshold - totalEarned;
+    const range = nextTier.threshold - currentTier.threshold;
+    progressPercentage = range > 0
+      ? ((totalEarned - currentTier.threshold) / range) * 100
+      : 100;
   }
 
   return {
-    tier: currentTier,
+    tier: currentTier.name,
+    color: currentTier.color,
     multiplier,
-    nextTier,
+    nextTier: nextTier?.name ?? null,
     pointsToNext: Math.max(0, pointsToNext),
     progressPercentage: Math.min(100, Math.max(0, progressPercentage)),
   };

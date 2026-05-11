@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ButtonHTMLAttributes, type FormEvent, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import type { AdminMutationResult } from "@/lib/admin/mutations";
 import { cn } from "@/lib/utils";
@@ -66,15 +67,20 @@ export function AdminMutationForm({
       setState(nextState);
 
       if (response.ok && result.ok) {
+        toast.success(nextState.message ?? "Action completed successfully.");
         if (resetOnSuccess) form.reset();
         if (redirectOnSuccess) {
           router.replace(redirectOnSuccess);
         } else if (refreshOnSuccess) {
           router.refresh();
         }
+      } else {
+        toast.error(nextState.message ?? "Action failed.");
       }
     } catch {
-      setState({ message: failureMessage ?? "Action failed. Please try again." });
+      const msg = failureMessage ?? "Action failed. Please try again.";
+      setState({ message: msg });
+      toast.error(msg);
     } finally {
       setPending(false);
       form.dispatchEvent(new CustomEvent("adminmutationdone"));

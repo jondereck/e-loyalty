@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  AdminActionMessage,
   AdminFieldError,
   AdminMutationForm,
   AdminSubmitButton,
@@ -72,7 +71,6 @@ export function CreateStaffAccountForm({
         </select>
       </div>
       <input type="hidden" name="assignmentStatus" value="ACTIVE" />
-      <AdminActionMessage />
       <AdminSubmitButton label="Create Staff" pendingLabel="Creating staff" disabled={!branches.length} />
     </AdminMutationForm>
   );
@@ -121,7 +119,6 @@ export function AssignExistingStaffForm({
         </select>
       </div>
       <input type="hidden" name="status" value="ACTIVE" />
-      <AdminActionMessage />
       <AdminSubmitButton label="Assign Staff" pendingLabel="Assigning staff" variant="secondary" />
     </AdminMutationForm>
   );
@@ -174,7 +171,6 @@ export function UpdateStaffAssignmentForm({
           <option value="REVOKED">Revoked</option>
         </select>
       </div>
-      <AdminActionMessage />
       <AdminSubmitButton label="Save Staff" pendingLabel="Saving staff" />
     </AdminMutationForm>
   );

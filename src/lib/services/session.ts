@@ -13,29 +13,44 @@ export function redirectForRoles(roles: string[] = []) {
 }
 
 export async function getAuthUser() {
-  const { data } = await auth.getSession();
-  const session = data as unknown as {
-    user?: { id?: string; email?: string; name?: string };
-    session?: { user?: { id?: string; email?: string; name?: string } };
-  } | null;
-  const user = session?.user ?? session?.session?.user;
-  if (!user?.id) return null;
-  return user;
+  try {
+    const sessionResponse = await auth.getSession();
+    const data = sessionResponse?.data;
+    if (!data) return null;
+
+    const session = data as unknown as {
+      user?: { id?: string; email?: string; name?: string };
+      session?: { user?: { id?: string; email?: string; name?: string } };
+    } | null;
+
+    const user = session?.user ?? session?.session?.user;
+    if (!user?.id) return null;
+    return user;
+  } catch (error) {
+    console.error("Auth session retrieval failed:", error);
+    return null;
+  }
 }
 
 export async function getCurrentProfile() {
   const user = await getAuthUser();
   if (!user?.id) return null;
 
-  return prisma.userProfile.findUnique({
-    where: { authUserId: user.id },
-    include: {
-      loyaltyCard: true,
-      staffAssignments: {
-        include: { branch: true },
+  try {
+    const profile = await prisma.userProfile.findUnique({
+      where: { authUserId: String(user.id) },
+      include: {
+        loyaltyCard: true,
+        staffAssignments: {
+          include: { branch: true },
+        },
       },
-    },
-  });
+    });
+    return profile;
+  } catch (error) {
+    console.error("Error fetching profile from database:", error);
+    return null;
+  }
 }
 
 export type CurrentProfile = NonNullable<Awaited<ReturnType<typeof getCurrentProfile>>>;
