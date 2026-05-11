@@ -1904,6 +1904,7 @@ h3 {
   grid-template-columns: 292px minmax(0, 1fr);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.84);
+  margin-top: 16px;
 }
 
 .lp-admin-sidebar {
@@ -1957,16 +1958,19 @@ h3 {
 }
 
 .lp-admin-main {
-  padding: 0 28px 22px;
+  padding: 20px 28px 28px;
   background: linear-gradient(180deg, rgba(251, 252, 255, 0.88), rgba(247, 249, 253, 0.82));
+  display: flex;
+  flex-direction: column;
 }
 
 .lp-admin-global-header {
   height: 72px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
   border-bottom: 1px solid #e8ebf3;
   background: transparent;
 }

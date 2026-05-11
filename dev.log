@@ -45,3 +45,5 @@ Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e
 }
  GET /login 200 in 8.0s (next.js: 6.3s, application-code: 1678ms)
 [browser] Uncaught TypeError: fetch failed
+✓ Compiled in 236ms
+✓ Compiled in 169ms
