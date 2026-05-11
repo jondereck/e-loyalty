@@ -28,15 +28,15 @@ export default async function NotificationsPage() {
 
   return (
     <CustomerShell active="notifications" eyebrow="Updates & Alerts" title="Inbox">
-      <div className="customer-page-grid customer-page-grid-main">
-        <section className="customer-primary-stack">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-900">Notifications</h2>
+      <div className="max-w-2xl mx-auto pb-24">
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Notifications</h2>
             <form action={async () => {
                 "use server";
                 await markAllAsRead(profile.id);
             }}>
-                <button type="submit" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                <button type="submit" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full transition-colors">
                     Mark all as read
                 </button>
             </form>
@@ -88,13 +88,13 @@ export default async function NotificationsPage() {
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                  <Bell className="h-8 w-8 text-slate-300" />
+              <div className="flex flex-col items-center justify-center py-24 px-6 text-center bg-white rounded-[32px] border border-dashed border-slate-200 shadow-sm mx-auto max-w-sm">
+                <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                  <Bell className="h-10 w-10 text-slate-300" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">All caught up!</h3>
-                <p className="mt-1 text-sm text-slate-500 max-w-[240px]">
-                  You don't have any notifications at the moment.
+                <h3 className="text-xl font-black text-slate-900">All caught up!</h3>
+                <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">
+                  You don't have any notifications at the moment. We'll let you know when something happens!
                 </p>
               </div>
             )}

@@ -1904,6 +1904,7 @@ h3 {
   grid-template-columns: 292px minmax(0, 1fr);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.84);
+  margin-top: 16px;
 }
 
 .lp-admin-sidebar {
@@ -1957,8 +1958,57 @@ h3 {
 }
 
 .lp-admin-main {
-  padding: 30px 28px 22px;
+  padding: 20px 28px 28px;
   background: linear-gradient(180deg, rgba(251, 252, 255, 0.88), rgba(247, 249, 253, 0.82));
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-admin-global-header {
+  height: 72px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  border-bottom: 1px solid #e8ebf3;
+  background: transparent;
+}
+
+.lp-admin-header-title h2 {
+  font-size: 22px;
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.lp-admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.lp-admin-header-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 20px;
+  border-left: 1px solid #e8ebf3;
+}
+
+.lp-admin-header-user-info {
+  display: grid;
+  gap: 1px;
+}
+
+.lp-admin-header-user-info b {
+  font-size: 14px;
+  color: #17203a;
+  line-height: 1.2;
+}
+
+.lp-admin-header-user-info span {
+  font-size: 11px;
+  color: #66708f;
 }
 
 .lp-admin-window .btn {
@@ -4468,7 +4518,8 @@ h3 {
   padding-bottom: 16px;
 }
 
-.lp-settings-reward-list {
+.lp-settings-reward-list,
+.lp-settings-tier-list {
   display: grid;
   gap: 12px;
   margin-top: 16px;
@@ -4483,6 +4534,65 @@ h3 {
   border: 1px solid #e5e9f2;
   border-radius: 12px;
   background: #fbfcff;
+}
+
+.lp-settings-tier-row {
+  display: grid;
+  grid-template-columns: 44px 1.2fr 1fr 0.8fr 60px 42px;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid #e5e9f2;
+  border-radius: 12px;
+  background: #fbfcff;
+}
+
+.lp-settings-tier-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.lp-settings-tier-field {
+  display: grid;
+  gap: 6px;
+}
+
+.lp-settings-tier-field span {
+  color: #596582;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.lp-settings-tier-field input {
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #dfe4ed;
+  background: #fff;
+  padding: 0 12px;
+  color: #18213a;
+  font-weight: 750;
+}
+
+.lp-settings-tier-color {
+  padding: 0 !important;
+  width: 100% !important;
+  cursor: pointer;
+}
+
+.lp-settings-tier-delete {
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #ffd0cc;
+  background: #fff6f5;
+  color: #f04438;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
 
 .lp-settings-reward-row.disabled {
@@ -4539,6 +4649,47 @@ h3 {
 
   .lp-settings-reward-row label.wide {
     grid-column: span 2;
+  }
+}
+
+@media (max-width: 1100px) {
+  .lp-settings-tier-row {
+    grid-template-columns: 44px 1fr 1fr 42px;
+    grid-template-areas:
+      "icon name threshold delete"
+      "icon multiplier color delete";
+    align-items: center;
+  }
+  .lp-settings-tier-icon {
+    grid-area: icon;
+    align-self: center;
+  }
+  .lp-settings-tier-row .lp-settings-tier-field:nth-child(2) {
+    grid-area: name;
+  }
+  .lp-settings-tier-row .lp-settings-tier-field:nth-child(3) {
+    grid-area: threshold;
+  }
+  .lp-settings-tier-row .lp-settings-tier-field:nth-child(4) {
+    grid-area: multiplier;
+  }
+  .lp-settings-tier-row .lp-settings-tier-field:nth-child(5) {
+    grid-area: color;
+  }
+  .lp-settings-tier-delete {
+    grid-area: delete;
+    align-self: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .lp-settings-tier-row {
+    grid-template-columns: 44px 1fr 42px;
+    grid-template-areas:
+      "icon name delete"
+      "icon threshold delete"
+      "icon multiplier delete"
+      "icon color delete";
   }
 }
 

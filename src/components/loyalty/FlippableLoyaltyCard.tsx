@@ -7,6 +7,7 @@ import { LoyaltyQR } from "@/components/loyalty/LoyaltyQR";
 
 export function FlippableLoyaltyCard({
   tier,
+  color,
   points,
   visits,
   qrToken,
@@ -14,6 +15,7 @@ export function FlippableLoyaltyCard({
   systemName,
 }: {
   tier: string;
+  color?: string;
   points: number;
   visits: number;
   qrToken: string;
@@ -35,7 +37,7 @@ export function FlippableLoyaltyCard({
         <div className="lp-card-flip-stage">
           <div className="lp-card-flip-inner">
             <div className="lp-card-face lp-card-front" aria-hidden={showQr}>
-              <LoyaltyCard tier={tier} points={points} visits={visits} systemName={systemName} />
+              <LoyaltyCard tier={tier} color={color} points={points} visits={visits} systemName={systemName} />
             </div>
             <div className="lp-card-face lp-card-back" aria-hidden={!showQr}>
               <span className="lp-card-back-title">Customer QR</span>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/admin/Sidebar";
+import { NotificationBell } from "@/components/NotificationBell";
 import { getBrandingSettings } from "@/lib/services/settings";
 import { getCurrentProfile } from "@/lib/services/session";
 
@@ -23,11 +24,21 @@ export async function AdminShell({
       <div className="lp-admin-window">
         <Sidebar active={active} showSuperAdmin={isSuperAdmin} profile={profile} systemName={branding.systemName} />
         <section className="lp-admin-main">
-          {displayTitle ? (
-            <div className="lp-admin-head">
-              <h2>{displayTitle}</h2>
+          <header className="lp-admin-global-header">
+            <div className="lp-admin-header-title">
+              {displayTitle ? <h2>{displayTitle}</h2> : null}
             </div>
-          ) : null}
+            <div className="lp-admin-header-actions">
+              <NotificationBell />
+              <div className="lp-admin-header-profile">
+                <span className="lp-avatar small">{profile?.fullName.slice(0, 2).toUpperCase() ?? "AD"}</span>
+                <div className="lp-admin-header-user-info">
+                  <b>{profile?.fullName ?? "Admin"}</b>
+                  <span>{isSuperAdmin ? "Super Admin" : "Administrator"}</span>
+                </div>
+              </div>
+            </div>
+          </header>
           {children}
         </section>
       </div>

@@ -9,7 +9,6 @@ const tabs = [
   { key: "branches", href: "/branches", label: "Branches", icon: MapPin },
   { key: "rewards", href: "/rewards", label: "Rewards", icon: Gift },
   { key: "history", href: "/history", label: "History", icon: History },
-  { key: "notifications", href: "/notifications", label: "Inbox", icon: Bell },
   { key: "profile", href: "/profile", label: "Account", icon: UserCircle },
 ] as const;
 

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import {
-  AdminActionMessage,
   AdminFieldError,
   AdminMutationForm,
   AdminSubmitButton,
@@ -74,7 +73,6 @@ export function CreateBranchForm() {
           <option value="MAINTENANCE">Maintenance</option>
         </select>
       </div>
-      <AdminActionMessage />
       <AdminSubmitButton label="Create Branch" pendingLabel="Creating branch" />
     </AdminMutationForm>
   );
@@ -133,7 +131,6 @@ export function UpdateBranchForm({ branch }: { branch: BranchFormData }) {
           <option value="MAINTENANCE">Maintenance</option>
         </select>
       </div>
-      <AdminActionMessage />
       <AdminSubmitButton label="Save Branch" pendingLabel="Saving branch" />
     </AdminMutationForm>
   );
@@ -157,7 +154,6 @@ export function DeleteBranchForm({ branch }: { branch: BranchFormData }) {
       <p className="muted wide">
         Delete is available only when the branch has no assigned staff and no activity history.
       </p>
-      <AdminActionMessage />
       {disabled ? (
         <p className="error-text wide">
           {staffCount > 0 ? "Remove assigned staff before deleting this branch." : "This branch has activity history and cannot be deleted."}
