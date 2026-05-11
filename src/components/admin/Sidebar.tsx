@@ -34,9 +34,6 @@ export function Sidebar({
         );
       })}
       <details className="lp-admin-account">
-        <div className="flex justify-end px-3 mb-2">
-           <NotificationBell />
-        </div>
         <summary className="lp-admin-user">
           <span className="lp-avatar small">{profile?.fullName.slice(0, 2).toUpperCase() ?? "AD"}</span>
           <div>

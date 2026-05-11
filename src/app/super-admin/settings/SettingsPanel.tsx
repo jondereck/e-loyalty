@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type ComponentType, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
   Bell,
   Calendar,
@@ -109,9 +110,9 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
               maintenanceMessage,
             });
         applySavedSettings(saved);
-        setStatus("Changes saved.");
+        toast.success("Settings saved successfully.");
       } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : "Settings could not be saved.");
+        toast.error(saveError instanceof Error ? saveError.message : "Settings could not be saved.");
       }
     });
   }
@@ -189,7 +190,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
   }
 
   function removeTier(index: number) {
-    setTiers(current => current.filter((_, i) => i !== index));
+    setTiers((current) => current.filter((_, i) => i !== index));
   }
 
   return (
@@ -230,8 +231,6 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
         })}
       </div>
 
-      {status ? <p className="lp-settings-feedback success">{status}</p> : null}
-      {error ? <p className="lp-settings-feedback error">{error}</p> : null}
 
       {activeTab === "general" ? (
         <GeneralTab
@@ -477,31 +476,29 @@ function RewardsTab({
             </button>
           </div>
           <p className="lp-settings-card-copy">Define loyalty levels and multipliers based on total points earned.</p>
-          <div className="lp-settings-reward-list">
+          <div className="lp-settings-tier-list">
             {tiers.map((tier, index) => (
-              <div key={index} className="lp-settings-reward-row">
-                <div className="lp-settings-reward-icon" style={{ backgroundColor: tier.color, color: "#fff", borderColor: "transparent" }}>
+              <div key={index} className="lp-settings-tier-row">
+                <div className="lp-settings-tier-icon" style={{ backgroundColor: tier.color }}>
                   <Star size={18} />
                 </div>
-                <label>
+                <div className="lp-settings-tier-field">
                   <span>Name</span>
-                  <input value={tier.name} onChange={(e) => onTierChange(index, { name: e.target.value })} />
-                </label>
-                <label>
+                  <input value={tier.name} onChange={(e) => onTierChange(index, { name: e.target.value })} placeholder="e.g. Gold" />
+                </div>
+                <div className="lp-settings-tier-field">
                   <span>Threshold</span>
                   <input type="number" min={0} value={tier.threshold} onChange={(e) => onTierChange(index, { threshold: Number(e.target.value) })} />
-                </label>
-                <label>
+                </div>
+                <div className="lp-settings-tier-field">
                   <span>Multiplier</span>
                   <input type="number" step="0.1" min={1} value={tier.multiplier} onChange={(e) => onTierChange(index, { multiplier: Number(e.target.value) })} />
-                </label>
-                <label>
+                </div>
+                <div className="lp-settings-tier-field">
                   <span>Color</span>
-                  <div className="flex gap-2 items-center">
-                    <input type="color" className="p-0 h-10 w-10 overflow-hidden cursor-pointer" value={tier.color} onChange={(e) => onTierChange(index, { color: e.target.value })} />
-                  </div>
-                </label>
-                <button type="button" className="lp-settings-icon-button danger" onClick={() => onRemoveTier(index)}>
+                  <input type="color" className="lp-settings-tier-color" value={tier.color} onChange={(e) => onTierChange(index, { color: e.target.value })} />
+                </div>
+                <button type="button" className="lp-settings-tier-delete" onClick={() => onRemoveTier(index)} aria-label="Delete tier">
                   <Trash2 size={17} />
                 </button>
               </div>

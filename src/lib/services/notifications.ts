@@ -26,33 +26,57 @@ export async function createNotification({
   });
 }
 
-export async function getNotifications(userId: string, limit = 20) {
-  return await prisma.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
+export async function getNotifications(userId: string | undefined, limit = 20) {
+  if (!userId) return [];
+  try {
+    return await prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  } catch (error) {
+    console.error("Failed to fetch notifications:", error);
+    return [];
+  }
 }
 
-export async function getUnreadCount(userId: string) {
-  return await prisma.notification.count({
-    where: {
-      userId,
-      isRead: false,
-    },
-  });
+export async function getUnreadCount(userId: string | undefined) {
+  if (!userId) return 0;
+  try {
+    return await prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch unread count:", error);
+    return 0;
+  }
 }
 
-export async function markAsRead(notificationId: string) {
-  return await prisma.notification.update({
-    where: { id: notificationId },
-    data: { isRead: true },
-  });
+export async function markAsRead(notificationId: string | undefined) {
+  if (!notificationId) return null;
+  try {
+    return await prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+  } catch (error) {
+    console.error("Failed to mark notification as read:", error);
+    return null;
+  }
 }
 
-export async function markAllAsRead(userId: string) {
-  return await prisma.notification.updateMany({
-    where: { userId, isRead: false },
-    data: { isRead: true },
-  });
+export async function markAllAsRead(userId: string | undefined) {
+  if (!userId) return { count: 0 };
+  try {
+    return await prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  } catch (error) {
+    console.error("Failed to mark all notifications as read:", error);
+    return { count: 0 };
+  }
 }

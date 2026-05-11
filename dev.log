@@ -1,0 +1,47 @@
+
+> e-loyalty@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 615ms
+
+○ Compiling /login ...
+System settings read failed; using defaults. Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].systemSetting.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/[root-of-the-server]__0dgqw1i._.js:1076:169
+
+  1073     return setting?.value;
+  1074 }
+  1075 async function readSettings(keys) {
+→ 1076     const settings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].systemSetting.findMany(
+
+    at <unknown> (src/lib/services/settings.ts:339:47)
+    at async readSettings (src/lib/services/settings.ts:339:20)
+    at async safeSettingsRead (src/lib/services/settings.ts:348:12)
+    at async getGeneralSettings (src/lib/services/settings.ts:155:18)
+    at async getBrandingSettings (src/lib/services/settings.ts:137:19)
+    at async LoginPage (src/app/login/page.tsx:10:37)
+  337 |
+  338 | async function readSettings(keys: string[]) {
+> 339 |   const settings = await prisma.systemSetting.findMany({
+      |                                               ^
+  340 |     where: { key: { in: keys } },
+  341 |     select: { key: true, value: true },
+  342 |   }); {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'SystemSetting' },
+  clientVersion: '7.8.0'
+}
+⨯ TypeError: fetch failed
+    at ignore-listed frames {
+  digest: '2901833604',
+  [cause]: AggregateError:
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /login 200 in 8.0s (next.js: 6.3s, application-code: 1678ms)
+[browser] Uncaught TypeError: fetch failed

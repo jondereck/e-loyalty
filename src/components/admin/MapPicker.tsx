@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Search, MapPin } from "lucide-react";
+import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { Search, Info } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 type MapPickerProps = {
@@ -14,30 +15,48 @@ export function MapPicker({ defaultLat, defaultLng, onLocationSelect }: MapPicke
   const [lat, setLat] = useState(defaultLat || 14.5995); // Manila default
   const [lng, setLng] = useState(defaultLng || 120.9842);
   const [searchQuery, setSearchQuery] = useState("");
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Mock implementation since we can't easily integrate real Google Maps without an API key in this environment
-  // We'll simulate the UI of a map picker
+  const RealMap = useMemo(
+    () =>
+      dynamic(() => import("./map/RealMapContent"), {
+        ssr: false,
+        loading: () => (
+          <div className="h-full w-full bg-slate-100 animate-pulse flex items-center justify-center">
+            <p className="text-slate-400 text-sm">Loading Map...</p>
+          </div>
+        ),
+      }),
+    [],
+  );
 
-  useEffect(() => {
-    // In a real app, we would load the Google Maps Script here
-    setIsLoaded(true);
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate finding a location
-    const newLat = lat + (Math.random() - 0.5) * 0.01;
-    const newLng = lng + (Math.random() - 0.5) * 0.01;
-    setLat(newLat);
-    setLng(newLng);
-    onLocationSelect(newLat, newLng, searchQuery);
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchQuery,
+        )}`,
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const newLat = parseFloat(data[0].lat);
+        const newLng = parseFloat(data[0].lon);
+        setLat(newLat);
+        setLng(newLng);
+        onLocationSelect(newLat, newLng, data[0].display_name);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  const handleMapClick = () => {
-    const newLat = lat + (Math.random() - 0.5) * 0.005;
-    const newLng = lng + (Math.random() - 0.5) * 0.005;
+  const handleLocationChange = (newLat: number, newLng: number) => {
     setLat(newLat);
     setLng(newLng);
     onLocationSelect(newLat, newLng);
@@ -51,36 +70,27 @@ export function MapPicker({ defaultLat, defaultLng, onLocationSelect }: MapPicke
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for a location..."
+            placeholder="Search an address to jump to a location..."
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         </div>
-        <Button onClick={handleSearch} type="button" className="shrink-0">
-          Search
+        <Button onClick={handleSearch} type="button" className="shrink-0" disabled={isSearching}>
+          {isSearching ? "Searching..." : "Search"}
         </Button>
       </div>
 
-      <div
-        onClick={handleMapClick}
-        className="relative h-64 w-full bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-crosshair hover:bg-slate-50 transition-colors group overflow-hidden"
-      >
-        {/* Mock Map Background */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-        </div>
+      <div className="relative h-72 w-full bg-slate-100 rounded-xl border border-slate-200 overflow-hidden shadow-inner">
+        <RealMap lat={lat} lng={lng} onLocationSelect={handleLocationChange} />
+      </div>
 
-        <div className="z-10 flex flex-col items-center gap-2">
-            <div className="h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce">
-                <MapPin size={24} />
-            </div>
-            <p className="text-sm font-medium text-slate-600">Click to pin branch location</p>
-            <p className="text-[10px] text-slate-400">Simulated Map View</p>
-        </div>
-
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur p-2 rounded-lg text-[10px] font-mono border border-slate-100 shadow-sm">
-            Lat: {lat.toFixed(6)} <br />
-            Lng: {lng.toFixed(6)}
+      <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-3 items-start">
+        <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+        <div className="text-[11px] text-blue-700 leading-relaxed">
+          <p>• Search an address to jump to a location.</p>
+          <p>• Click on the map to place the branch pin.</p>
+          <p>• You can also drag the marker to fine-tune the location.</p>
+          <p>• Latitude and longitude fields update automatically.</p>
         </div>
       </div>
 
