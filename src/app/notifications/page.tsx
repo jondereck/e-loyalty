@@ -1,6 +1,6 @@
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { getCurrentProfile } from "@/lib/services/session";
-import { getNotifications, markAllAsRead } from "@/lib/services/notifications";
+import { getNotifications, markAllAsRead, type NotificationType } from "@/lib/services/notifications";
 import { Bell, Info, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -13,7 +13,7 @@ export default async function NotificationsPage() {
 
   const notifications = await getNotifications(profile.id, 50);
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: NotificationType) => {
     switch (type) {
       case "SUCCESS":
         return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
