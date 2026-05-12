@@ -44,7 +44,7 @@ export function CreateStaffAccountForm({
   roleOptions: string[];
 }) {
   return (
-    <AdminMutationForm<CreateStaffAccountResultData> action="/api/admin/staff" className="lp-form-grid" resetOnSuccess>
+    <AdminMutationForm<CreateStaffAccountResultData> action="/api/admin/staff" className="lp-form-grid" resetOnSuccess refreshOnSuccess={false}>
       <input type="hidden" name="intent" value="create-account" />
       <div className="field">
         <label htmlFor="fullName">Full name</label>

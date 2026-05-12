@@ -3730,8 +3730,9 @@ h3 {
 
 .lp-admin-success-card {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 16px;
+  margin-top: 2px;
+  padding: 18px 16px;
   border: 1px solid rgba(34, 197, 94, 0.18);
   border-radius: 16px;
   background: rgba(240, 253, 244, 0.96);
@@ -3740,6 +3741,8 @@ h3 {
 .lp-admin-success-head {
   display: grid;
   gap: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(34, 197, 94, 0.18);
 }
 
 .lp-admin-success-head strong {
@@ -3753,12 +3756,12 @@ h3 {
 
 .lp-admin-credential-grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .lp-admin-credential-row {
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .lp-admin-credential-row span {
@@ -3771,12 +3774,19 @@ h3 {
   display: block;
   width: 100%;
   overflow-wrap: anywhere;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: 12px;
   border: 1px solid rgba(187, 247, 208, 0.95);
   background: #ffffff;
   color: #14532d;
   font-size: 13px;
+}
+
+.lp-admin-success-card .muted {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(34, 197, 94, 0.18);
+  line-height: 1.55;
 }
 
 .auth-divider {
