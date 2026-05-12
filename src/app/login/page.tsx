@@ -2,13 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { getBrandingSettings } from "@/lib/services/settings";
-import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
+import { getAuthUser, getCurrentProfile, redirectForProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const [user, profile, branding] = await Promise.all([getAuthUser(), getCurrentProfile(), getBrandingSettings()]);
-  if (profile) redirect(profile.mustChangePassword ? "/auth/force-password" : redirectForRoles(profile.roles));
+  if (profile) redirect(profile.mustChangePassword ? "/auth/force-password" : redirectForProfile(profile));
   if (user) redirect("/complete-profile");
 
   return (

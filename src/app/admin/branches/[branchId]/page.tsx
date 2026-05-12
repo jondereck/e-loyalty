@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getBranchDetail } from "@/lib/services/admin";
-import { requireBranchScopedProfile } from "@/lib/services/session";
+import { requireBranchScopedProfile, requireModuleAccess } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ export default async function AdminBranchDetailPage({
   params: Promise<{ branchId: string }>;
 }) {
   const { branchId } = await params;
+  await requireModuleAccess("BRANCHES");
   const profile = await requireBranchScopedProfile(branchId);
   const data = await getBranchDetail(branchId).catch(() => null);
   if (!data) notFound();

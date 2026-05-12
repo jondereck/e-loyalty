@@ -374,6 +374,62 @@ h3 {
   padding: 26px 20px 92px;
 }
 
+.lp-pull-refresh {
+  min-height: 100vh;
+  touch-action: pan-y;
+}
+
+.lp-pull-content {
+  transform: translateY(var(--pull-distance, 0));
+  transition: transform 180ms ease;
+  will-change: transform;
+}
+
+.lp-pull-indicator {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid rgba(222, 226, 238, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 28px rgba(31, 38, 73, 0.14);
+  color: #48506c;
+  font-size: 12px;
+  font-weight: 800;
+  opacity: var(--pull-progress, 0);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% + var(--pull-distance, 0px)));
+  transition: opacity 160ms ease, transform 180ms ease;
+  white-space: nowrap;
+}
+
+.lp-pull-indicator svg {
+  color: #6c4df6;
+  transform: rotate(calc(var(--pull-progress, 0) * 180deg));
+  transition: transform 160ms ease;
+}
+
+.lp-pull-indicator.ready {
+  color: #10142f;
+  opacity: 1;
+}
+
+.lp-pull-indicator.ready svg {
+  animation: lp-refresh-spin 780ms linear infinite;
+}
+
+@keyframes lp-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .lp-mobile-topbar {
   display: flex;
   justify-content: space-between;
@@ -938,6 +994,12 @@ h3 {
   font-weight: 900;
   line-height: 1;
   text-align: center;
+}
+
+.lp-avatar.has-image {
+  background-image: var(--avatar-image);
+  background-position: center;
+  background-size: cover;
 }
 
 .lp-profile-card h2 {
@@ -4147,6 +4209,10 @@ h3 {
   cursor: default;
 }
 
+.lp-admin-skeleton .lp-admin-account-static {
+  margin-top: auto;
+}
+
 .lp-skeleton-account-name {
   width: 96px;
   height: 13px;
@@ -4951,6 +5017,272 @@ h3 {
   place-items: center;
 }
 
+.lp-settings-roles {
+  display: grid;
+  gap: 18px;
+}
+
+.lp-role-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.lp-role-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.lp-role-lock,
+.lp-role-count {
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.lp-role-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(180px, 0.5fr);
+  gap: 14px;
+}
+
+.lp-role-form-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.lp-settings-field select {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 0 12px;
+  font: inherit;
+}
+
+.lp-settings-note.warning {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.lp-role-permission-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lp-role-permission-group {
+  border: 1px solid #edf2f7;
+  border-radius: 18px;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.lp-role-permission-group h3 {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.lp-role-module {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lp-role-module + .lp-role-module {
+  margin-top: 9px;
+}
+
+.lp-role-module.active {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.lp-role-module:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.lp-role-module > i {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #fff;
+  margin-top: 1px;
+}
+
+.lp-role-module.active > i {
+  border-color: #5d51ff;
+  background: #5d51ff;
+}
+
+.lp-role-module span {
+  display: grid;
+  gap: 3px;
+}
+
+.lp-role-module b {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.lp-role-module small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.lp-role-editor-actions,
+.lp-role-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lp-role-list-card {
+  overflow: hidden;
+}
+
+.lp-role-table-wrap {
+  overflow-x: auto;
+}
+
+.lp-role-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+
+.lp-role-table th,
+.lp-role-table td {
+  padding: 14px 12px;
+  border-top: 1px solid #edf2f7;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.lp-role-table th {
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.lp-role-name-cell {
+  display: grid;
+  gap: 4px;
+  max-width: 320px;
+}
+
+.lp-role-name-cell b {
+  color: #0f172a;
+}
+
+.lp-role-name-cell span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.lp-role-status {
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.lp-role-status.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.lp-role-actions button {
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lp-role-actions button.danger {
+  color: #e11d48;
+}
+
+.lp-role-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.lp-role-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  color: #64748b;
+  text-align: center;
+}
+
+.lp-role-empty b {
+  color: #0f172a;
+}
+
+.lp-role-empty span {
+  max-width: 460px;
+  font-size: 13px;
+}
+
+.lp-notification-skeleton-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 8px;
+}
+
+.lp-notification-skeleton-list {
+  display: grid;
+  gap: 12px;
+}
+
+.lp-branch-select-field {
+  gap: 7px;
+}
+
+.lp-branch-select-field small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 @media (max-width: 1300px) {
   .lp-settings-grid,
   .lp-settings-grid.two {
@@ -5051,6 +5383,17 @@ h3 {
   .lp-settings-icon-button {
     grid-column: 3;
     grid-row: 1;
+  }
+
+  .lp-role-hero-card,
+  .lp-role-editor-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lp-role-form-grid,
+  .lp-role-permission-grid {
+    grid-template-columns: 1fr;
   }
 }
 

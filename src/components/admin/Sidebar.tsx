@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ChevronDown, Sparkles, UserCircle } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
+import { UserAvatar } from "@/components/UserAvatar";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
+import type { RoleModuleKey } from "@/lib/rbac";
 import type { CurrentProfile } from "@/lib/services/session";
 
 export function Sidebar({
@@ -10,13 +12,15 @@ export function Sidebar({
   showSuperAdmin = false,
   profile,
   systemName,
+  enabledModules,
 }: {
   active: string;
   showSuperAdmin?: boolean;
   profile?: CurrentProfile | null;
   systemName: string;
+  enabledModules?: Set<RoleModuleKey>;
 }) {
-  const visibleLinks = getVisibleAdminNavLinks(showSuperAdmin);
+  const visibleLinks = getVisibleAdminNavLinks(showSuperAdmin, enabledModules);
 
   return (
     <aside className="lp-admin-sidebar">
@@ -39,7 +43,7 @@ export function Sidebar({
       </div>
       <details className="lp-admin-account">
         <summary className="lp-admin-user">
-          <span className="lp-avatar small">{profile?.fullName.slice(0, 2).toUpperCase() ?? "AD"}</span>
+          <UserAvatar name={profile?.fullName ?? "Admin"} imageUrl={profile?.avatarUrl} className="lp-avatar small" />
           <div>
             <b>{profile?.fullName ?? "Admin"}</b>
             <span>{showSuperAdmin ? "Super Admin" : "Administrator"}</span>

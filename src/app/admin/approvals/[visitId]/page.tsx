@@ -8,7 +8,7 @@ import { AdminNoteTextarea } from "@/components/admin/AdminNoteTextarea";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getApprovalDetail } from "@/lib/services/admin";
 import { getPointsPerVisit } from "@/lib/services/settings";
-import { requireBranchScopedProfile } from "@/lib/services/session";
+import { requireBranchScopedProfile, requireModuleAccess } from "@/lib/services/session";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,7 @@ export default async function AdminApprovalDetailPage({
   const { visitId } = await params;
   const data = await getApprovalDetail(visitId).catch(() => null);
   if (!data) notFound();
+  await requireModuleAccess("APPROVALS");
   await requireBranchScopedProfile(data.visit.branchId);
   const visit = data.visit;
   const pending = visit.status === "PENDING";

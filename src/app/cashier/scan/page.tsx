@@ -1,23 +1,28 @@
 import { AppNav } from "@/components/AppNav";
 import { QRScanner } from "@/components/cashier/QRScanner";
-import { requireProfile } from "@/lib/services/session";
+import { requireModuleAccess } from "@/lib/services/session";
 import { prisma } from "@/lib/prisma";
+import { resolveProfileModules, type RoleModuleKey } from "@/lib/rbac";
 import { formatTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function CashierScanPage() {
-  const profile = await requireProfile(["CASHIER", "BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("SCAN");
   const activeAssignment = profile.staffAssignments.find((item) => item.status === "ACTIVE");
   const recent = await prisma.scanAttempt.findMany({
     where: { cashierId: profile.id },
     orderBy: { createdAt: "desc" },
     take: 5,
   });
+  const modules = resolveProfileModules(profile);
+  const showAdmin = (["OVERVIEW", "MEMBERS", "APPROVALS", "STAFF", "BRANCHES", "REPORTS"] as RoleModuleKey[]).some((module) =>
+    modules.has(module),
+  );
 
   return (
     <>
-      <AppNav active="cashier" mode="staff" showAdmin={profile.roles.some((role) => ["BRANCH_ADMIN", "SUPER_ADMIN"].includes(role))} />
+      <AppNav active="cashier" mode="staff" showAdmin={showAdmin} />
       <main className="lp-staff-scan-page">
         <div className="lp-staff-scan-head">
           <div>

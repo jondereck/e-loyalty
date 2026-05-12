@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getStaffSetupData, listStaff } from "@/lib/services/admin";
-import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
+import { branchIdsForAdmin, requireModuleAccess } from "@/lib/services/session";
 import { Pencil } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -16,13 +16,12 @@ export default async function AdminStaffPage({
 }: {
   searchParams: Promise<{ q?: string | string[] }>;
 }) {
-  const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("STAFF");
   const params = await searchParams;
   const query = readParam(params.q) ?? "";
   const branchIds = branchIdsForAdmin(profile);
   const [staff, setup] = await Promise.all([listStaff(branchIds, query), getStaffSetupData(branchIds)]);
   const isSuperAdmin = profile.roles.includes("SUPER_ADMIN");
-  const roleOptions = isSuperAdmin ? ["CASHIER", "BRANCH_ADMIN"] : ["CASHIER"];
 
   return (
     <AdminShell active="/admin/staff">
@@ -33,10 +32,10 @@ export default async function AdminStaffPage({
         </div>
         <div className="lp-title-actions">
           <Modal title="Create staff account" trigger={<Button type="button" variant="primary">Create Staff</Button>}>
-            <CreateStaffAccountForm branches={setup.branches} roleOptions={roleOptions} />
+            <CreateStaffAccountForm branches={setup.branches} roleOptions={setup.roleOptions} />
           </Modal>
           <Modal title="Assign existing staff" trigger={<Button type="button" variant="secondary">Assign Existing Staff</Button>}>
-            <AssignExistingStaffForm branches={setup.branches} staffProfiles={setup.staffProfiles} roleOptions={roleOptions} />
+            <AssignExistingStaffForm branches={setup.branches} staffProfiles={setup.staffProfiles} roleOptions={setup.roleOptions} />
           </Modal>
         </div>
       </div>
@@ -89,7 +88,7 @@ export default async function AdminStaffPage({
                       <td>{assignment.profile.email}</td>
                       <td>{assignment.profile.mobile ?? <span className="muted">No number</span>}</td>
                       <td>{assignment.branch.name}</td>
-                      <td>{assignment.role.replaceAll("_", " ")}</td>
+                      <td>{assignment.roleDefinition?.name ?? assignment.role.replaceAll("_", " ")}</td>
                       <td><StatusBadge status={assignment.status} /></td>
                       <td>
                         {canManage ? (
@@ -97,7 +96,7 @@ export default async function AdminStaffPage({
                             <Modal title="Edit staff" trigger={<button type="button" className="lp-icon-button" aria-label={`Edit ${assignment.profile.fullName}`}><Pencil size={15} /></button>}>
                               <UpdateStaffAssignmentForm
                                 branches={setup.branches}
-                                roleOptions={roleOptions}
+                                roleOptions={setup.roleOptions}
                                 assignment={{
                                   id: assignment.id,
                                   profileId: assignment.profileId,
@@ -105,6 +104,7 @@ export default async function AdminStaffPage({
                                   mobile: assignment.profile.mobile,
                                   branchId: assignment.branchId,
                                   role: assignment.role,
+                                  roleId: assignment.roleId,
                                   status: assignment.status,
                                 }}
                               />

@@ -12,6 +12,7 @@ import { getTierDetails } from "@/lib/tiers";
 import { createNotification } from "@/lib/services/notifications";
 import { earnKeyFor } from "@/lib/services/visits";
 import { getBusinessTimezone, getPointsPerVisit, getTierSettings } from "@/lib/services/settings";
+import { getAssignableStaffRoles, resolveAssignableRole } from "@/lib/services/roles";
 import { branchIdsForAdmin, requireBranchScopedProfile } from "@/lib/services/session";
 import { computeBusinessDate } from "@/lib/time";
 import {
@@ -56,6 +57,7 @@ export async function getAdminDashboard(branchIds?: string[]) {
     prisma.rewardRedemption.count({ where: scoped ? { branchId: { in: branchIds } } : {} }),
     prisma.visit.count({ where: { ...visitScope, status: { in: ["AUTO_APPROVED", "APPROVED"] } } }),
     prisma.auditEvent.findMany({
+      where: auditEventScopeWhere(branchIds),
       include: { actor: true },
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -671,6 +673,7 @@ export async function listStaff(branchIds?: string[], query?: string) {
   return prisma.staffAssignment.findMany({
     where,
     include: {
+      roleDefinition: true,
       profile: {
         include: {
           staffAssignments: true,
@@ -732,7 +735,9 @@ function normalizeStaffSearch(value: string) {
 
 export async function getStaffSetupData(branchIds?: string[]) {
   const scoped = Array.isArray(branchIds);
-  const [branches, staffProfiles] = await Promise.all([
+  const currentProfile = await requireBranchScopedProfile();
+  const isSuperAdmin = currentProfile.roles.includes("SUPER_ADMIN");
+  const [branches, staffProfiles, roleOptions] = await Promise.all([
     getBranchSetupOptions(branchIds),
     prisma.userProfile.findMany({
       where: {
@@ -745,9 +750,10 @@ export async function getStaffSetupData(branchIds?: string[]) {
       },
       orderBy: { fullName: "asc" },
     }),
+    getAssignableStaffRoles(isSuperAdmin),
   ]);
 
-  return { branches, staffProfiles };
+  return { branches, staffProfiles, roleOptions };
 }
 
 export type CreateStaffAccountResultData = {
@@ -759,7 +765,9 @@ export type CreateStaffAccountResultData = {
 
 export async function createStaffAccountAction(formData: FormData): Promise<CreateStaffAccountResultData> {
   const parsed = createStaffAccountSchema.parse(Object.fromEntries(formData.entries()));
-  const actor = await requireStaffAccountManager(parsed.branchId, parsed.role);
+  const currentProfile = await requireBranchScopedProfile();
+  const selectedRole = await resolveAssignableRole(parsed.roleId, currentProfile.roles.includes("SUPER_ADMIN"));
+  const actor = await requireStaffAccountManager(parsed.branchId, selectedRole.baseRole);
   const syntheticEmail = staffEmailForUsername(parsed.username);
   const temporaryPassword = generateTemporaryPassword();
 
@@ -790,7 +798,7 @@ export async function createStaffAccountAction(formData: FormData): Promise<Crea
           username: parsed.username,
           email: syntheticEmail,
           mustChangePassword: true,
-          roles: [parsed.role],
+          roles: [selectedRole.baseRole],
         },
       });
 
@@ -798,7 +806,8 @@ export async function createStaffAccountAction(formData: FormData): Promise<Crea
         data: {
           profileId: created.id,
           branchId: parsed.branchId,
-          role: parsed.role,
+          role: selectedRole.baseRole,
+          roleId: selectedRole.id,
           status: parsed.assignmentStatus,
         },
       });
@@ -810,7 +819,8 @@ export async function createStaffAccountAction(formData: FormData): Promise<Crea
           metadata: {
             profileId: created.id,
             branchId: parsed.branchId,
-            role: parsed.role,
+            role: selectedRole.baseRole,
+            roleId: selectedRole.id,
             username: parsed.username,
           },
         },
@@ -832,6 +842,46 @@ export async function createStaffAccountAction(formData: FormData): Promise<Crea
   };
 }
 
+export type ActivityListOptions = {
+  branchIds?: string[];
+  query?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+const activityInclude = {
+  actor: true,
+  visit: {
+    include: {
+      branch: true,
+      customer: true,
+      cashier: true,
+    },
+  },
+} satisfies Prisma.AuditEventInclude;
+
+export async function getActivityLog(options: ActivityListOptions = {}) {
+  const pageSize = normalizePageSize(options.pageSize);
+  const page = normalizePage(options.page);
+  const where = activityListWhere(options);
+  const total = await prisma.auditEvent.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const events = await prisma.auditEvent.findMany({
+    where,
+    include: activityInclude,
+    orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return {
+    events,
+    query: options.query?.trim() ?? "",
+    pagination: paginationPayload(total, currentPage, pageSize),
+  };
+}
+
 export async function createStaffAccountFormAction(formData: FormData): Promise<AdminMutationResult<CreateStaffAccountResultData>> {
   try {
     const data = await createStaffAccountAction(formData);
@@ -843,13 +893,15 @@ export async function createStaffAccountFormAction(formData: FormData): Promise<
 
 export async function createStaffAssignmentAction(formData: FormData) {
   const parsed = createStaffAssignmentSchema.parse(Object.fromEntries(formData.entries()));
-  const actor = await requireStaffAccountManager(parsed.branchId, parsed.role);
+  const currentProfile = await requireBranchScopedProfile();
+  const selectedRole = await resolveAssignableRole(parsed.roleId, currentProfile.roles.includes("SUPER_ADMIN"));
+  const actor = await requireStaffAccountManager(parsed.branchId, selectedRole.baseRole);
   const profile = await prisma.userProfile.findUniqueOrThrow({ where: { id: parsed.profileId } });
 
   await prisma.$transaction(async (tx) => {
     await tx.userProfile.update({
       where: { id: profile.id },
-      data: { roles: Array.from(new Set([...profile.roles, parsed.role])) },
+      data: { roles: Array.from(new Set([...profile.roles, selectedRole.baseRole])) },
     });
 
     await tx.staffAssignment.upsert({
@@ -857,14 +909,15 @@ export async function createStaffAssignmentAction(formData: FormData) {
         profileId_branchId_role: {
           profileId: profile.id,
           branchId: parsed.branchId,
-          role: parsed.role,
+          role: selectedRole.baseRole,
         },
       },
-      update: { status: parsed.status },
+      update: { status: parsed.status, roleId: selectedRole.id },
       create: {
         profileId: profile.id,
         branchId: parsed.branchId,
-        role: parsed.role,
+        role: selectedRole.baseRole,
+        roleId: selectedRole.id,
         status: parsed.status,
       },
     });
@@ -876,7 +929,8 @@ export async function createStaffAssignmentAction(formData: FormData) {
         metadata: {
           profileId: profile.id,
           branchId: parsed.branchId,
-          role: parsed.role,
+          role: selectedRole.baseRole,
+          roleId: selectedRole.id,
           status: parsed.status,
         },
       },
@@ -902,14 +956,16 @@ export async function updateStaffAssignmentAction(formData: FormData) {
     include: { profile: true },
   });
   const actor = await requireAssignmentManager(assignment.branchId, assignment.role);
-  await requireStaffAccountManager(parsed.branchId, parsed.role);
+  const currentProfile = await requireBranchScopedProfile();
+  const selectedRole = await resolveAssignableRole(parsed.roleId, currentProfile.roles.includes("SUPER_ADMIN"));
+  await requireStaffAccountManager(parsed.branchId, selectedRole.baseRole);
 
   const existingAssignment = await prisma.staffAssignment.findFirst({
     where: {
       id: { not: assignment.id },
       profileId: assignment.profileId,
       branchId: parsed.branchId,
-      role: parsed.role,
+      role: selectedRole.baseRole,
     },
     select: { id: true },
   });
@@ -928,7 +984,8 @@ export async function updateStaffAssignmentAction(formData: FormData) {
       where: { id: assignment.id },
       data: {
         branchId: parsed.branchId,
-        role: parsed.role,
+        role: selectedRole.baseRole,
+        roleId: selectedRole.id,
         status: parsed.status,
       },
     });
@@ -951,7 +1008,8 @@ export async function updateStaffAssignmentAction(formData: FormData) {
             fullName: parsed.fullName,
             mobile: parsed.mobile,
             branchId: parsed.branchId,
-            role: parsed.role,
+            role: selectedRole.baseRole,
+            roleId: selectedRole.id,
             status: parsed.status,
           },
         },
@@ -960,7 +1018,7 @@ export async function updateStaffAssignmentAction(formData: FormData) {
   });
 
   await syncStaffRoleForProfile(assignment.profileId, assignment.role);
-  await syncStaffRoleForProfile(assignment.profileId, parsed.role);
+  await syncStaffRoleForProfile(assignment.profileId, selectedRole.baseRole);
   revalidateStaffSetup(assignment.branchId, assignment.profileId);
   if (assignment.branchId !== parsed.branchId) revalidateStaffSetup(parsed.branchId, assignment.profileId);
 }

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { defaultRoleConfigs } from "../src/lib/rbac";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({
@@ -40,6 +41,8 @@ async function main() {
     update: { value: "Asia/Manila" },
     create: { key: "business_timezone", value: "Asia/Manila" },
   });
+
+  await ensureDefaultAccessRoles();
 
   await prisma.systemSetting.upsert({
     where: { key: "points_per_visit" },
@@ -89,13 +92,51 @@ async function assignRoles(emails: string[], roles: Array<"SUPER_ADMIN" | "BRANC
 
     if (branchId) {
       for (const role of roles) {
+        const accessRole = await prisma.accessRole.findUnique({ where: { key: role }, select: { id: true } });
         await prisma.staffAssignment.upsert({
           where: { profileId_branchId_role: { profileId: profile.id, branchId, role } },
-          update: { status: "ACTIVE" },
-          create: { profileId: profile.id, branchId, role, status: "ACTIVE" },
+          update: { status: "ACTIVE", roleId: accessRole?.id },
+          create: { profileId: profile.id, branchId, role, roleId: accessRole?.id, status: "ACTIVE" },
         });
       }
     }
+  }
+}
+
+async function ensureDefaultAccessRoles() {
+  for (const config of defaultRoleConfigs) {
+    const role = await prisma.accessRole.upsert({
+      where: { key: config.key },
+      update: {
+        name: config.name,
+        normalizedName: config.normalizedName,
+        description: config.description,
+        status: "ACTIVE",
+        baseRole: config.baseRole,
+        systemRole: config.systemRole,
+        defaultModule: config.defaultModule,
+        protected: true,
+      },
+      create: {
+        id: `role-${config.key.toLowerCase().replaceAll("_", "-")}`,
+        key: config.key,
+        name: config.name,
+        normalizedName: config.normalizedName,
+        description: config.description,
+        status: "ACTIVE",
+        baseRole: config.baseRole,
+        systemRole: config.systemRole,
+        defaultModule: config.defaultModule,
+        protected: true,
+      },
+      select: { id: true },
+    });
+
+    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
+    await prisma.rolePermission.createMany({
+      data: config.modules.map((module) => ({ roleId: role.id, module })),
+      skipDuplicates: true,
+    });
   }
 }
 

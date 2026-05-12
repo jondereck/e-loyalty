@@ -3,8 +3,9 @@ import { safeTokenPreview } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/services/notifications";
 import { evaluateVisitEligibility } from "@/lib/rules";
+import { canAccessModule } from "@/lib/rbac";
 import { getTierDetails } from "@/lib/tiers";
-import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit, getTierSettings } from "@/lib/services/settings";
+import { canAccessDuringMaintenance, getBusinessTimezone, getMaintenanceSettings, getPointsPerVisit, getTierSettings, type SettingsTier } from "@/lib/services/settings";
 import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/session";
 import { businessDayWindow, computeBusinessDate } from "@/lib/time";
 
@@ -34,7 +35,7 @@ export async function scanCustomerQr(payload: ScanPayload) {
     throw new Error(maintenance.maintenanceMessage);
   }
   if (cashier.status !== "ACTIVE") throw new Error("Inactive users cannot scan QR codes.");
-  if (!cashier.roles.includes("CASHIER") && !cashier.roles.includes("BRANCH_ADMIN") && !cashier.roles.includes("SUPER_ADMIN")) {
+  if (!canAccessModule(cashier, "SCAN")) {
     throw new Error("Only staff can scan QR codes.");
   }
 
@@ -262,7 +263,7 @@ export async function autoApproveVisit({
   qrTokenHash: string | null;
   flags: ScanAttemptFlags;
   pointsAwarded: number;
-  tiers: any[]; // SettingsTier[]
+  tiers: SettingsTier[];
 }) {
   return prisma.$transaction(async (tx) => {
     const created = await tx.visit.create({

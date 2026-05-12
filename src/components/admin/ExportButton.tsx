@@ -2,13 +2,15 @@
 
 import { Download } from "lucide-react";
 
-export function ExportButton({ data, filename, columns }: { data: any[], filename: string, columns: { label: string, key: string }[] }) {
+type ExportRow = Record<string, unknown>;
+
+export function ExportButton({ data, filename, columns }: { data: ExportRow[], filename: string, columns: { label: string, key: string }[] }) {
   const handleExport = () => {
     const header = columns.map((col) => col.label).join(",");
     const rows = data.map((item) =>
       columns
         .map((col) => {
-          const value = col.key.split(".").reduce((obj, key) => obj?.[key], item);
+          const value = resolveColumnValue(item, col.key);
           const formattedValue = value instanceof Date ? value.toLocaleString() : value;
           return `"${String(formattedValue ?? "").replace(/"/g, '""')}"`;
         })
@@ -32,4 +34,11 @@ export function ExportButton({ data, filename, columns }: { data: any[], filenam
       Export CSV
     </button>
   );
+}
+
+function resolveColumnValue(row: ExportRow, key: string) {
+  return key.split(".").reduce<unknown>((value, segment) => {
+    if (!value || typeof value !== "object") return undefined;
+    return (value as ExportRow)[segment];
+  }, row);
 }

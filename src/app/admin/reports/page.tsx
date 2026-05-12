@@ -1,6 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getReportData } from "@/lib/services/reports";
-import { requireBranchScopedProfile, branchIdsForAdmin } from "@/lib/services/session";
+import { requireModuleAccess, branchIdsForAdmin } from "@/lib/services/session";
 import { ExportButton } from "@/components/admin/ExportButton";
 import { Card } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -12,7 +12,7 @@ export default async function AdminReportsPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const profile = await requireBranchScopedProfile();
+  const profile = await requireModuleAccess("REPORTS");
   const branchIds = branchIdsForAdmin(profile);
   const params = await searchParams;
 

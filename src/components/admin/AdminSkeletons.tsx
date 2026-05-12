@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
+  Activity,
   Calendar,
   ChevronDown,
   ChevronLeft,
@@ -79,14 +80,13 @@ export function AdminSkeletonShell({
           </div>
         </aside>
         <section className="lp-admin-main">
-          <header className="lp-admin-global-header">
-            <div className="lp-admin-header-title">
-              {showShellHeader ? <h2>{heading}</h2> : null}
-            </div>
-            <div className="lp-admin-header-actions">
-              <div className="h-10 w-10 rounded-full bg-slate-100 animate-pulse" />
-            </div>
-          </header>
+          {showShellHeader ? (
+            <header className="lp-admin-global-header">
+              <div className="lp-admin-header-title">
+                <h2>{heading}</h2>
+              </div>
+            </header>
+          ) : null}
           {children}
         </section>
       </div>
@@ -180,7 +180,7 @@ function ChartSkeleton({ height = 200 }: { height?: number }) {
             key={i}
             style={{
               flex: 1,
-              height: `${40 + Math.sin(i * 0.5) * 20 + Math.random() * 10}%`,
+              height: `${chartBarHeight(i)}%`,
               opacity: 0.2 + (i * 0.02),
               borderRadius: "2px"
             }}
@@ -515,7 +515,7 @@ export function SuperAdminSettingsSkeleton() {
           <Skeleton className="lp-skeleton-control lp-skeleton-control-button-lg" />
         </div>
         <div className="lp-settings-tabs">
-          {["General", "Points & Rewards", "System", "Security", "Notifications"].map((title, index) => (
+          {["General", "Points & Rewards", "Roles & Permissions", "System", "Security", "Notifications"].map((title, index) => (
             <div className={index === 0 ? "active" : ""} key={title}>
               <Skeleton className="lp-skeleton-activity-icon" />
               {title}
@@ -523,14 +523,15 @@ export function SuperAdminSettingsSkeleton() {
           ))}
         </div>
         <div className="lp-settings-grid">
-          {["System Information", "Maintenance Mode", "System Updates", "Data Management"].map((title) => (
+          {["System Information", "Maintenance Mode", "System Updates", "Data Management"].map((title, index) => (
             <section className="lp-settings-card" key={title}>
               <h2 className="lp-settings-card-title">
                 <Skeleton className="lp-skeleton-activity-icon" />
                 {title}
               </h2>
-              <Skeleton className="lp-skeleton-note-line" style={{ width: "70%", marginBottom: 14 }} />
-              <Skeleton className="lp-skeleton-note-line" style={{ width: "52%" }} />
+              {Array.from({ length: index < 2 ? 4 : 2 }).map((_, rowIndex) => (
+                <Skeleton key={rowIndex} className="lp-skeleton-note-line" style={{ width: rowIndex % 2 ? "52%" : "70%", marginBottom: 14 }} />
+              ))}
             </section>
           ))}
         </div>
@@ -582,8 +583,6 @@ export function AdminTablePanelSkeleton({
   );
 }
 
-import { Activity } from "lucide-react";
-
 export function AdminActivityPanelSkeleton({ className }: { className?: string }) {
   return (
     <section className={className ? `lp-panel ${className}` : "lp-panel"}>
@@ -603,6 +602,10 @@ export function AdminActivityPanelSkeleton({ className }: { className?: string }
       <span className="lp-panel-foot">View all activity</span>
     </section>
   );
+}
+
+function chartBarHeight(index: number) {
+  return 44 + Math.round(Math.abs(Math.sin(index * 0.58)) * 42);
 }
 
 function MetricGrid({

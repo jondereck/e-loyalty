@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 
-type MobileSkeletonVariant = "card" | "rewards" | "history" | "profile" | "scan-result";
+type MobileSkeletonVariant = "card" | "rewards" | "history" | "profile" | "notifications" | "scan-result";
 
 export function MobilePageSkeleton({
   variant = "card",
@@ -20,6 +20,7 @@ export function MobilePageSkeleton({
         {resolvedVariant === "rewards" ? <RewardsSkeleton /> : null}
         {resolvedVariant === "history" ? <HistorySkeleton /> : null}
         {resolvedVariant === "profile" ? <ProfileSkeleton /> : null}
+        {resolvedVariant === "notifications" ? <NotificationsSkeleton /> : null}
         {resolvedVariant === "scan-result" ? <ScanResultSkeleton /> : null}
       </div>
       {withTabbar ? (
@@ -115,7 +116,10 @@ function HistorySkeleton() {
 function ProfileSkeleton() {
   return (
     <>
-      <TopbarSkeleton />
+      <div className="lp-mobile-topbar">
+        <h2>Account</h2>
+        <Skeleton className="lp-skeleton-icon" />
+      </div>
       <div className="lp-skeleton-profile-card">
         <Skeleton className="lp-skeleton-avatar" />
         <Skeleton className="lp-skeleton-line title centered" />
@@ -129,7 +133,39 @@ function ProfileSkeleton() {
           </div>
         ))}
       </div>
+      <div className="lp-skeleton-detail-card">
+        <Skeleton className="lp-skeleton-line medium" />
+        <Skeleton className="lp-skeleton-line wide" />
+        <Skeleton className="lp-skeleton-button" />
+      </div>
       <GlassRowSkeleton />
+    </>
+  );
+}
+
+function NotificationsSkeleton() {
+  return (
+    <>
+      <div className="lp-mobile-topbar">
+        <h2>Notifications</h2>
+        <Skeleton className="lp-skeleton-icon" />
+      </div>
+      <div className="lp-notification-skeleton-head">
+        <Skeleton className="lp-skeleton-line title" />
+        <Skeleton className="lp-skeleton-pill" />
+      </div>
+      <div className="lp-notification-skeleton-list">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div className="lp-skeleton-reward-row" key={index}>
+            <Skeleton className="lp-skeleton-soft-icon" />
+            <div className="lp-skeleton-copy grow">
+              <Skeleton className="lp-skeleton-line medium" />
+              <Skeleton className="lp-skeleton-line wide" />
+              <Skeleton className="lp-skeleton-line small" />
+            </div>
+          </div>
+        ))}
+      </div>
     </>
   );
 }

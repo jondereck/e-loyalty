@@ -6,7 +6,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdjustMemberPointsForm, MemberCardStatusForm, MemberProfileStatusActions } from "@/components/admin/MemberActions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getMemberDetail } from "@/lib/services/admin";
-import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
+import { branchIdsForAdmin, requireModuleAccess } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export default async function AdminMemberDetailPage({
   params: Promise<{ profileId: string }>;
 }) {
   const { profileId } = await params;
-  const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("MEMBERS");
   const member = await getMemberDetail(profileId, branchIdsForAdmin(profile));
   if (!member) notFound();
   const card = member.loyaltyCard;

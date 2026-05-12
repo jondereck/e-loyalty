@@ -7,7 +7,7 @@ import { PageSizeSelect } from "@/components/admin/PageSizeSelect";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getMemberManagementData } from "@/lib/services/admin";
-import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
+import { branchIdsForAdmin, requireModuleAccess } from "@/lib/services/session";
 import { compactNumber, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export default async function AdminMembersPage({
     pageSize?: string | string[];
   }>;
 }) {
-  const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("MEMBERS");
   const params = await searchParams;
   const query = readParam(params.q) ?? "";
   const status = readMemberStatus(readParam(params.status));

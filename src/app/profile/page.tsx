@@ -2,6 +2,7 @@ import { ShieldCheck, UserCircle } from "lucide-react";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { AccountSettingsForm } from "@/components/customer/AccountSettingsForm";
 import { CustomerShell } from "@/components/customer/CustomerShell";
+import { UserAvatar } from "@/components/UserAvatar";
 import { requireProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function ProfilePage() {
       </div>
 
       <div className="lp-profile-card">
-        <span className="lp-avatar">{profile.fullName.slice(0, 2).toUpperCase()}</span>
+        <UserAvatar name={profile.fullName} imageUrl={profile.avatarUrl} />
         <h2>{profile.fullName}</h2>
         <p>{profile.status}</p>
       </div>

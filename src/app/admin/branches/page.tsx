@@ -8,7 +8,7 @@ import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { getBranchManagementData } from "@/lib/services/admin";
-import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
+import { branchIdsForAdmin, requireModuleAccess } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function AdminBranchesPage({
 }: {
   searchParams: Promise<{ q?: string | string[]; page?: string | string[]; pageSize?: string | string[] }>;
 }) {
-  const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("BRANCHES");
   const params = await searchParams;
   const query = readParam(params.q) ?? "";
   const page = Number(readParam(params.page) ?? "1");

@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   ChevronDown,
   CloudUpload,
+  Copy,
   Database,
   DollarSign,
+  Edit3,
   Gift,
   HardDrive,
   Info,
@@ -28,12 +30,17 @@ import {
   ToggleLeft,
   Trash2,
   UserCog,
+  UsersRound,
   Wrench,
 } from "lucide-react";
 import {
   checkForSystemUpdatesAction,
+  createRoleSettingsAction,
+  disableRoleSettingsAction,
+  duplicateRoleSettingsAction,
   saveGeneralSettingsAction,
   saveRewardsSettingsAction,
+  updateRoleSettingsAction,
 } from "@/app/super-admin/settings/actions";
 import {
   currencyOptions,
@@ -44,23 +51,44 @@ import {
   type TimezoneOption,
 } from "@/lib/settings-options";
 import type { SettingsReward, SettingsTier, SuperAdminSettingsData } from "@/lib/services/settings";
+import { protectedModuleKeys, type RoleModuleKey } from "@/lib/rbac";
+import type { RoleManagementData, RoleManagementItem } from "@/lib/services/roles";
 
-type TabKey = "general" | "rewards" | "system" | "security" | "notifications";
+type TabKey = "general" | "rewards" | "roles" | "system" | "security" | "notifications";
 type DraftReward = Omit<SettingsReward, "id"> & {
   id?: string;
   clientKey: string;
+};
+type RoleDraft = {
+  roleId?: string;
+  protected?: boolean;
+  name: string;
+  description: string;
+  status: "ACTIVE" | "INACTIVE";
+  defaultModule: RoleModuleKey;
+  modules: RoleModuleKey[];
+  originalModules?: RoleModuleKey[];
 };
 
 const tabs: Array<{ key: TabKey; label: string; icon: ComponentType<{ size?: number }> }> = [
   { key: "general", label: "General", icon: Settings },
   { key: "rewards", label: "Points & Rewards", icon: Star },
+  { key: "roles", label: "Roles & Permissions", icon: UsersRound },
   { key: "system", label: "System", icon: Server },
   { key: "security", label: "Security", icon: Shield },
   { key: "notifications", label: "Notifications", icon: Bell },
 ];
 
-export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdminSettingsData }) {
-  const [activeTab, setActiveTab] = useState<TabKey>("general");
+export function SettingsPanel({
+  initialSettings,
+  initialRoles,
+  initialTab,
+}: {
+  initialSettings: SuperAdminSettingsData;
+  initialRoles: RoleManagementData;
+  initialTab?: TabKey;
+}) {
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? "general");
   const [systemName, setSystemName] = useState(initialSettings.general.systemName);
   const [supportEmail, setSupportEmail] = useState(initialSettings.general.supportEmail);
   const [businessTimezone, setBusinessTimezone] = useState<TimezoneOption>(initialSettings.general.businessTimezone);
@@ -73,9 +101,10 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
   const [pointsPerVisit, setPointsPerVisit] = useState(String(initialSettings.pointsPerVisit));
   const [rewards, setRewards] = useState<DraftReward[]>(() => initialSettings.rewards.map(toDraftReward));
   const [tiers, setTiers] = useState<SettingsTier[]>(initialSettings.tiers);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isRolePending, startRoleTransition] = useTransition();
+  const [roleData, setRoleData] = useState<RoleManagementData>(initialRoles);
+  const [roleDraft, setRoleDraft] = useState<RoleDraft | null>(null);
 
   const visibleRewards = useMemo(
     () => rewards.slice().sort((a, b) => a.pointsRequired - b.pointsRequired || a.name.localeCompare(b.name)),
@@ -83,8 +112,7 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
   );
 
   function saveSettings() {
-    setStatus(null);
-    setError(null);
+    if (activeTab === "roles") return;
     startTransition(async () => {
       try {
         const saved = activeTab === "rewards"
@@ -146,15 +174,119 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
   }
 
   function checkForUpdates() {
-    setStatus(null);
-    setError(null);
     startTransition(async () => {
       try {
         const saved = await checkForSystemUpdatesAction();
         applySavedSettings(saved);
-        setStatus("Update status refreshed.");
+        toast.success("Update status refreshed.");
       } catch (updateError) {
-        setError(updateError instanceof Error ? updateError.message : "Update status could not be refreshed.");
+        toast.error(updateError instanceof Error ? updateError.message : "Update status could not be refreshed.");
+      }
+    });
+  }
+
+  function openCreateRole() {
+    setRoleDraft({
+      name: "",
+      description: "",
+      status: "ACTIVE",
+      defaultModule: "SCAN",
+      modules: ["SCAN"],
+    });
+  }
+
+  function openEditRole(role: RoleManagementItem) {
+    setRoleDraft({
+      roleId: role.id,
+      protected: role.protected,
+      name: role.name,
+      description: role.description,
+      status: role.status,
+      defaultModule: role.defaultModule,
+      modules: role.modules,
+      originalModules: role.modules,
+    });
+  }
+
+  function updateRoleDraft(patch: Partial<RoleDraft>) {
+    setRoleDraft((current) => current ? { ...current, ...patch } : current);
+  }
+
+  function toggleRoleModule(module: RoleModuleKey) {
+    setRoleDraft((current) => {
+      if (!current || current.protected) return current;
+      const modules = current.modules.includes(module)
+        ? current.modules.filter((item) => item !== module)
+        : [...current.modules, module];
+      const defaultModule = modules.includes(current.defaultModule) ? current.defaultModule : modules[0] ?? current.defaultModule;
+      return { ...current, modules, defaultModule };
+    });
+  }
+
+  function resetRoleDraft() {
+    if (!roleDraft?.roleId) {
+      openCreateRole();
+      return;
+    }
+    const role = roleData.roles.find((item) => item.id === roleDraft.roleId);
+    if (role) openEditRole(role);
+  }
+
+  function saveRoleDraft() {
+    if (!roleDraft) return;
+    if (!roleDraft.modules.length) {
+      toast.error("Select at least one module before saving.");
+      return;
+    }
+    const removedImportant = protectedModuleKeys.filter(
+      (module) => roleDraft.originalModules?.includes(module) && !roleDraft.modules.includes(module),
+    );
+    if (removedImportant.length && !window.confirm(`This removes important access: ${removedImportant.map(moduleLabel).join(", ")}. Continue?`)) {
+      return;
+    }
+
+    startRoleTransition(async () => {
+      const payload = {
+        name: roleDraft.name,
+        description: roleDraft.description,
+        status: roleDraft.status,
+        defaultModule: roleDraft.defaultModule,
+        modules: roleDraft.modules,
+      };
+      const result = roleDraft.roleId
+        ? await updateRoleSettingsAction({ ...payload, roleId: roleDraft.roleId })
+        : await createRoleSettingsAction(payload);
+      if (result.ok && result.data) {
+        setRoleData(result.data);
+        setRoleDraft(null);
+        toast.success(result.message ?? "Role saved.");
+      } else {
+        toast.error(result.message ?? "Role could not be saved.");
+      }
+    });
+  }
+
+  function duplicateRole(roleId: string) {
+    startRoleTransition(async () => {
+      const result = await duplicateRoleSettingsAction(roleId);
+      if (result.ok && result.data) {
+        setRoleData(result.data);
+        toast.success(result.message ?? "Role duplicated.");
+      } else {
+        toast.error(result.message ?? "Role could not be duplicated.");
+      }
+    });
+  }
+
+  function disableRole(role: RoleManagementItem) {
+    if (!window.confirm(`Disable ${role.name}? Users assigned to this role will lose its module access.`)) return;
+    startRoleTransition(async () => {
+      const result = await disableRoleSettingsAction(role.id);
+      if (result.ok && result.data) {
+        setRoleData(result.data);
+        toast.success(result.message ?? "Role disabled.");
+      } else {
+        toast.error(result.message ?? "Role could not be disabled.");
       }
     });
   }
@@ -206,10 +338,12 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
           <h1>System Settings</h1>
           <p>Manage global system settings and preferences.</p>
         </div>
-        <button className="lp-settings-save" type="submit" disabled={isPending}>
-          <Save size={18} />
-          {isPending ? "Saving..." : "Save Changes"}
-        </button>
+        {activeTab === "roles" ? null : (
+          <button className="lp-settings-save" type="submit" disabled={isPending}>
+            <Save size={18} />
+            {isPending ? "Saving..." : "Save Changes"}
+          </button>
+        )}
       </div>
 
       <div className="lp-settings-tabs" role="tablist" aria-label="Settings sections">
@@ -266,6 +400,22 @@ export function SettingsPanel({ initialSettings }: { initialSettings: SuperAdmin
           onTierChange={updateTier}
           onAddTier={addTier}
           onRemoveTier={removeTier}
+        />
+      ) : null}
+      {activeTab === "roles" ? (
+        <RolesTab
+          data={roleData}
+          draft={roleDraft}
+          isPending={isRolePending}
+          onCreate={openCreateRole}
+          onEdit={openEditRole}
+          onDuplicate={duplicateRole}
+          onDisable={disableRole}
+          onDraftChange={updateRoleDraft}
+          onToggleModule={toggleRoleModule}
+          onSave={saveRoleDraft}
+          onCancel={() => setRoleDraft(null)}
+          onReset={resetRoleDraft}
         />
       ) : null}
       {activeTab === "system" ? <SystemTab /> : null}
@@ -563,6 +713,205 @@ function RewardsTab({
       </section>
     </div>
   );
+}
+
+function RolesTab({
+  data,
+  draft,
+  isPending,
+  onCreate,
+  onEdit,
+  onDuplicate,
+  onDisable,
+  onDraftChange,
+  onToggleModule,
+  onSave,
+  onCancel,
+  onReset,
+}: {
+  data: RoleManagementData;
+  draft: RoleDraft | null;
+  isPending: boolean;
+  onCreate: () => void;
+  onEdit: (role: RoleManagementItem) => void;
+  onDuplicate: (roleId: string) => void;
+  onDisable: (role: RoleManagementItem) => void;
+  onDraftChange: (patch: Partial<RoleDraft>) => void;
+  onToggleModule: (module: RoleModuleKey) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onReset: () => void;
+}) {
+  const customRoles = data.roles.filter((role) => !role.protected);
+  const enabledDraftModules = draft?.modules ?? [];
+
+  return (
+    <div className="lp-settings-roles">
+      <section className="lp-settings-card lp-settings-card-large lp-role-hero-card">
+        <div>
+          <SettingsCardTitle icon={UsersRound} title="Roles & Permissions" />
+          <p className="lp-settings-card-copy">Manage custom roles, module visibility, and access permissions.</p>
+        </div>
+        <button type="button" className="lp-settings-save" onClick={onCreate} disabled={isPending}>
+          <Plus size={18} />
+          Create Role
+        </button>
+      </section>
+
+      {draft ? (
+        <section className="lp-settings-card lp-role-editor">
+          <div className="lp-settings-section-head">
+            <SettingsCardTitle icon={UserCog} title={draft.roleId ? "Edit Permissions" : "Create Role"} />
+            {draft.protected ? <span className="lp-role-lock">Protected system role</span> : null}
+          </div>
+          <div className="lp-role-form-grid">
+            <label className="lp-settings-field">
+              <span>Role name</span>
+              <input value={draft.name} onChange={(event) => onDraftChange({ name: event.target.value })} disabled={draft.protected || isPending} />
+            </label>
+            <label className="lp-settings-field">
+              <span>Status</span>
+              <select value={draft.status} onChange={(event) => onDraftChange({ status: event.target.value as RoleDraft["status"] })} disabled={draft.protected || isPending}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </label>
+            <label className="lp-settings-field wide">
+              <span>Description</span>
+              <textarea value={draft.description} rows={3} onChange={(event) => onDraftChange({ description: event.target.value })} disabled={isPending} />
+            </label>
+            <label className="lp-settings-field">
+              <span>Default landing page</span>
+              <select
+                value={draft.defaultModule}
+                onChange={(event) => onDraftChange({ defaultModule: event.target.value as RoleModuleKey })}
+                disabled={!enabledDraftModules.length || isPending}
+              >
+                {enabledDraftModules.map((module) => (
+                  <option key={module} value={module}>{moduleLabel(module)}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {!enabledDraftModules.length ? (
+            <div className="lp-settings-note warning">
+              <Info size={18} />
+              <span>This role has no enabled modules. Users assigned to it will be redirected away from staff/admin pages.</span>
+            </div>
+          ) : null}
+
+          <div className="lp-role-permission-grid">
+            {permissionCategories(data.modules).map(([category, modules]) => (
+              <div className="lp-role-permission-group" key={category}>
+                <h3>{category}</h3>
+                {modules.map((module) => {
+                  const checked = enabledDraftModules.includes(module.key);
+                  return (
+                    <button
+                      key={module.key}
+                      type="button"
+                      className={checked ? "lp-role-module active" : "lp-role-module"}
+                      aria-pressed={checked}
+                      disabled={draft.protected || isPending}
+                      onClick={() => onToggleModule(module.key)}
+                    >
+                      <i aria-hidden="true">{checked ? <CheckCircle2 size={15} /> : null}</i>
+                      <span>
+                        <b>{module.label}</b>
+                        <small>{module.description}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          <div className="lp-role-editor-actions">
+            <button type="button" className="lp-settings-outline-button" onClick={onReset} disabled={isPending}>Reset</button>
+            <button type="button" className="lp-settings-outline-button" onClick={onCancel} disabled={isPending}>Cancel</button>
+            <button type="button" className="lp-settings-save" onClick={onSave} disabled={isPending || !enabledDraftModules.length}>
+              <Save size={17} />
+              {isPending ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="lp-settings-card lp-role-list-card">
+        <div className="lp-settings-section-head">
+          <SettingsCardTitle icon={Shield} title="Role List" />
+          <span className="lp-role-count">{data.roles.length} roles</span>
+        </div>
+        {!customRoles.length ? (
+          <div className="lp-role-empty">
+            <CheckCircle2 size={22} />
+            <b>No custom roles yet</b>
+            <span>Protected system roles are ready. Create a custom staff/admin role when you need different access.</span>
+          </div>
+        ) : null}
+        <div className="lp-role-table-wrap">
+          <table className="lp-role-table">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Default page</th>
+                <th>Modules</th>
+                <th>Users</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.roles.map((role) => (
+                <tr key={role.id}>
+                  <td>
+                    <div className="lp-role-name-cell">
+                      <b>{role.name}</b>
+                      <span>{role.description}</span>
+                    </div>
+                  </td>
+                  <td><span className={role.status === "ACTIVE" ? "lp-role-status active" : "lp-role-status"}>{role.status === "ACTIVE" ? "Active" : "Inactive"}</span></td>
+                  <td>{moduleLabel(role.defaultModule)}</td>
+                  <td>{role.enabledModulesCount}</td>
+                  <td>{role.assignedUsersCount}</td>
+                  <td>
+                    <div className="lp-role-actions">
+                      <button type="button" onClick={() => onEdit(role)} disabled={isPending}>
+                        <Edit3 size={15} />
+                        Edit Permissions
+                      </button>
+                      <button type="button" onClick={() => onDuplicate(role.id)} disabled={isPending}>
+                        <Copy size={15} />
+                        Duplicate
+                      </button>
+                      <button type="button" className="danger" onClick={() => onDisable(role)} disabled={isPending || role.protected || role.status === "INACTIVE"}>
+                        <Trash2 size={15} />
+                        Disable
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function permissionCategories(modules: RoleManagementData["modules"]) {
+  const map = new Map<string, RoleManagementData["modules"]>();
+  modules.forEach((module) => {
+    map.set(module.category, [...(map.get(module.category) ?? []), module]);
+  });
+  return Array.from(map.entries());
+}
+
+function moduleLabel(module: RoleModuleKey) {
+  return module.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function SystemTab() {

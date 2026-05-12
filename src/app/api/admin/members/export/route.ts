@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMemberExportRows } from "@/lib/services/admin";
 import { branchIdsForAdmin, getCurrentProfile } from "@/lib/services/session";
+import { canAccessModule } from "@/lib/rbac";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const profile = await getCurrentProfile();
   if (!profile || profile.status !== "ACTIVE") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!profile.roles.some((role) => role === "BRANCH_ADMIN" || role === "SUPER_ADMIN")) {
+  if (!canAccessModule(profile, "MEMBERS")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

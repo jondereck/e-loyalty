@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { rolePriority, roleRedirects } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { canAccessModule, defaultLandingForProfile, type RoleModuleKey } from "@/lib/rbac";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 
 export function highestRole(roles: string[] = []) {
@@ -12,6 +13,10 @@ export function redirectForRoles(roles: string[] = []) {
   return roleRedirects[highestRole(roles)];
 }
 
+export function redirectForProfile(profile: CurrentProfile) {
+  return defaultLandingForProfile(profile);
+}
+
 export async function getAuthUser() {
   try {
     const sessionResponse = await auth.getSession();
@@ -19,16 +24,18 @@ export async function getAuthUser() {
     if (!data) return null;
 
     const session = data as unknown as {
-      user?: { id?: string; email?: string; name?: string };
-      session?: { user?: { id?: string; email?: string; name?: string } };
+      user?: { id?: string; email?: string; name?: string; image?: string; picture?: string; avatar_url?: string };
+      session?: { user?: { id?: string; email?: string; name?: string; image?: string; picture?: string; avatar_url?: string } };
     } | null;
 
     const user = session?.user ?? session?.session?.user;
     if (!user?.id) return null;
+    const imageUrl = [user.image, user.picture, user.avatar_url].find((value) => typeof value === "string" && value.trim());
     return {
       id: String(user.id),
       email: typeof user.email === "string" ? user.email : undefined,
       name: typeof user.name === "string" ? user.name : undefined,
+      imageUrl: typeof imageUrl === "string" ? imageUrl : undefined,
     };
   } catch (error) {
     console.error("Auth session retrieval failed:", error);
@@ -46,11 +53,17 @@ export async function getCurrentProfile() {
       include: {
         loyaltyCard: true,
         staffAssignments: {
-          include: { branch: true },
+          include: {
+            branch: true,
+            roleDefinition: {
+              include: { permissions: true },
+            },
+          },
         },
       },
     });
-    return profile;
+    if (!profile) return null;
+    return { ...profile, avatarUrl: user.imageUrl ?? null };
   } catch (error) {
     console.error("Error fetching profile from database:", error);
     return null;
@@ -103,7 +116,7 @@ export async function requireProfile(allowedRoles?: readonly string[]) {
 
   if (allowedRoles?.length) {
     const allowed = profile.roles.some((role) => allowedRoles.includes(role));
-    if (!allowed) redirect(redirectForRoles(profile.roles));
+    if (!allowed) redirect(redirectForProfile(profile));
   }
 
   const maintenance = await getMaintenanceSettings();
@@ -130,11 +143,19 @@ export async function requireBranchScopedProfile(branchId?: string) {
   return profile;
 }
 
+export async function requireModuleAccess(module: RoleModuleKey) {
+  const profile = await requireProfile();
+  if (!canAccessModule(profile, module)) {
+    redirect(redirectForProfile(profile));
+  }
+  return profile;
+}
+
 export async function requirePasswordResetProfile() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   if (profile.status !== "ACTIVE") redirect("/login?error=suspended");
-  if (!profile.mustChangePassword) redirect(redirectForRoles(profile.roles));
+  if (!profile.mustChangePassword) redirect(redirectForProfile(profile));
   return profile;
 }
 

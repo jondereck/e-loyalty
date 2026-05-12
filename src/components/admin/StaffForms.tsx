@@ -16,7 +16,9 @@ type CreateStaffAccountResultData = {
 
 type StaffBranchOption = {
   id: string;
+  code?: string;
   name: string;
+  status?: string;
 };
 
 type StaffProfileOption = {
@@ -33,7 +35,15 @@ type StaffAssignmentFormData = {
   mobile?: string | null;
   branchId: string;
   role: string;
+  roleId?: string | null;
   status: string;
+};
+
+type StaffRoleOption = {
+  id: string;
+  name: string;
+  baseRole: string;
+  systemRole?: string | null;
 };
 
 export function CreateStaffAccountForm({
@@ -41,7 +51,7 @@ export function CreateStaffAccountForm({
   roleOptions,
 }: {
   branches: StaffBranchOption[];
-  roleOptions: string[];
+  roleOptions: StaffRoleOption[];
 }) {
   return (
     <AdminMutationForm<CreateStaffAccountResultData> action="/api/admin/staff" className="lp-form-grid" resetOnSuccess refreshOnSuccess={false}>
@@ -56,22 +66,15 @@ export function CreateStaffAccountForm({
         <input id="username" name="username" placeholder="juan.cashier" />
         <AdminFieldError name="username" />
       </div>
+      <BranchSelect id="branchId" name="branchId" label="Branch assignment" branches={branches} />
       <div className="field">
-        <label htmlFor="branchId">Branch</label>
-        <select id="branchId" name="branchId" disabled={!branches.length}>
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>{branch.name}</option>
-          ))}
-        </select>
-        <AdminFieldError name="branchId" />
-      </div>
-      <div className="field">
-        <label htmlFor="role">Role</label>
-        <select id="role" name="role">
+        <label htmlFor="roleId">Role</label>
+        <select id="roleId" name="roleId">
           {roleOptions.map((role) => (
-            <option key={role} value={role}>{roleLabel(role)}</option>
+            <option key={role.id} value={role.id}>{role.name}</option>
           ))}
         </select>
+        <AdminFieldError name="roleId" />
       </div>
       <input type="hidden" name="assignmentStatus" value="ACTIVE" />
       <AdminSubmitButton label="Create Staff" pendingLabel="Creating staff" disabled={!branches.length} />
@@ -87,7 +90,7 @@ export function AssignExistingStaffForm({
 }: {
   branches: StaffBranchOption[];
   staffProfiles: StaffProfileOption[];
-  roleOptions: string[];
+  roleOptions: StaffRoleOption[];
 }) {
   if (!staffProfiles.length || !branches.length) {
     return <p className="muted">Create a staff account and branch before assigning existing staff.</p>;
@@ -106,19 +109,12 @@ export function AssignExistingStaffForm({
           ))}
         </select>
       </div>
-      <div className="field">
-        <label htmlFor="existingBranchId">Branch</label>
-        <select id="existingBranchId" name="branchId">
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>{branch.name}</option>
-          ))}
-        </select>
-      </div>
+      <BranchSelect id="existingBranchId" name="branchId" label="Branch assignment" branches={branches} />
       <div className="field">
         <label htmlFor="existingRole">Role</label>
-        <select id="existingRole" name="role">
+        <select id="existingRole" name="roleId">
           {roleOptions.map((role) => (
-            <option key={role} value={role}>{roleLabel(role)}</option>
+            <option key={role.id} value={role.id}>{role.name}</option>
           ))}
         </select>
       </div>
@@ -135,7 +131,7 @@ export function UpdateStaffAssignmentForm({
 }: {
   assignment: StaffAssignmentFormData;
   branches: StaffBranchOption[];
-  roleOptions: string[];
+  roleOptions: StaffRoleOption[];
 }) {
   return (
     <AdminMutationForm action="/api/admin/staff" method="PATCH" className="lp-form-grid">
@@ -151,21 +147,15 @@ export function UpdateStaffAssignmentForm({
         <input id={`staff-mobile-${assignment.id}`} name="mobile" defaultValue={assignment.mobile ?? ""} placeholder="No number" />
         <AdminFieldError name="mobile" />
       </div>
-      <div className="field">
-        <label htmlFor={`staff-branch-${assignment.id}`}>Branch</label>
-        <select id={`staff-branch-${assignment.id}`} name="branchId" defaultValue={assignment.branchId}>
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>{branch.name}</option>
-          ))}
-        </select>
-      </div>
+      <BranchSelect id={`staff-branch-${assignment.id}`} name="branchId" label="Branch assignment" branches={branches} defaultValue={assignment.branchId} />
       <div className="field">
         <label htmlFor={`staff-role-${assignment.id}`}>Role</label>
-        <select id={`staff-role-${assignment.id}`} name="role" defaultValue={assignment.role}>
+        <select id={`staff-role-${assignment.id}`} name="roleId" defaultValue={assignment.roleId ?? legacyRoleOptionId(roleOptions, assignment.role)}>
           {roleOptions.map((role) => (
-            <option key={role} value={role}>{roleLabel(role)}</option>
+            <option key={role.id} value={role.id}>{role.name}</option>
           ))}
         </select>
+        <AdminFieldError name="roleId" />
       </div>
       <div className="field wide">
         <label htmlFor={`staff-status-${assignment.id}`}>Status</label>
@@ -180,8 +170,38 @@ export function UpdateStaffAssignmentForm({
   );
 }
 
-function roleLabel(role: string) {
-  return role.replaceAll("_", " ");
+function legacyRoleOptionId(roleOptions: StaffRoleOption[], role: string) {
+  return roleOptions.find((option) => option.systemRole === role || option.baseRole === role)?.id;
+}
+
+function BranchSelect({
+  id,
+  name,
+  label,
+  branches,
+  defaultValue,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  branches: StaffBranchOption[];
+  defaultValue?: string;
+}) {
+  return (
+    <div className="field lp-branch-select-field">
+      <label htmlFor={id}>{label}</label>
+      <select id={id} name={name} defaultValue={defaultValue} disabled={!branches.length}>
+        {!branches.length ? <option value="">No branches available</option> : null}
+        {branches.map((branch) => (
+          <option key={branch.id} value={branch.id}>
+            {branch.name}{branch.code ? ` - ${branch.code}` : ""}{branch.status && branch.status !== "ACTIVE" ? ` (${branch.status})` : ""}
+          </option>
+        ))}
+      </select>
+      <small>{branches.length ? `${branches.length} branch${branches.length === 1 ? "" : "es"} available for assignment.` : "Create an active branch before assigning staff."}</small>
+      <AdminFieldError name={name} />
+    </div>
+  );
 }
 
 function CreateStaffSuccessPanel() {

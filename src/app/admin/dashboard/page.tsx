@@ -5,13 +5,13 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { PointsChart, VisitTrendChart } from "@/components/admin/AnalyticsCharts";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getAdminDashboard, getVisitAnalytics, listPendingApprovals } from "@/lib/services/admin";
-import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
+import { branchIdsForAdmin, requireModuleAccess } from "@/lib/services/session";
 import { compactNumber, formatTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("OVERVIEW");
   const branchIds = branchIdsForAdmin(profile);
   const [dashboard, pending, analytics] = await Promise.all([
     getAdminDashboard(branchIds),

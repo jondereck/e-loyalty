@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Search, Info } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -11,24 +11,20 @@ type MapPickerProps = {
   onLocationSelect: (lat: number, lng: number, address?: string) => void;
 };
 
+const RealMap = dynamic(() => import("./map/RealMapContent"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full bg-slate-100 animate-pulse flex items-center justify-center">
+      <p className="text-slate-400 text-sm">Loading Map...</p>
+    </div>
+  ),
+});
+
 export function MapPicker({ defaultLat, defaultLng, onLocationSelect }: MapPickerProps) {
   const [lat, setLat] = useState(defaultLat || 14.5995); // Manila default
   const [lng, setLng] = useState(defaultLng || 120.9842);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-
-  const RealMap = useMemo(
-    () =>
-      dynamic(() => import("./map/RealMapContent"), {
-        ssr: false,
-        loading: () => (
-          <div className="h-full w-full bg-slate-100 animate-pulse flex items-center justify-center">
-            <p className="text-slate-400 text-sm">Loading Map...</p>
-          </div>
-        ),
-      }),
-    [],
-  );
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

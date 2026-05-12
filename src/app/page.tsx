@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { HomeMobileMenu } from "@/components/home/HomeMobileMenu";
 import { LoyaltyCard } from "@/components/loyalty/LoyaltyCard";
-import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
+import { getAuthUser, getCurrentProfile, redirectForProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +80,7 @@ export default async function Home() {
     const profile = await getCurrentProfile();
     if (!profile) redirect("/complete-profile");
     if (profile.status !== "ACTIVE") redirect("/login?error=suspended");
-    redirect(redirectForRoles(profile.roles));
+    redirect(redirectForProfile(profile));
   }
 
   return (

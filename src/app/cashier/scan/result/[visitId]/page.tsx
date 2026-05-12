@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScanResultCard } from "@/components/cashier/ScanResultCard";
-import { activeAssignmentsForRole, requireProfile } from "@/lib/services/session";
+import { activeAssignmentsForRole, requireModuleAccess } from "@/lib/services/session";
 import { getScanResult } from "@/lib/services/visits";
+import { resolveProfileModules } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export default async function CashierScanResultPage({
 }: {
   params: Promise<{ visitId: string }>;
 }) {
-  const profile = await requireProfile(["CASHIER", "BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("SCAN");
   const { visitId } = await params;
   const result = await getScanResult(visitId);
   if (!result) notFound();
@@ -20,6 +21,7 @@ export default async function CashierScanResultPage({
   const canAccess = profile.roles.includes("SUPER_ADMIN") ||
     Boolean(resultBranchId && activeAssignmentsForRole(profile, ["CASHIER", "BRANCH_ADMIN"]).some((item) => item.branchId === resultBranchId));
   if (!canAccess) notFound();
+  const modules = resolveProfileModules(profile);
 
   const card =
     result.kind === "visit" ? (
@@ -56,7 +58,7 @@ export default async function CashierScanResultPage({
         {card}
         <div className="lp-scan-actions">
           <ButtonLink href="/cashier/scan" variant="primary">Scan another</ButtonLink>
-          {profile.roles.some((role) => ["BRANCH_ADMIN", "SUPER_ADMIN"].includes(role)) ? (
+          {modules.has("APPROVALS") ? (
             <ButtonLink href="/admin/approvals" variant="secondary">Open approvals</ButtonLink>
           ) : null}
         </div>

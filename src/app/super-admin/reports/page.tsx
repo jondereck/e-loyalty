@@ -1,6 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getReportData } from "@/lib/services/reports";
-import { requireBranchScopedProfile } from "@/lib/services/session";
+import { requireModuleAccess } from "@/lib/services/session";
 import { ExportButton } from "@/components/admin/ExportButton";
 import { Card } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -13,10 +13,7 @@ export default async function SuperAdminReportsPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const profile = await requireBranchScopedProfile();
-  if (!profile.roles.includes("SUPER_ADMIN")) {
-      throw new Error("Access denied");
-  }
+  await requireModuleAccess("SYSTEM_REPORTS");
 
   const params = await searchParams;
 

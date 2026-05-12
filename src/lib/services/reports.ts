@@ -63,15 +63,24 @@ export async function getReportData({
   };
 }
 
-export function convertToCSV(data: any[], columns: { label: string; key: string }[]) {
+type CsvRow = Record<string, unknown>;
+
+export function convertToCSV(data: CsvRow[], columns: { label: string; key: string }[]) {
   const header = columns.map((col) => col.label).join(",");
   const rows = data.map((item) =>
     columns
       .map((col) => {
-        const value = col.key.split(".").reduce((obj, key) => obj?.[key], item);
+        const value = resolveCsvValue(item, col.key);
         return `"${String(value ?? "").replace(/"/g, '""')}"`;
       })
       .join(",")
   );
   return [header, ...rows].join("\n");
+}
+
+function resolveCsvValue(row: CsvRow, key: string) {
+  return key.split(".").reduce<unknown>((value, segment) => {
+    if (!value || typeof value !== "object") return undefined;
+    return (value as CsvRow)[segment];
+  }, row);
 }

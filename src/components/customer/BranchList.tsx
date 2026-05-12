@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin, Phone, ExternalLink } from "lucide-react";
 
 type Branch = {
@@ -12,9 +12,10 @@ type Branch = {
   longitude: number | null;
 };
 
+type BranchWithDistance = Branch & { distance?: number };
+
 export function BranchList({ branches }: { branches: Branch[] }) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [sortedBranches, setSortedBranches] = useState<(Branch & { distance?: number })[]>(branches);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -27,28 +28,27 @@ export function BranchList({ branches }: { branches: Branch[] }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (userLocation) {
-      const withDistance = branches.map((b) => {
-        if (b.latitude !== null && b.longitude !== null) {
-          const dist = calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude);
-          return { ...b, distance: dist };
-        }
-        return b;
-      });
+  const sortedBranches = useMemo<BranchWithDistance[]>(() => {
+    if (!userLocation) return branches;
 
-      withDistance.sort((a, b) => {
-        const distA = (a as any).distance;
-        const distB = (b as any).distance;
-        if (distA !== undefined && distB !== undefined) return distA - distB;
-        if (distA !== undefined) return -1;
-        if (distB !== undefined) return 1;
+    return branches
+      .map<BranchWithDistance>((branch) => {
+        if (branch.latitude !== null && branch.longitude !== null) {
+          return {
+            ...branch,
+            distance: calculateDistance(userLocation.lat, userLocation.lng, branch.latitude, branch.longitude),
+          };
+        }
+        return { ...branch };
+      })
+      .sort((a, b) => {
+        if (a.distance !== undefined && b.distance !== undefined) return a.distance - b.distance;
+        if (a.distance !== undefined) return -1;
+        if (b.distance !== undefined) return 1;
         return 0;
       });
+  }, [branches, userLocation]);
 
-      setSortedBranches(withDistance);
-    }
-  }, [userLocation, branches]);
 
   return (
     <div className="lp-branch-list">

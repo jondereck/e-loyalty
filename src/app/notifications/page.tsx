@@ -107,7 +107,7 @@ export default async function NotificationsPage() {
                 </div>
                 <h3 className="text-xl font-black text-slate-900">All caught up!</h3>
                 <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">
-                  You don't have any notifications at the moment. We'll let you know when something happens!
+                  You do not have any notifications at the moment. We will let you know when something happens.
                 </p>
               </div>
             )}

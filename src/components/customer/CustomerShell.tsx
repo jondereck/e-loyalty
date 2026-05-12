@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Bell, Gift, History, Home, MapPin, UserCircle } from "lucide-react";
+import { PullToRefresh } from "@/components/customer/PullToRefresh";
 
 type CustomerTab = "card" | "rewards" | "history" | "profile" | "branches" | "notifications";
 
@@ -28,7 +29,9 @@ export function CustomerShell({
 
   return (
     <main className="lp-mobile-shell">
-      <div className="lp-mobile-content">{children}</div>
+      <PullToRefresh>
+        <div className="lp-mobile-content">{children}</div>
+      </PullToRefresh>
       <nav className="lp-mobile-tabbar" aria-label="Customer navigation">
         {tabs.map((tab) => {
           const Icon = tab.icon;

@@ -260,6 +260,7 @@ export async function checkForSystemUpdates() {
 
 export async function saveRewardsSettings(input: RewardsSettingsInput) {
   const parsed = rewardsSettingsSchema.parse(input);
+  const tiersValue: Prisma.InputJsonValue = parsed.tiers;
 
   await prisma.$transaction(async (tx) => {
     await tx.systemSetting.upsert({
@@ -270,8 +271,8 @@ export async function saveRewardsSettings(input: RewardsSettingsInput) {
 
     await tx.systemSetting.upsert({
       where: { key: TIERS_SETTING_KEY },
-      update: { value: parsed.tiers as any },
-      create: { key: TIERS_SETTING_KEY, value: parsed.tiers as any },
+      update: { value: tiersValue },
+      create: { key: TIERS_SETTING_KEY, value: tiersValue },
     });
 
     const existing = await tx.rewardMilestone.findMany({

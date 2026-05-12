@@ -6,7 +6,7 @@ import { DebouncedSearchField } from "@/components/admin/DebouncedSearchField";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getApprovalManagementData } from "@/lib/services/admin";
-import { branchIdsForAdmin, requireProfile } from "@/lib/services/session";
+import { branchIdsForAdmin, requireModuleAccess } from "@/lib/services/session";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export default async function AdminApprovalsPage({
     pageSize?: string | string[];
   }>;
 }) {
-  const profile = await requireProfile(["BRANCH_ADMIN", "SUPER_ADMIN"]);
+  const profile = await requireModuleAccess("APPROVALS");
   const params = await searchParams;
   const status = readStatus(readParam(params.status));
   const query = readParam(params.q) ?? "";

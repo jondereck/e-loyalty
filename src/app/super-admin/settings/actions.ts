@@ -9,6 +9,13 @@ import {
   type RewardsSettingsInput,
 } from "@/lib/services/settings";
 import { requireProfile } from "@/lib/services/session";
+import {
+  createRoleAction,
+  disableRoleAction,
+  duplicateRoleAction,
+  updateRolePermissionsAction,
+} from "@/lib/services/roles";
+import type { RoleFormInput, RoleUpdateInput } from "@/lib/validations/roles";
 
 const settingsPaths = [
   "/",
@@ -43,6 +50,26 @@ export async function saveRewardsSettingsAction(input: RewardsSettingsInput) {
   const settings = await saveRewardsSettings(input);
   revalidateSettingsPaths();
   return settings;
+}
+
+export async function createRoleSettingsAction(input: RoleFormInput) {
+  await requireProfile(["SUPER_ADMIN"]);
+  return createRoleAction(input);
+}
+
+export async function updateRoleSettingsAction(input: RoleUpdateInput) {
+  await requireProfile(["SUPER_ADMIN"]);
+  return updateRolePermissionsAction(input);
+}
+
+export async function duplicateRoleSettingsAction(roleId: string) {
+  await requireProfile(["SUPER_ADMIN"]);
+  return duplicateRoleAction({ roleId });
+}
+
+export async function disableRoleSettingsAction(roleId: string) {
+  await requireProfile(["SUPER_ADMIN"]);
+  return disableRoleAction({ roleId });
 }
 
 function revalidateSettingsPaths() {

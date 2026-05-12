@@ -9,7 +9,7 @@ import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { resolveLoginIdentifier } from "@/lib/services/login-identifier";
-import { getAuthUser, redirectForRoles, requirePasswordResetProfile, requireProfile } from "@/lib/services/session";
+import { getAuthUser, getCurrentProfile, redirectForProfile, redirectForRoles, requirePasswordResetProfile, requireProfile } from "@/lib/services/session";
 import { completeProfileSchema, forcedPasswordChangeSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
 function firstError(errors: Record<string, string[] | undefined>) {
@@ -209,7 +209,10 @@ export async function finishAuthSession() {
     },
   });
 
-  if (!canAccessDuringMaintenance({ path: redirectForRoles(profile.roles), roles: profile.roles, maintenanceEnabled: (await getMaintenanceSettings()).maintenanceEnabled })) {
+  const currentProfile = await getCurrentProfile();
+  if (!currentProfile) redirect("/complete-profile");
+  const landingPath = redirectForProfile(currentProfile);
+  if (!canAccessDuringMaintenance({ path: landingPath, roles: currentProfile.roles, maintenanceEnabled: (await getMaintenanceSettings()).maintenanceEnabled })) {
     redirect("/maintenance");
   }
 
@@ -217,7 +220,7 @@ export async function finishAuthSession() {
     redirect("/auth/force-password");
   }
 
-  redirect(redirectForRoles(profile.roles));
+  redirect(landingPath);
 }
 
 export async function completeProfileAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {

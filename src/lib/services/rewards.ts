@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { canAccessModule } from "@/lib/rbac";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/session";
 
@@ -11,7 +12,7 @@ export async function redeemReward(milestoneId: string, qrToken?: string) {
     throw new Error(maintenance.maintenanceMessage);
   }
   if (cashier.status !== "ACTIVE") throw new Error("Inactive users cannot redeem rewards.");
-  if (!cashier.roles.some((role) => ["CASHIER", "BRANCH_ADMIN", "SUPER_ADMIN"].includes(role))) {
+  if (!canAccessModule(cashier, "SCAN")) {
     throw new Error("Only staff can redeem rewards.");
   }
 

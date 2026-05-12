@@ -73,13 +73,44 @@ model StaffAssignment {
   profileId String
   branchId  String
   role      AppRole
+  roleId    String?
   status    StaffAssignmentStatus @default(ACTIVE)
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
   branch    Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
   profile   UserProfile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  roleDefinition AccessRole?       @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   @@unique([profileId, branchId, role])
+  @@index([roleId])
+}
+
+model AccessRole {
+  id              String           @id @default(cuid())
+  key             String           @unique
+  name            String
+  normalizedName  String           @unique
+  description     String
+  status          RoleStatus       @default(ACTIVE)
+  baseRole        AppRole
+  systemRole      AppRole?
+  defaultModule   RoleModuleKey
+  protected       Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  permissions     RolePermission[]
+  staffAssignments StaffAssignment[]
+}
+
+model RolePermission {
+  id        String        @id @default(cuid())
+  roleId    String
+  module    RoleModuleKey
+  createdAt DateTime      @default(now())
+  role      AccessRole     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, module])
+  @@index([module])
 }
 
 model Visit {
@@ -262,6 +293,24 @@ enum StaffAssignmentStatus {
   ACTIVE
   INACTIVE
   REVOKED
+}
+
+enum RoleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RoleModuleKey {
+  OVERVIEW
+  MEMBERS
+  APPROVALS
+  STAFF
+  BRANCHES
+  REPORTS
+  SYSTEM_REPORTS
+  SETTINGS
+  SCAN
+  ROLES_PERMISSIONS
 }
 
 enum LedgerType {

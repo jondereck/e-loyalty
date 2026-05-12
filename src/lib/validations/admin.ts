@@ -51,14 +51,14 @@ export const createStaffAccountSchema = z.object({
   fullName: z.string().trim().min(2, "Staff name is required.").max(120),
   username: z.string().trim().toLowerCase().min(3, "Username must be at least 3 characters.").max(40).regex(/^[a-z0-9._-]+$/, "Use letters, numbers, dots, dashes, or underscores only."),
   branchId: z.string().min(1),
-  role: z.enum(["CASHIER", "BRANCH_ADMIN"]),
+  roleId: z.string().min(1, "Role is required."),
   assignmentStatus: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]).default("ACTIVE"),
 });
 
 export const createStaffAssignmentSchema = z.object({
   profileId: z.string().min(1),
   branchId: z.string().min(1),
-  role: z.enum(["CASHIER", "BRANCH_ADMIN"]),
+  roleId: z.string().min(1, "Role is required."),
   status: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]).default("ACTIVE"),
 });
 
@@ -72,7 +72,7 @@ export const updateStaffAssignmentSchema = z.object({
   fullName: z.string().trim().min(2, "Staff name is required.").max(120),
   mobile: z.string().trim().max(40).optional().transform((value) => value || null),
   branchId: z.string().min(1),
-  role: z.enum(["CASHIER", "BRANCH_ADMIN"]),
+  roleId: z.string().min(1, "Role is required."),
   status: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]),
 });
 

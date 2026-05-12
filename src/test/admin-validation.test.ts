@@ -7,7 +7,7 @@ describe("staff account creation validation", () => {
       fullName: "Staff One",
       username: "staff.one",
       branchId: "branch-1",
-      role: "CASHIER",
+      roleId: "role-cashier",
       assignmentStatus: "ACTIVE",
     }).success).toBe(true);
   });
@@ -17,7 +17,7 @@ describe("staff account creation validation", () => {
       fullName: "Staff One",
       username: "STAFF ONE",
       branchId: "branch-1",
-      role: "CASHIER",
+      roleId: "role-cashier",
       assignmentStatus: "ACTIVE",
     });
 
