@@ -1691,8 +1691,14 @@ function generateTemporaryPassword(length = 18) {
   return password;
 }
 
+const AUTH_INVALID_ORIGIN_MESSAGE =
+  "Neon Auth rejected this app origin. Add the deployed Vercel URL to the Neon Auth trusted origins for this auth project, then try again.";
+
 function explainAuthDeleteFailure(message?: string) {
   if (!message) return "Unable to delete the auth account.";
+  if (message.includes("Invalid origin")) {
+    return AUTH_INVALID_ORIGIN_MESSAGE;
+  }
   if (message.includes("You are not allowed to delete users")) {
     return "Auth provider denied user deletion. Enable Neon Auth admin delete-user permission for this environment before using Delete Account.";
   }
@@ -1701,6 +1707,9 @@ function explainAuthDeleteFailure(message?: string) {
 
 function explainAuthCreateFailure(message?: string) {
   if (!message) return "Unable to create the auth account.";
+  if (message.includes("Invalid origin")) {
+    return AUTH_INVALID_ORIGIN_MESSAGE;
+  }
   if (message.includes("You are not allowed to create users")) {
     return "Auth provider denied staff account creation. Your app account is Super Admin, but Neon Auth admin create-user permission is not enabled for this signed-in auth user in the current environment.";
   }

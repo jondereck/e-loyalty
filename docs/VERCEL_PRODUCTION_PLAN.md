@@ -22,9 +22,11 @@
 Add these in Vercel Project Settings for Production and Preview:
 
 - `DATABASE_URL`: production PostgreSQL connection string. Use SSL for hosted Postgres.
-- `NEON_AUTH_BASE_URL`: deployed app origin, for example `https://app.example.com`.
+- `NEON_AUTH_BASE_URL`: Neon Auth endpoint, for example `https://your-neon-auth-host/neondb/auth`.
 - `NEON_AUTH_COOKIE_SECRET`: long random secret. Do not reuse the development value.
 - `NEON_AUTH_COOKIE_DOMAIN`: optional. Leave unset unless auth cookies must be shared across subdomains, for example `.example.com`.
+
+In Neon Auth, add each deployed app origin to the auth project's trusted origins, for example `https://e-loyalty.vercel.app`. Staff account creation calls Neon Auth admin endpoints from the server and Neon rejects the request with `Invalid origin` when the Vercel origin is not trusted.
 
 Seed variables are optional and should only be configured for controlled seed runs:
 

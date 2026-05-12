@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Loyalty Pass — Cashier QR Scan</title><link rel="stylesheet" href="assets/styles.css"/>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand"><span class="logo">L</span><b>Loyalty Pass</b></a>
+  <nav><a class="active">Scan</a><button aria-label="Notifications">⌁</button><button class="muted">↻ Logging out</button></nav>
+  <button class="hamb"><span></span><span></span><span></span></button>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <div><p class="eyebrow">Cashier</p><h1>QR scan</h1><p class="sub">Dagupan Branch · Juan</p></div>
+    <div class="ready"><i></i> Ready to scan</div>
+  </section>
+  <section class="grid">
+    <article class="card scanner">
+      <div class="camera">
+        <div class="corners"></div><div class="line"></div>
+        <div class="center">
+          <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"/></svg>
+          <strong>Point camera at customer QR</strong><span>Secure daily validation runs automatically.</span>
+        </div>
+      </div>
+      <label>Manual QR token</label>
+      <div class="inputrow"><input id="qrToken" placeholder="Paste customer QR token"/><button id="resolve">Resolve QR</button></div>
+    </article>
+    <aside class="card recent">
+      <div class="head"><span>▣</span><div><h2>Recent scans</h2><p>Live activity from this cashier station.</p></div></div>
+      <div id="empty" class="empty"><div>✓</div><h3>No scans yet</h3><p>Recent scans will appear here after cashier activity.</p></div>
+      <div id="list" class="list" hidden>
+        <div class="item"><div><b>Alex Johnson</b><small>Downtown Branch · #10258</small></div><em>+120 pts</em></div>
+        <div class="item warn"><div><b>Maria Garcia</b><small>Already used today</small></div><em>Review</em></div>
+      </div>
+    </aside>
+  </section>
+  <section class="stats">
+    <div><span></span><b>Daily lock</b><p>Prevents duplicate rewards.</p></div>
+    <div><span></span><b>Fast checkout</b><p>Scan and validate in seconds.</p></div>
+    <div><span></span><b>Points stay forever</b><p>Customer balances remain safe.</p></div>
+  </section>
+</main>
+<script src="assets/app.js"></script>
+</body></html>
