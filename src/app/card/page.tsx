@@ -2,68 +2,58 @@ import { Bell, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { FlippableLoyaltyCard } from "@/components/loyalty/FlippableLoyaltyCard";
+import { BUSINESS_TIMEZONE } from "@/lib/constants";
 import { getCustomerCard } from "@/lib/services/customer";
-import { getTierDetails } from "@/lib/tiers";
+import { getUnreadCount } from "@/lib/services/notifications";
 import { getBrandingSettings, getTierSettings } from "@/lib/services/settings";
 import { requireProfile } from "@/lib/services/session";
+import { getEffectiveTierPoints, getTierDetails } from "@/lib/tiers";
 import { compactNumber, formatDateTime } from "@/lib/utils";
-import { BUSINESS_TIMEZONE } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function CardPage() {
   const profile = await requireProfile(["CUSTOMER"]);
-  const [data, branding, tiers] = await Promise.all([
+  const [data, branding, tiers, unreadCount] = await Promise.all([
     getCustomerCard(profile.id),
     getBrandingSettings(),
     getTierSettings(),
+    getUnreadCount(profile.id),
   ]);
-  const tier = getTierDetails(data.card.totalEarned, tiers);
+
+  const tierProgressPoints = getEffectiveTierPoints(data.card.totalEarned, data.card.pointsBalance);
+  const tier = getTierDetails(tierProgressPoints, tiers);
   const progressTarget = data.nextReward?.pointsRequired ?? Math.max(data.card.pointsBalance, 1000);
   const progress = Math.min(100, Math.round((data.card.pointsBalance / progressTarget) * 100));
   const firstName = data.profile.fullName.split(" ")[0] ?? data.profile.fullName;
-
-  // Dynamic greeting based on current time in business timezone
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    hourCycle: "h23",
-    timeZone: BUSINESS_TIMEZONE,
-  });
-  const hour = parseInt(formatter.format(new Date()));
-  let greeting = "Good morning";
-  let emoji = "☀️";
-
-  if (hour >= 12 && hour < 18) {
-    greeting = "Good afternoon";
-    emoji = "🌇";
-  } else if (hour >= 18 || hour < 5) {
-    greeting = "Good evening";
-    emoji = "🌙";
-  }
+  const { greeting, emoji } = getGreeting();
 
   return (
     <CustomerShell active="card" eyebrow="Customer Card" title={data.profile.fullName}>
       <div className="lp-mobile-topbar">
-        <div className="lp-greeting">{greeting}, {emoji}<br /><b>{firstName}</b></div>
-        <Link href="/notifications" className="lp-notification-wrapper">
+        <div className="lp-greeting">
+          {greeting}, {emoji}
+          <br />
+          <b>{firstName}</b>
+        </div>
+        <Link href="/notifications" className="lp-notification-wrapper" aria-label="Open notifications">
           <Bell size={20} />
-          <div className="lp-notification-dot" />
+          {unreadCount > 0 ? <div className="lp-notification-dot" /> : null}
         </Link>
       </div>
 
-      <div style={{ position: 'relative', marginBottom: '24px' }}>
+      <div style={{ position: "relative", marginBottom: "24px" }}>
         <FlippableLoyaltyCard
-        tier={tier.tier}
-        color={tier.color}
-        points={data.card.pointsBalance}
-        visits={data.card.visitsEarned}
-        qrToken={data.card.qrToken}
-        cardNumber={data.card.cardNumber}
-        systemName={branding.systemName}
-      />
-      <div className="lp-card-hint">
-        Tap card to show QR code
-      </div>
+          tier={tier.tier}
+          color={tier.color}
+          points={data.card.pointsBalance}
+          visits={data.card.visitsEarned}
+          qrToken={data.card.qrToken}
+          cardNumber={data.card.cardNumber}
+          systemName={branding.systemName}
+          cardVariant="homepage"
+        />
+        <div className="lp-card-hint">Tap card to show QR code</div>
       </div>
 
       <div className="lp-mini-card">
@@ -100,7 +90,25 @@ export default async function CardPage() {
           <span>{data.lastVisit ? `${data.lastVisit.branch.name} - ${formatDateTime(data.lastVisit.scannedAt)}` : "No approved visits yet."}</span>
         </div>
       </div>
-
     </CustomerShell>
   );
+}
+
+function getGreeting() {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: BUSINESS_TIMEZONE,
+  });
+  const hour = parseInt(formatter.format(new Date()), 10);
+
+  if (hour >= 12 && hour < 18) {
+    return { greeting: "Good afternoon", emoji: "\uD83C\uDF07" };
+  }
+
+  if (hour >= 18 || hour < 5) {
+    return { greeting: "Good evening", emoji: "\uD83C\uDF19" };
+  }
+
+  return { greeting: "Good morning", emoji: "\u2600\uFE0F" };
 }

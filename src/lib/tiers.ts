@@ -1,5 +1,9 @@
 import type { SettingsTier } from "./services/settings";
 
+export function getEffectiveTierPoints(totalEarned: number, pointsBalance: number) {
+  return Math.max(totalEarned, pointsBalance);
+}
+
 export function getTierDetails(totalEarned: number, tiers: SettingsTier[]) {
   // Sort tiers by threshold descending to find the current tier
   const sortedTiers = [...tiers].sort((a, b) => b.threshold - a.threshold);

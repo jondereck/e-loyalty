@@ -1,17 +1,28 @@
 import { CustomerShell } from "@/components/customer/CustomerShell";
 import { getCurrentProfile } from "@/lib/services/session";
-import { getNotifications, markAllAsRead } from "@/lib/services/notifications";
+import { getNotifications, markAllAsRead, type NotificationType } from "@/lib/services/notifications";
 import { Bell, Info, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  link: string | null;
+  isRead: boolean;
+  createdAt: Date;
+};
+
 export default async function NotificationsPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
-  const notifications = await getNotifications(profile.id, 50);
+  const notifications = (await getNotifications(profile.id, 50)) as NotificationItem[];
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -32,14 +43,16 @@ export default async function NotificationsPage() {
         <section className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Notifications</h2>
-            <form action={async () => {
+            {unreadCount > 0 ? (
+              <form action={async () => {
                 "use server";
                 await markAllAsRead(profile.id);
-            }}>
-                <button type="submit" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full transition-colors">
-                    Mark all as read
+              }}>
+                <button type="submit" className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-700">
+                  Mark all as read
                 </button>
-            </form>
+              </form>
+            ) : null}
           </div>
 
           <div className="space-y-3">

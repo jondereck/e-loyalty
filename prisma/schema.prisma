@@ -19,6 +19,7 @@ model UserProfile {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   auditEvents      AuditEvent[]       @relation("ActorAuditEvents")
+  notifications    Notification[]
   loyaltyCard      LoyaltyCard?
   ledgerEntries    PointLedger[]
   redemptions      RewardRedemption[]
@@ -195,10 +196,32 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 }
 
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
 }
 
 enum AppRole {

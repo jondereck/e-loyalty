@@ -5,6 +5,7 @@ import type { AppRole, Prisma, StaffAssignmentStatus } from "@/generated/prisma/
 import type { AdminMutationResult } from "@/lib/admin/mutations";
 import { adminMutationError } from "@/lib/admin/mutations";
 import { auth } from "@/lib/auth/server";
+import { applyManualPointAdjustment } from "@/lib/loyalty-card-adjustments";
 import { prisma } from "@/lib/prisma";
 import { getTierDetails } from "@/lib/tiers";
 import { createNotification } from "@/lib/services/notifications";
@@ -1345,14 +1346,19 @@ export async function updateMemberProfileStatusFormAction(formData: FormData): P
 export async function adjustMemberPointsAction(formData: FormData) {
   const parsed = adjustMemberPointsSchema.parse(Object.fromEntries(formData.entries()));
   const actor = await requireMemberManager(parsed.profileId);
+  const tiers = await getTierSettings();
   const member = await prisma.userProfile.findUniqueOrThrow({
     where: { id: parsed.profileId },
     include: { loyaltyCard: true },
   });
   if (!member.loyaltyCard) throw new Error("This member does not have a loyalty card.");
 
-  const nextBalance = member.loyaltyCard.pointsBalance + parsed.points;
-  if (nextBalance < 0) throw new Error("Point adjustment cannot make the balance negative.");
+  const { nextBalance, nextTotalEarned } = applyManualPointAdjustment({
+    currentBalance: member.loyaltyCard.pointsBalance,
+    currentTotalEarned: member.loyaltyCard.totalEarned,
+    delta: parsed.points,
+  });
+  const nextTier = getTierDetails(nextTotalEarned, tiers).tier;
 
   await prisma.$transaction([
     prisma.pointLedger.create({
@@ -1368,6 +1374,8 @@ export async function adjustMemberPointsAction(formData: FormData) {
       where: { id: member.loyaltyCard.id },
       data: {
         pointsBalance: { increment: parsed.points },
+        totalEarned: nextTotalEarned,
+        tier: nextTier,
       },
     }),
     prisma.auditEvent.create({
@@ -1381,6 +1389,10 @@ export async function adjustMemberPointsAction(formData: FormData) {
           reason: parsed.reason,
           previousBalance: member.loyaltyCard.pointsBalance,
           nextBalance,
+          previousTotalEarned: member.loyaltyCard.totalEarned,
+          nextTotalEarned,
+          previousTier: member.loyaltyCard.tier,
+          nextTier,
         },
       },
     }),

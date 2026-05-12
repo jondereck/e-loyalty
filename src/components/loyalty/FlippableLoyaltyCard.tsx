@@ -13,6 +13,7 @@ export function FlippableLoyaltyCard({
   qrToken,
   cardNumber,
   systemName,
+  cardVariant = "classic",
 }: {
   tier: string;
   color?: string;
@@ -21,6 +22,7 @@ export function FlippableLoyaltyCard({
   qrToken: string;
   cardNumber: string;
   systemName?: string;
+  cardVariant?: "classic" | "homepage";
 }) {
   const [showQr, setShowQr] = useState(false);
   const togglePass = () => setShowQr((value) => !value);
@@ -37,7 +39,14 @@ export function FlippableLoyaltyCard({
         <div className="lp-card-flip-stage">
           <div className="lp-card-flip-inner">
             <div className="lp-card-face lp-card-front" aria-hidden={showQr}>
-              <LoyaltyCard tier={tier} color={color} points={points} visits={visits} systemName={systemName} />
+              <LoyaltyCard
+                tier={tier}
+                color={color}
+                points={points}
+                visits={visits}
+                systemName={systemName}
+                variant={cardVariant}
+              />
             </div>
             <div className="lp-card-face lp-card-back" aria-hidden={!showQr}>
               <span className="lp-card-back-title">Customer QR</span>

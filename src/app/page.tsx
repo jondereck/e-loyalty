@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { HomeMobileMenu } from "@/components/home/HomeMobileMenu";
+import { LoyaltyCard } from "@/components/loyalty/LoyaltyCard";
 import { getAuthUser, getCurrentProfile, redirectForRoles } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
@@ -285,20 +286,14 @@ function StarRow() {
 
 function PassCard({ className = "" }: { className?: string }) {
   return (
-    <div className={`lp-home-pass-card ${className}`}>
-      <span className="lp-home-tier">Gold</span>
-      <strong>Loyalty Pass</strong>
-      <div className="lp-home-pass-stats">
-        <span>
-          <b>2,480</b>
-          Points Balance
-        </span>
-        <span>
-          <b>18</b>
-          Visits
-        </span>
-      </div>
-    </div>
+    <LoyaltyCard
+      variant="homepage"
+      tier="Gold"
+      points={2480}
+      visits={18}
+      systemName="Loyalty Pass"
+      className={className}
+    />
   );
 }
 
