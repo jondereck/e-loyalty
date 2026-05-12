@@ -25,7 +25,11 @@ export async function getAuthUser() {
 
     const user = session?.user ?? session?.session?.user;
     if (!user?.id) return null;
-    return user;
+    return {
+      id: String(user.id),
+      email: typeof user.email === "string" ? user.email : undefined,
+      name: typeof user.name === "string" ? user.name : undefined,
+    };
   } catch (error) {
     console.error("Auth session retrieval failed:", error);
     return null;
@@ -95,6 +99,7 @@ export async function requireProfile(allowedRoles?: readonly string[]) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   if (profile.status !== "ACTIVE") redirect("/login?error=suspended");
+  if (profile.mustChangePassword) redirect("/auth/force-password");
 
   if (allowedRoles?.length) {
     const allowed = profile.roles.some((role) => allowedRoles.includes(role));
@@ -122,6 +127,14 @@ export async function requireBranchScopedProfile(branchId?: string) {
   );
 
   if (!assigned) redirect("/admin/approvals");
+  return profile;
+}
+
+export async function requirePasswordResetProfile() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (profile.status !== "ACTIVE") redirect("/login?error=suspended");
+  if (!profile.mustChangePassword) redirect(redirectForRoles(profile.roles));
   return profile;
 }
 

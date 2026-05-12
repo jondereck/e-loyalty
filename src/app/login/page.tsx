@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const [user, profile, branding] = await Promise.all([getAuthUser(), getCurrentProfile(), getBrandingSettings()]);
-  if (profile) redirect(redirectForRoles(profile.roles));
+  if (profile) redirect(profile.mustChangePassword ? "/auth/force-password" : redirectForRoles(profile.roles));
   if (user) redirect("/complete-profile");
 
   return (

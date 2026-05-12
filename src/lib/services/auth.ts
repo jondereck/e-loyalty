@@ -9,8 +9,8 @@ import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { resolveLoginIdentifier } from "@/lib/services/login-identifier";
-import { getAuthUser, redirectForRoles, requireProfile } from "@/lib/services/session";
-import { completeProfileSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
+import { getAuthUser, redirectForRoles, requirePasswordResetProfile, requireProfile } from "@/lib/services/session";
+import { completeProfileSchema, forcedPasswordChangeSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
 function firstError(errors: Record<string, string[] | undefined>) {
   return Object.values(errors).flat().find(Boolean) ?? "Please check the form.";
@@ -211,6 +211,10 @@ export async function finishAuthSession() {
     redirect("/maintenance");
   }
 
+  if (profile.mustChangePassword) {
+    redirect("/auth/force-password");
+  }
+
   redirect(redirectForRoles(profile.roles));
 }
 
@@ -329,5 +333,39 @@ export async function updateCustomerAccountAction(_state: AuthActionState, formD
 
   revalidatePath("/profile");
   return { ok: true, message: "Account details updated." };
+}
+
+export async function changeForcedPasswordAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const profile = await requirePasswordResetProfile();
+  const parsed = forcedPasswordChangeSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    return { errors, message: firstError(errors) };
+  }
+
+  const result = await auth.changePassword({
+    currentPassword: parsed.data.currentPassword,
+    newPassword: parsed.data.newPassword,
+    revokeOtherSessions: true,
+  });
+  if (result.error) return { message: result.error.message ?? "Password change failed." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userProfile.update({
+      where: { id: profile.id },
+      data: { mustChangePassword: false },
+    });
+    await tx.auditEvent.create({
+      data: {
+        actorId: profile.id,
+        action: "ACCOUNT_PASSWORD_CHANGED",
+        metadata: {
+          forcedReset: true,
+        },
+      },
+    });
+  });
+
+  redirect("/auth/finish");
 }
 

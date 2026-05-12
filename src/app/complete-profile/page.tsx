@@ -10,6 +10,9 @@ export default async function CompleteProfilePage() {
   const [user, profile, branding] = await Promise.all([getAuthUser(), getCurrentProfile(), getBrandingSettings()]);
   if (!user) redirect("/login");
   if (profile) redirect(redirectForRoles(profile.roles));
+  const email = typeof user.email === "string" ? user.email : "";
+  const name = typeof user.name === "string" ? user.name : "";
+  if (!email) redirect("/login");
 
   return (
     <main className="auth-screen">
@@ -20,7 +23,7 @@ export default async function CompleteProfilePage() {
         </Link>
         <h1>Complete profile</h1>
         <p className="auth-subtitle">Finish your account now and add extra details later in Manage account.</p>
-        <CompleteProfileForm email={user.email} name={user.name} />
+        <CompleteProfileForm email={email} name={name} />
       </section>
     </main>
   );

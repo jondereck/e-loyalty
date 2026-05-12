@@ -1,10 +1,11 @@
-export type AdminMutationResult = {
+export type AdminMutationResult<T = unknown> = {
   ok?: boolean;
   message?: string;
   errors?: Record<string, string[] | undefined>;
+  data?: T;
 };
 
-export function adminMutationError(error: unknown, fallback = "Action failed. Please try again."): AdminMutationResult {
+export function adminMutationError<T = unknown>(error: unknown, fallback = "Action failed. Please try again."): AdminMutationResult<T> {
   if (
     error &&
     typeof error === "object" &&

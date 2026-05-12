@@ -83,7 +83,13 @@ export function StaffActionsDropdown({
             action="/api/admin/staff"
             method="DELETE"
             className="lp-dropdown-form"
-            confirm={`Remove ${profileName}'s assignment from this branch?`}
+            confirm={{
+              title: "Remove staff assignment?",
+              description: `Remove ${profileName}'s assignment from this branch?`,
+              confirmLabel: "Remove assignment",
+              cancelLabel: "Cancel",
+              variant: "danger",
+            }}
           >
             <input type="hidden" name="intent" value="remove-assignment" />
             <input type="hidden" name="assignmentId" value={assignmentId} />
@@ -100,7 +106,13 @@ export function StaffActionsDropdown({
               action="/api/admin/staff"
               method="DELETE"
               className="lp-dropdown-form"
-              confirm={`Delete ${profileName}'s staff account? This cannot be undone.`}
+              confirm={{
+                title: "Delete staff account?",
+                description: `Delete ${profileName}'s staff account? This cannot be undone.`,
+                confirmLabel: "Delete account",
+                cancelLabel: "Cancel",
+                variant: "danger",
+              }}
             >
               <input type="hidden" name="intent" value="delete-account" />
               <input type="hidden" name="profileId" value={profileId} />

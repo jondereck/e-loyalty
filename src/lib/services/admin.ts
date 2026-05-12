@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { AppRole, Prisma, StaffAssignmentStatus } from "@/generated/prisma/client";
 import type { AdminMutationResult } from "@/lib/admin/mutations";
@@ -749,10 +750,18 @@ export async function getStaffSetupData(branchIds?: string[]) {
   return { branches, staffProfiles };
 }
 
-export async function createStaffAccountAction(formData: FormData) {
+export type CreateStaffAccountResultData = {
+  username: string;
+  syntheticEmail: string;
+  temporaryPassword: string;
+  mustChangePassword: boolean;
+};
+
+export async function createStaffAccountAction(formData: FormData): Promise<CreateStaffAccountResultData> {
   const parsed = createStaffAccountSchema.parse(Object.fromEntries(formData.entries()));
   const actor = await requireStaffAccountManager(parsed.branchId, parsed.role);
   const syntheticEmail = staffEmailForUsername(parsed.username);
+  const temporaryPassword = generateTemporaryPassword();
 
   const existingProfile = await prisma.userProfile.findFirst({
     where: { OR: [{ username: parsed.username }, { email: syntheticEmail }] },
@@ -762,10 +771,10 @@ export async function createStaffAccountAction(formData: FormData) {
 
   const result = await auth.admin.createUser({
     email: syntheticEmail,
-    password: parsed.password,
+    password: temporaryPassword,
     name: parsed.fullName,
   });
-  if (result.error) throw new Error(result.error.message);
+  if (result.error) throw new Error(explainAuthCreateFailure(result.error.message));
 
   const authUser = result.data as unknown as { user?: { id?: string } };
   const authUserId = authUser.user?.id;
@@ -780,6 +789,7 @@ export async function createStaffAccountAction(formData: FormData) {
           fullName: parsed.fullName,
           username: parsed.username,
           email: syntheticEmail,
+          mustChangePassword: true,
           roles: [parsed.role],
         },
       });
@@ -814,12 +824,18 @@ export async function createStaffAccountAction(formData: FormData) {
   }
 
   revalidateStaffSetup(parsed.branchId, profile.id);
+  return {
+    username: parsed.username,
+    syntheticEmail,
+    temporaryPassword,
+    mustChangePassword: true,
+  };
 }
 
-export async function createStaffAccountFormAction(formData: FormData): Promise<AdminMutationResult> {
+export async function createStaffAccountFormAction(formData: FormData): Promise<AdminMutationResult<CreateStaffAccountResultData>> {
   try {
-    await createStaffAccountAction(formData);
-    return { ok: true, message: "Staff account created." };
+    const data = await createStaffAccountAction(formData);
+    return { ok: true, message: "Staff account created.", data };
   } catch (error) {
     return adminMutationError(error, "Staff account creation failed. Please try again.");
   }
@@ -1055,7 +1071,7 @@ export async function deleteStaffAccountAction(formData: FormData) {
   if (!canDeleteAllAssignments) throw new Error("You can only delete staff accounts fully within your managed scope.");
 
   const authResult = await auth.admin.removeUser({ userId: target.authUserId });
-  if (authResult.error) throw new Error(authResult.error.message ?? "Unable to delete the auth account.");
+  if (authResult.error) throw new Error(explainAuthDeleteFailure(authResult.error.message));
 
   await prisma.$transaction(async (tx) => {
     await tx.userProfile.delete({ where: { id: target.id } });
@@ -1663,6 +1679,32 @@ async function syncStaffRoleForProfile(profileId: string, role: AppRole) {
 
 function staffEmailForUsername(username: string) {
   return `${username}@staff.local`;
+}
+
+function generateTemporaryPassword(length = 18) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+  const bytes = randomBytes(length);
+  let password = "";
+  for (let index = 0; index < length; index += 1) {
+    password += alphabet[bytes[index] % alphabet.length];
+  }
+  return password;
+}
+
+function explainAuthDeleteFailure(message?: string) {
+  if (!message) return "Unable to delete the auth account.";
+  if (message.includes("You are not allowed to delete users")) {
+    return "Auth provider denied user deletion. Enable Neon Auth admin delete-user permission for this environment before using Delete Account.";
+  }
+  return message;
+}
+
+function explainAuthCreateFailure(message?: string) {
+  if (!message) return "Unable to create the auth account.";
+  if (message.includes("You are not allowed to create users")) {
+    return "Auth provider denied staff account creation. Your app account is Super Admin, but Neon Auth admin create-user permission is not enabled for this signed-in auth user in the current environment.";
+  }
+  return message;
 }
 
 async function removeAuthUserAfterFailedStaffCreate(authUserId: string) {

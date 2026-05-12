@@ -85,13 +85,6 @@ export function AdminSkeletonShell({
             </div>
             <div className="lp-admin-header-actions">
               <div className="h-10 w-10 rounded-full bg-slate-100 animate-pulse" />
-              <div className="lp-admin-header-profile">
-                <Skeleton className="lp-avatar small" />
-                <div className="lp-admin-header-user-info">
-                  <Skeleton className="lp-skeleton-account-name" />
-                  <Skeleton className="lp-skeleton-account-role" />
-                </div>
-              </div>
             </div>
           </header>
           {children}

@@ -146,7 +146,13 @@ export function DeleteBranchForm({ branch }: { branch: BranchFormData }) {
       action="/api/admin/branches"
       method="DELETE"
       className="lp-form-grid"
-      confirm={`Delete ${branch.name}? This cannot be undone.`}
+      confirm={{
+        title: "Delete branch?",
+        description: `Delete ${branch.name}? This cannot be undone.`,
+        confirmLabel: "Delete branch",
+        cancelLabel: "Cancel",
+        variant: "danger",
+      }}
       redirectOnSuccess="/admin/branches"
       refreshOnSuccess={false}
     >

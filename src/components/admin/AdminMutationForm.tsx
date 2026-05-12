@@ -1,22 +1,38 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ButtonHTMLAttributes, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type FormEvent, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import type { AdminMutationResult } from "@/lib/admin/mutations";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/AlertDialog";
 
-type AdminMutationContextValue = {
+export type AdminMutationConfirm = {
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: "danger" | "default";
+};
+
+type AdminMutationContextValue<T = unknown> = {
   pending: boolean;
-  state: AdminMutationResult;
+  state: AdminMutationResult<T>;
 };
 
 const AdminMutationContext = createContext<AdminMutationContextValue | null>(null);
 const emptyState: AdminMutationResult = {};
 
-export function AdminMutationForm({
+export function AdminMutationForm<T = unknown>({
   action,
   method = "POST",
   children,
@@ -25,6 +41,7 @@ export function AdminMutationForm({
   resetOnSuccess = false,
   refreshOnSuccess = true,
   redirectOnSuccess,
+  loadingMessage,
   successMessage,
   failureMessage,
   id,
@@ -33,41 +50,40 @@ export function AdminMutationForm({
   method?: "POST" | "PATCH" | "DELETE";
   children: ReactNode;
   className?: string;
-  confirm?: string;
+  confirm?: string | AdminMutationConfirm;
   resetOnSuccess?: boolean;
   refreshOnSuccess?: boolean;
   redirectOnSuccess?: string;
+  loadingMessage?: string;
   successMessage?: string;
   failureMessage?: string;
   id?: string;
 }) {
   const router = useRouter();
-  const [state, setState] = useState<AdminMutationResult>(emptyState);
+  const [state, setState] = useState<AdminMutationResult<T>>(emptyState as AdminMutationResult<T>);
   const [pending, setPending] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const pendingSubmissionRef = useRef<{
+    form: HTMLFormElement;
+    submitter?: HTMLElement;
+  } | null>(null);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (confirm && !window.confirm(confirm)) {
-      event.currentTarget.dispatchEvent(new CustomEvent("adminmutationdone"));
-      return;
-    }
-
+  async function submitForm(form: HTMLFormElement, submitter?: HTMLElement) {
     setPending(true);
-    setState(emptyState);
-    const form = event.currentTarget;
-    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    setState(emptyState as AdminMutationResult<T>);
+    const toastId = toast.loading(loadingMessage ?? submitterLoadingMessage(submitter) ?? defaultLoadingMessage(method));
 
     try {
       const response = await fetch(action, {
         method,
         body: new FormData(form, submitter instanceof HTMLElement ? submitter : undefined),
       });
-      const result = await response.json() as AdminMutationResult;
+      const result = await response.json() as AdminMutationResult<T>;
       const nextState = successMessage && response.ok && result.ok ? { ...result, message: successMessage } : result;
       setState(nextState);
 
       if (response.ok && result.ok) {
-        toast.success(nextState.message ?? "Action completed successfully.");
+        toast.success(nextState.message ?? "Action completed successfully.", { id: toastId });
         if (resetOnSuccess) form.reset();
         if (redirectOnSuccess) {
           router.replace(redirectOnSuccess);
@@ -75,25 +91,98 @@ export function AdminMutationForm({
           router.refresh();
         }
       } else {
-        toast.error(nextState.message ?? "Action failed.");
+        toast.error(nextState.message ?? "Action failed.", { id: toastId });
       }
     } catch {
       const msg = failureMessage ?? "Action failed. Please try again.";
       setState({ message: msg });
-      toast.error(msg);
+      toast.error(msg, { id: toastId });
     } finally {
       setPending(false);
       form.dispatchEvent(new CustomEvent("adminmutationdone"));
     }
   }
 
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+
+    if (confirm) {
+      pendingSubmissionRef.current = {
+        form,
+        submitter: submitter instanceof HTMLElement ? submitter : undefined,
+      };
+      setConfirmOpen(true);
+      return;
+    }
+
+    await submitForm(form, submitter instanceof HTMLElement ? submitter : undefined);
+  }
+
+  async function onConfirmSubmit() {
+    const pendingSubmission = pendingSubmissionRef.current;
+    if (!pendingSubmission) return;
+    setConfirmOpen(false);
+    pendingSubmissionRef.current = null;
+    await submitForm(pendingSubmission.form, pendingSubmission.submitter);
+  }
+
+  const confirmConfig = typeof confirm === "string"
+    ? {
+      title: "Confirm action",
+      description: confirm,
+      confirmLabel: "Continue",
+      cancelLabel: "Cancel",
+      variant: "danger" as const,
+    }
+    : confirm;
+
   return (
     <AdminMutationContext.Provider value={{ pending, state }}>
       <form id={id} className={className} onSubmit={onSubmit}>
         {children}
       </form>
+      {confirmConfig ? (
+        <AlertDialog
+          open={confirmOpen}
+          onOpenChange={(open) => {
+            setConfirmOpen(open);
+            if (!open) pendingSubmissionRef.current = null;
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogTitle>{confirmConfig.title}</AlertDialogTitle>
+            {confirmConfig.description ? <AlertDialogDescription>{confirmConfig.description}</AlertDialogDescription> : null}
+            <div className="lp-alert-dialog-actions">
+              <AlertDialogCancel asChild>
+                <Button type="button" variant="secondary">
+                  {confirmConfig.cancelLabel ?? "Cancel"}
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button type="button" variant={confirmConfig.variant === "danger" ? "danger" : "primary"} onClick={onConfirmSubmit}>
+                  {confirmConfig.confirmLabel ?? "Confirm"}
+                </Button>
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </AdminMutationContext.Provider>
   );
+}
+
+function defaultLoadingMessage(method: "POST" | "PATCH" | "DELETE") {
+  if (method === "DELETE") return "Deleting...";
+  if (method === "PATCH") return "Saving changes...";
+  return "Processing...";
+}
+
+function submitterLoadingMessage(submitter?: HTMLElement) {
+  const label = submitter?.getAttribute("aria-label") ?? submitter?.textContent;
+  const normalized = label?.replace(/\s+/g, " ").trim();
+  return normalized ? `${normalized}...` : undefined;
 }
 
 export function AdminActionMessage({ className }: { className?: string }) {
@@ -206,7 +295,7 @@ export function AdminIconMutationForm({
   fields: Record<string, string | number | boolean | null | undefined>;
   label: string;
   children: ReactNode;
-  confirm?: string;
+  confirm?: string | AdminMutationConfirm;
   className?: string;
   buttonClassName?: string;
   disabled?: boolean;
@@ -246,4 +335,8 @@ function useAdminMutationContext() {
   const context = useContext(AdminMutationContext);
   if (!context) throw new Error("Admin mutation components must be used inside AdminMutationForm.");
   return context;
+}
+
+export function useAdminMutationState<T = unknown>() {
+  return useAdminMutationContext() as AdminMutationContextValue<T>;
 }

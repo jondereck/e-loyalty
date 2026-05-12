@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completeProfileSchema, profileSettingsSchema, signupSchema } from "@/lib/validations/auth";
+import { completeProfileSchema, forcedPasswordChangeSchema, profileSettingsSchema, signupSchema } from "@/lib/validations/auth";
 
 describe("signup validation", () => {
   const validSignup = {
@@ -59,5 +59,28 @@ describe("profile validation", () => {
       expect(result.data.username).toBeUndefined();
       expect(result.data.mobile).toBeUndefined();
     }
+  });
+});
+
+describe("forced password change validation", () => {
+  it("requires matching new passwords", () => {
+    const result = forcedPasswordChangeSchema.safeParse({
+      currentPassword: "TempPass123!",
+      newPassword: "NewPass123!",
+      confirmPassword: "WrongPass123!",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.confirmPassword).toContain("Passwords do not match.");
+    }
+  });
+
+  it("accepts a valid forced password change payload", () => {
+    expect(forcedPasswordChangeSchema.safeParse({
+      currentPassword: "TempPass123!",
+      newPassword: "NewPass123!",
+      confirmPassword: "NewPass123!",
+    }).success).toBe(true);
   });
 });

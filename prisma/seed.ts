@@ -79,6 +79,14 @@ async function assignRoles(emails: string[], roles: Array<"SUPER_ADMIN" | "BRANC
       data: { roles: Array.from(new Set([...profile.roles, ...roles, "CUSTOMER"])) },
     });
 
+    if (roles.includes("SUPER_ADMIN")) {
+      await prisma.$executeRaw`
+        UPDATE neon_auth."user"
+        SET role = 'admin', "updatedAt" = NOW()
+        WHERE id = ${profile.authUserId}::uuid
+      `;
+    }
+
     if (branchId) {
       for (const role of roles) {
         await prisma.staffAssignment.upsert({

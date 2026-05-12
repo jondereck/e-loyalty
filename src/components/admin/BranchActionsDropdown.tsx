@@ -61,7 +61,13 @@ export function BranchActionsDropdown({
                   action="/api/admin/branches"
                   method="DELETE"
                   className="lp-dropdown-form"
-                  confirm={`Delete ${branchName}? This cannot be undone.`}
+                  confirm={{
+                    title: "Delete branch?",
+                    description: `Delete ${branchName}? This cannot be undone.`,
+                    confirmLabel: "Delete branch",
+                    cancelLabel: "Cancel",
+                    variant: "danger",
+                  }}
                 >
                   <input type="hidden" name="branchId" value={branchId} />
                   <AdminPlainSubmitButton className="lp-staff-menu-button danger" pendingLabel={<span>Deleting...</span>}>

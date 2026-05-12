@@ -4,7 +4,15 @@ import {
   AdminFieldError,
   AdminMutationForm,
   AdminSubmitButton,
+  useAdminMutationState,
 } from "@/components/admin/AdminMutationForm";
+
+type CreateStaffAccountResultData = {
+  username: string;
+  syntheticEmail: string;
+  temporaryPassword: string;
+  mustChangePassword: boolean;
+};
 
 type StaffBranchOption = {
   id: string;
@@ -36,7 +44,7 @@ export function CreateStaffAccountForm({
   roleOptions: string[];
 }) {
   return (
-    <AdminMutationForm action="/api/admin/staff" className="lp-form-grid" resetOnSuccess>
+    <AdminMutationForm<CreateStaffAccountResultData> action="/api/admin/staff" className="lp-form-grid" resetOnSuccess>
       <input type="hidden" name="intent" value="create-account" />
       <div className="field">
         <label htmlFor="fullName">Full name</label>
@@ -47,11 +55,6 @@ export function CreateStaffAccountForm({
         <label htmlFor="username">Username</label>
         <input id="username" name="username" placeholder="juan.cashier" />
         <AdminFieldError name="username" />
-      </div>
-      <div className="field">
-        <label htmlFor="password">Temporary password</label>
-        <input id="password" name="password" type="password" placeholder="At least 8 characters" />
-        <AdminFieldError name="password" />
       </div>
       <div className="field">
         <label htmlFor="branchId">Branch</label>
@@ -72,6 +75,7 @@ export function CreateStaffAccountForm({
       </div>
       <input type="hidden" name="assignmentStatus" value="ACTIVE" />
       <AdminSubmitButton label="Create Staff" pendingLabel="Creating staff" disabled={!branches.length} />
+      <CreateStaffSuccessPanel />
     </AdminMutationForm>
   );
 }
@@ -178,4 +182,34 @@ export function UpdateStaffAssignmentForm({
 
 function roleLabel(role: string) {
   return role.replaceAll("_", " ");
+}
+
+function CreateStaffSuccessPanel() {
+  const { state } = useAdminMutationState<CreateStaffAccountResultData>();
+  const credentials = state.ok ? state.data : undefined;
+  if (!credentials) return null;
+
+  return (
+    <div className="lp-admin-success-card wide">
+      <div className="lp-admin-success-head">
+        <strong>Staff credentials generated</strong>
+        <span>Password change required on first login</span>
+      </div>
+      <div className="lp-admin-credential-grid">
+        <CredentialRow label="Primary login" value={credentials.username} />
+        <CredentialRow label="Backup login" value={credentials.syntheticEmail} />
+        <CredentialRow label="Temporary password" value={credentials.temporaryPassword} />
+      </div>
+      <p className="muted">Give the username and temporary password to the staff member. They will be required to change the password after sign-in.</p>
+    </div>
+  );
+}
+
+function CredentialRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="lp-admin-credential-row">
+      <span>{label}</span>
+      <code>{value}</code>
+    </div>
+  );
 }

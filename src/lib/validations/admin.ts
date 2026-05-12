@@ -50,7 +50,6 @@ export const deleteBranchSchema = z.object({
 export const createStaffAccountSchema = z.object({
   fullName: z.string().trim().min(2, "Staff name is required.").max(120),
   username: z.string().trim().toLowerCase().min(3, "Username must be at least 3 characters.").max(40).regex(/^[a-z0-9._-]+$/, "Use letters, numbers, dots, dashes, or underscores only."),
-  password: z.string().min(8, "Temporary password must be at least 8 characters."),
   branchId: z.string().min(1),
   role: z.enum(["CASHIER", "BRANCH_ADMIN"]),
   assignmentStatus: z.enum(["ACTIVE", "INACTIVE", "REVOKED"]).default("ACTIVE"),

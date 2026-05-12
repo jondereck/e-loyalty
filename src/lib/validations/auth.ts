@@ -47,6 +47,17 @@ export const profileSettingsSchema = z.object({
   mobile: optionalMobile,
 });
 
+export const forcedPasswordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required."),
+    newPassword: password,
+    confirmPassword: z.string().min(1, "Confirm your new password."),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 export type AuthActionState = {
   ok?: boolean;
   message?: string;

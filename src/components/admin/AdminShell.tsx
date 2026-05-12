@@ -30,13 +30,6 @@ export async function AdminShell({
             </div>
             <div className="lp-admin-header-actions">
               <NotificationBell />
-              <div className="lp-admin-header-profile">
-                <span className="lp-avatar small">{profile?.fullName.slice(0, 2).toUpperCase() ?? "AD"}</span>
-                <div className="lp-admin-header-user-info">
-                  <b>{profile?.fullName ?? "Admin"}</b>
-                  <span>{isSuperAdmin ? "Super Admin" : "Administrator"}</span>
-                </div>
-              </div>
             </div>
           </header>
           {children}
