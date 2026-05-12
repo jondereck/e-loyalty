@@ -55,16 +55,16 @@ export async function getUnreadCount(userId: string | undefined) {
   }
 }
 
-export async function markAsRead(notificationId: string | undefined) {
-  if (!notificationId) return null;
+export async function markAsRead(notificationId: string | undefined, userId: string | undefined) {
+  if (!notificationId || !userId) return { count: 0 };
   try {
-    return await prisma.notification.update({
-      where: { id: notificationId },
+    return await prisma.notification.updateMany({
+      where: { id: notificationId, userId },
       data: { isRead: true },
     });
   } catch (error) {
     console.error("Failed to mark notification as read:", error);
-    return null;
+    return { count: 0 };
   }
 }
 

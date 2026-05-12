@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, Check, Info, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Bell, Info, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 type Notification = {
   id: string;
@@ -21,11 +21,11 @@ type Notification = {
   createdAt: string;
 };
 
-export function NotificationBell() {
+export function NotificationBell({ className }: { className?: string }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await fetch("/api/notifications");
       if (response.ok) {
@@ -36,13 +36,18 @@ export function NotificationBell() {
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const timeout = window.setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
     const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      window.clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -107,7 +112,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="relative h-10 w-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors">
+        <button className={cn("relative h-10 w-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors", className)} aria-label="Open notifications" type="button">
           <Bell className="h-5 w-5 text-slate-600" />
           {unreadCount > 0 && (
             <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white">

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/lib/auth/server";
-import { getExpiredAuthCookieOptions, getNeonAuthCookieNames, shouldUseSecureAuthCookies } from "@/lib/auth/cookies";
+import { getExpiredAuthCookieOptionVariants, getNeonAuthCookieNames, shouldUseSecureAuthCookies } from "@/lib/auth/cookies";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,12 +10,14 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.redirect(new URL("/login", request.url), { status: 303 });
-  const cookieOptions = getExpiredAuthCookieOptions({
+  const cookieOptionVariants = getExpiredAuthCookieOptionVariants({
     secure: shouldUseSecureAuthCookies(request.url),
   });
 
   for (const name of getNeonAuthCookieNames(request.cookies.getAll())) {
-    response.cookies.set(name, "", cookieOptions);
+    for (const cookieOptions of cookieOptionVariants) {
+      response.cookies.set(name, "", cookieOptions);
+    }
   }
 
   return response;

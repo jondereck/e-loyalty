@@ -67,3 +67,19 @@ export function getExpiredAuthCookieOptions({
     ...(domain ? { domain } : {}),
   };
 }
+
+export function getExpiredAuthCookieOptionVariants({
+  domain = neonAuthCookieDomain,
+  secure = false,
+}: {
+  domain?: string;
+  secure?: boolean;
+} = {}) {
+  const hostOnlyOptions = getExpiredAuthCookieOptions({ secure, domain: "" });
+  if (!domain) return [hostOnlyOptions];
+
+  return [
+    hostOnlyOptions,
+    getExpiredAuthCookieOptions({ secure, domain }),
+  ];
+}

@@ -18,12 +18,14 @@ export default async function CashierScanPage() {
   return (
     <>
       <AppNav active="cashier" mode="staff" showAdmin={profile.roles.some((role) => ["BRANCH_ADMIN", "SUPER_ADMIN"].includes(role))} />
-      <main className="container section">
-        <div className="eyebrow">Cashier</div>
-        <h2>QR scan</h2>
-        <p className="lead">
-          {activeAssignment?.branch.name ?? "No active branch assignment"} - {profile.fullName}
-        </p>
+      <main className="lp-staff-scan-page">
+        <div className="lp-staff-scan-head">
+          <div>
+            <div className="eyebrow">Cashier</div>
+            <h1>QR scan</h1>
+            <p>{activeAssignment?.branch.name ?? "No active branch assignment"} - {profile.fullName}</p>
+          </div>
+        </div>
         <QRScanner
           branchId={activeAssignment?.branchId}
           recentScans={recent.map((scan) => ({

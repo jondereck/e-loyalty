@@ -33,6 +33,10 @@ export function Sidebar({
           </Link>
         );
       })}
+      <div className="lp-admin-sidebar-tools">
+        <span>Notifications</span>
+        <NotificationBell className="lp-admin-notification-button" />
+      </div>
       <details className="lp-admin-account">
         <summary className="lp-admin-user">
           <span className="lp-avatar small">{profile?.fullName.slice(0, 2).toUpperCase() ?? "AD"}</span>

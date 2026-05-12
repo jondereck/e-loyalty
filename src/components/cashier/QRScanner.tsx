@@ -69,8 +69,8 @@ export function QRScanner({
   }, [id, submitToken]);
 
   return (
-    <div className="grid two">
-      <div className="card">
+    <div className="lp-scan-workspace">
+      <section className="lp-scan-panel lp-scan-panel-primary">
         <div className="scanner">
           <div id={id} style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 320 }} />
         </div>
@@ -88,19 +88,19 @@ export function QRScanner({
           {loading ? <Loader2 size={18} /> : <ScanLine size={18} />}
           Resolve QR
         </Button>
-      </div>
-      <div className="card">
+      </section>
+      <section className="lp-scan-panel lp-scan-recent-panel">
         <h3><Camera size={20} /> Recent scans</h3>
-        <div className="list">
+        <div className="lp-scan-list">
           {(recentScans ?? []).map((scan) => (
-            <div className="row" key={scan.id}>
+            <div className="lp-scan-row" key={scan.id}>
               <span>{scan.label}</span>
               <strong>{scan.status}</strong>
             </div>
           ))}
           {!recentScans?.length ? <p className="muted">Recent scans will appear after cashier activity.</p> : null}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

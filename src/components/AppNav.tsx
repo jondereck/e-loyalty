@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getBrandingSettings } from "@/lib/services/settings";
+import { cn } from "@/lib/utils";
 
 export async function AppNav({
   active,
@@ -27,7 +28,7 @@ export async function AppNav({
   const branding = await getBrandingSettings();
 
   return (
-    <header className="topbar">
+    <header className={cn("topbar", mode === "staff" && "lp-staff-topbar")}>
       <nav className="nav">
         <Link className="brand" href="/">
           <span className="logo">{branding.systemName.charAt(0).toUpperCase()}</span>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect, RedirectType } from "next/navigation";
-import { getExpiredAuthCookieOptions, getNeonAuthCookieNames, shouldUseSecureAuthCookies } from "@/lib/auth/cookies";
+import { getExpiredAuthCookieOptionVariants, getNeonAuthCookieNames, shouldUseSecureAuthCookies } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
@@ -18,12 +18,14 @@ function firstError(errors: Record<string, string[] | undefined>) {
 
 async function clearNeonAuthCookies() {
   const cookieStore = await cookies();
-  const cookieOptions = getExpiredAuthCookieOptions({
+  const cookieOptionVariants = getExpiredAuthCookieOptionVariants({
     secure: shouldUseSecureAuthCookies(),
   });
 
   for (const name of getNeonAuthCookieNames(cookieStore.getAll())) {
-    cookieStore.set(name, "", cookieOptions);
+    for (const cookieOptions of cookieOptionVariants) {
+      cookieStore.set(name, "", cookieOptions);
+    }
   }
 }
 
