@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search, Info } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 
 type MapPickerProps = {
   defaultLat?: number | null;
@@ -25,32 +24,53 @@ export function MapPicker({ defaultLat, defaultLng, onLocationSelect }: MapPicke
   const [lng, setLng] = useState(defaultLng || 120.9842);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const requestId = useRef(0);
+  const handleLocationSelected = useEffectEvent((newLat: number, newLng: number, address?: string) => {
+    onLocationSelect(newLat, newLng, address);
+  });
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  useEffect(() => {
+    const query = searchQuery.trim();
+    requestId.current += 1;
+    const currentRequestId = requestId.current;
 
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          searchQuery,
-        )}`,
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const newLat = parseFloat(data[0].lat);
-        const newLng = parseFloat(data[0].lon);
+    if (query.length < 3) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) throw new Error("Address search failed.");
+        const data = await response.json() as Array<{ lat?: string; lon?: string; display_name?: string }>;
+        const firstResult = data[0];
+        if (currentRequestId !== requestId.current || !firstResult?.lat || !firstResult.lon) return;
+
+        const newLat = parseFloat(firstResult.lat);
+        const newLng = parseFloat(firstResult.lon);
+        if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) return;
         setLat(newLat);
         setLng(newLng);
-        onLocationSelect(newLat, newLng, data[0].display_name);
+        handleLocationSelected(newLat, newLng, firstResult.display_name);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Search failed:", error);
+        }
+      } finally {
+        if (currentRequestId === requestId.current) setIsSearching(false);
       }
-    } catch (error) {
-      console.error("Search failed:", error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery]);
 
   const handleLocationChange = (newLat: number, newLng: number) => {
     setLat(newLat);
@@ -66,14 +86,16 @@ export function MapPicker({ defaultLat, defaultLng, onLocationSelect }: MapPicke
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.preventDefault();
+            }}
             placeholder="Search an address to jump to a location..."
+            aria-label="Search branch address"
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         </div>
-        <Button onClick={handleSearch} type="button" className="shrink-0" disabled={isSearching}>
-          {isSearching ? "Searching..." : "Search"}
-        </Button>
+        {isSearching ? <span className="self-center text-xs font-semibold text-slate-500">Searching...</span> : null}
       </div>
 
       <div className="relative h-72 w-full bg-slate-100 rounded-xl border border-slate-200 overflow-hidden shadow-inner">

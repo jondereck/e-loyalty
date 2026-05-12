@@ -5473,7 +5473,7 @@ h3 {
 .lp-home-desktop-shell {
   width: 100%;
   max-width: none;
-  min-height: 1016px;
+  min-height: 100vh;
   margin: 0 auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.86);
@@ -5530,6 +5530,13 @@ h3 {
   line-height: 1;
 }
 
+.lp-home-brand-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
 .lp-home-logo {
   width: 54px;
   height: 54px;
@@ -5552,25 +5559,32 @@ h3 {
   gap: 18px;
 }
 
-.lp-home-nav-links a {
+.lp-home-nav-links a,
+.lp-home-nav-links button {
   min-width: 78px;
   min-height: 46px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: 0;
   border-radius: 16px;
+  background: transparent;
   color: #596273;
   font-size: 16px;
   font-weight: 750;
+  cursor: pointer;
 }
 
-.lp-home-nav-links a.active {
+.lp-home-nav-links a.active,
+.lp-home-nav-links button.active {
   color: #654cff;
   background: rgba(108, 78, 255, 0.1);
 }
 
 .lp-home-nav-links a:hover,
-.lp-home-mobile-menu nav a:hover {
+.lp-home-nav-links button:hover,
+.lp-home-mobile-menu nav a:hover,
+.lp-home-mobile-menu nav button:hover {
   color: #4d36e8;
 }
 
@@ -5582,18 +5596,34 @@ h3 {
 }
 
 .lp-home-hero {
-  min-height: 540px;
+  min-height: clamp(620px, calc(100vh - 118px), 720px);
   display: grid;
   grid-template-columns: minmax(520px, 0.86fr) minmax(720px, 1.14fr);
-  gap: 36px;
-  align-items: start;
-  padding: 34px 24px 0;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(42px, 6vh, 72px) 24px 18px;
   position: relative;
   z-index: 1;
 }
 
 .lp-home-hero-copy {
   max-width: 650px;
+  transform: translateY(14px);
+}
+
+.lp-home-hero.is-auth {
+  grid-template-columns: minmax(420px, 0.95fr) minmax(420px, 0.86fr);
+  gap: clamp(30px, 5vw, 72px);
+  padding-top: clamp(38px, 5vh, 62px);
+}
+
+.lp-home-hero.is-auth .lp-home-hero-visual {
+  justify-content: center;
+}
+
+.lp-home-hero.is-auth .lp-home-hero-image {
+  width: min(650px, 112%);
+  margin: -42px -18px -58px -38px;
 }
 
 .lp-home-eyebrow {
@@ -5681,6 +5711,8 @@ h3 {
   border-radius: 32px;
   font-size: 17px;
   font-weight: 900;
+  border: 0;
+  cursor: pointer;
 }
 
 .lp-home-primary-button {
@@ -5696,6 +5728,118 @@ h3 {
   border: 1px solid rgba(18, 22, 37, 0.08);
   background: rgba(255, 255, 255, 0.74);
   box-shadow: 0 11px 24px rgba(22, 28, 45, 0.07);
+}
+
+.lp-home-auth-panel {
+  width: min(510px, 100%);
+  justify-self: center;
+  align-self: center;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 26px 70px rgba(60, 54, 132, 0.18);
+  backdrop-filter: saturate(180%) blur(24px);
+  position: relative;
+  z-index: 3;
+}
+
+.lp-home-auth-close {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(101, 76, 255, 0.12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #5c6577;
+  cursor: pointer;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.lp-home-auth-head {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-right: 42px;
+}
+
+.lp-home-auth-kicker {
+  width: fit-content;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(108, 78, 255, 0.1);
+  color: #604cff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.lp-home-auth-head h2 {
+  color: #101624;
+  font-size: 32px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.lp-home-auth-head p {
+  color: #657184;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.lp-home-auth-panel .auth-form-stack {
+  gap: 11px;
+}
+
+.lp-home-auth-panel .auth-field {
+  gap: 6px;
+}
+
+.lp-home-auth-panel .auth-input-wrap {
+  min-height: 46px;
+}
+
+.lp-home-auth-panel .auth-submit {
+  min-height: 47px;
+  background: linear-gradient(135deg, #784dff, #0099ff);
+  box-shadow: 0 13px 24px rgba(52, 105, 235, 0.24);
+}
+
+.lp-home-auth-panel .auth-provider-row {
+  grid-template-columns: 1fr;
+}
+
+.lp-home-auth-panel .auth-provider-button {
+  justify-content: center;
+  min-height: 44px;
+  white-space: normal;
+}
+
+.lp-home-auth-panel .provider-label {
+  min-width: 0;
+}
+
+.lp-home-auth-toggle {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(101, 114, 132, 0.16);
+  color: #657184;
+  font-size: 14px;
+  text-align: center;
+}
+
+.lp-home-auth-toggle button {
+  border: 0;
+  background: transparent;
+  color: #5d48ff;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0;
 }
 
 .lp-home-member-proof {
@@ -6240,7 +6384,7 @@ h3 {
   position: relative;
 }
 
-.lp-home-mobile-menu button {
+.lp-home-mobile-menu > button {
   width: 42px;
   height: 42px;
   display: grid;
@@ -6254,9 +6398,13 @@ h3 {
 
 .lp-home-mobile-menu button:focus-visible,
 .lp-home-mobile-menu nav a:focus-visible,
+.lp-home-mobile-menu nav button:focus-visible,
 .lp-home-primary-button:focus-visible,
 .lp-home-secondary-button:focus-visible,
-.lp-home-nav-links a:focus-visible {
+.lp-home-nav-links a:focus-visible,
+.lp-home-nav-links button:focus-visible,
+.lp-home-auth-close:focus-visible,
+.lp-home-auth-toggle button:focus-visible {
   outline: 3px solid rgba(108, 77, 246, 0.24);
   outline-offset: 3px;
 }
@@ -6276,18 +6424,29 @@ h3 {
   backdrop-filter: blur(18px);
 }
 
-.lp-home-mobile-menu nav a {
+.lp-home-mobile-menu nav a,
+.lp-home-mobile-menu nav button {
   min-height: 40px;
   display: flex;
   align-items: center;
   padding: 0 12px;
+  border: 0;
   border-radius: 11px;
+  background: transparent;
   color: #20283a;
   font-size: 14px;
   font-weight: 850;
+  cursor: pointer;
 }
 
-.lp-home-mobile-menu nav a:last-child {
+.lp-home-mobile-menu nav a.active,
+.lp-home-mobile-menu nav button.active {
+  color: #654cff;
+  background: rgba(108, 78, 255, 0.1);
+}
+
+.lp-home-mobile-menu nav a:last-child,
+.lp-home-mobile-menu nav button:last-child {
   justify-content: center;
   color: #fff;
   background: linear-gradient(135deg, #784dff, #0099ff);
@@ -6451,6 +6610,11 @@ h3 {
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .lp-home-mobile-step + .lp-home-mobile-step {
@@ -6485,6 +6649,42 @@ h3 {
 
 .lp-home-mobile-shell > .lp-home-mobile-actions:last-child {
   margin-top: 18px;
+}
+
+.lp-home-mobile-auth {
+  display: grid;
+  gap: 16px;
+}
+
+.lp-home-mobile-auth-visual {
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    repeating-radial-gradient(ellipse at 82% 48%, transparent 0 28px, rgba(255, 255, 255, 0.2) 29px, transparent 31px),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.28), rgba(220, 210, 255, 0.9));
+}
+
+.lp-home-mobile-auth-visual .lp-home-hero-image {
+  width: min(330px, 112%);
+  margin: -40px 0 -54px;
+}
+
+.lp-home-mobile-auth .lp-home-auth-panel {
+  width: 100%;
+  padding: 22px 16px 18px;
+  border-radius: 19px;
+}
+
+.lp-home-mobile-auth .lp-home-auth-head {
+  margin-bottom: 16px;
+}
+
+.lp-home-mobile-auth .lp-home-auth-head h2 {
+  font-size: 25px;
 }
 
 @media (max-width: 1180px) {

@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type DebouncedSearchFieldProps = {
   defaultValue?: string;
@@ -23,6 +23,7 @@ export function DebouncedSearchField({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const timer = useRef<number | null>(null);
+  const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {
     return () => {
@@ -30,24 +31,29 @@ export function DebouncedSearchField({
     };
   }, []);
 
-  function handleChange(nextRawValue: string) {
+  function commitSearch(nextRawValue: string) {
+    const nextValue = nextRawValue.trim();
+    const currentValue = searchParams.get(name) ?? "";
+    if (nextValue === currentValue) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextValue) {
+      params.set(name, nextValue);
+    } else {
+      params.delete(name);
+    }
+    params.delete("page");
+
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  }
+
+  function handleChange(nextValue: string) {
+    setValue(nextValue);
     if (timer.current) window.clearTimeout(timer.current);
 
     timer.current = window.setTimeout(() => {
-      const nextValue = nextRawValue.trim();
-      const currentValue = searchParams.get(name) ?? "";
-      if (nextValue === currentValue) return;
-
-      const params = new URLSearchParams(searchParams.toString());
-      if (nextValue) {
-        params.set(name, nextValue);
-      } else {
-        params.delete(name);
-      }
-      params.delete("page");
-
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+      commitSearch(nextValue);
     }, delay);
   }
 
@@ -56,8 +62,14 @@ export function DebouncedSearchField({
       <Search size={17} />
       <input
         name={name}
-        defaultValue={defaultValue}
+        value={value}
         onChange={(event) => handleChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          if (timer.current) window.clearTimeout(timer.current);
+          commitSearch(event.currentTarget.value);
+        }}
         placeholder={placeholder}
         aria-label={ariaLabel}
         autoComplete="off"

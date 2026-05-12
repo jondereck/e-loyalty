@@ -7,6 +7,7 @@ import { getExpiredAuthCookieOptionVariants, getNeonAuthCookieNames, shouldUseSe
 import { auth } from "@/lib/auth/server";
 import { generateCardNumber, generateQrToken } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_DEFAULT_ROLE, resolvePublicProfileRoles } from "@/lib/public-profile";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { resolveLoginIdentifier } from "@/lib/services/login-identifier";
 import { getAuthUser, getCurrentProfile, redirectForProfile, redirectForRoles, requirePasswordResetProfile, requireProfile } from "@/lib/services/session";
@@ -27,16 +28,6 @@ async function clearNeonAuthCookies() {
       cookieStore.set(name, "", cookieOptions);
     }
   }
-}
-
-function buildProfileConflictWhere(email: string, username?: string, mobile?: string) {
-  return {
-    OR: [
-      { email },
-      ...(username ? [{ username }] : []),
-      ...(mobile ? [{ mobile }] : []),
-    ],
-  };
 }
 
 export async function signupAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -74,38 +65,7 @@ export async function signupAction(_state: AuthActionState, formData: FormData):
 
   if (result.error) return { message: result.error.message };
 
-  const authUser = result.data as unknown as { user?: { id?: string } };
-  const authUserId = authUser.user?.id;
-  if (!authUserId) return { message: "Auth account was created, but no auth user id was returned." };
-
-  await prisma.$transaction(async (tx) => {
-    const profile = await tx.userProfile.create({
-      data: {
-        authUserId,
-        fullName: data.fullName,
-        email: data.email,
-        roles: ["CUSTOMER"],
-      },
-    });
-
-    await tx.auditEvent.create({
-      data: {
-        actorId: profile.id,
-        action: "ACCOUNT_SIGNUP",
-        metadata: { method: "password" },
-      },
-    });
-
-    await tx.loyaltyCard.create({
-      data: {
-        profileId: profile.id,
-        cardNumber: generateCardNumber(),
-        qrToken: generateQrToken(),
-      },
-    });
-  });
-
-  redirect("/auth/finish");
+  redirect("/complete-profile");
 }
 
 export async function loginAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -163,35 +123,6 @@ export async function finishAuthSession() {
         where: { id: existingByEmail.id },
         data: { authUserId },
       });
-    } else {
-      profile = await prisma.$transaction(async (tx) => {
-        const created = await tx.userProfile.create({
-          data: {
-            authUserId,
-            fullName: user.name?.trim() || email.split("@")[0],
-            email,
-            roles: ["CUSTOMER"],
-          },
-        });
-
-        await tx.loyaltyCard.create({
-          data: {
-            profileId: created.id,
-            cardNumber: generateCardNumber(),
-            qrToken: generateQrToken(),
-          },
-        });
-
-        await tx.auditEvent.create({
-          data: {
-            actorId: created.id,
-            action: "ACCOUNT_SIGNUP",
-            metadata: { method: "external_auth" },
-          },
-        });
-
-        return created;
-      });
     }
   }
 
@@ -229,9 +160,6 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
   const authUserId = user.id;
   const email = user.email.toLowerCase();
 
-  const existingProfile = await prisma.userProfile.findUnique({ where: { authUserId } });
-  if (existingProfile) redirect(redirectForRoles(existingProfile.roles));
-
   const parsed = completeProfileSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
     const errors = parsed.error.flatten().fieldErrors;
@@ -239,8 +167,27 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
   }
 
   const data = parsed.data;
+  const existingProfile = await prisma.userProfile.findUnique({
+    where: { authUserId },
+    select: {
+      id: true,
+      email: true,
+      roles: true,
+      loyaltyCard: {
+        select: { id: true },
+      },
+    },
+  });
+
+  if (existingProfile?.roles.some((role) => role !== PUBLIC_DEFAULT_ROLE)) {
+    redirect(redirectForRoles(existingProfile.roles));
+  }
+
   const existing = await prisma.userProfile.findFirst({
-    where: buildProfileConflictWhere(email),
+    where: {
+      email,
+      ...(existingProfile ? { id: { not: existingProfile.id } } : {}),
+    },
     select: { email: true },
   });
 
@@ -251,28 +198,40 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
   }
 
   await prisma.$transaction(async (tx) => {
-    const profile = await tx.userProfile.create({
-      data: {
+    const profile = await tx.userProfile.upsert({
+      where: { authUserId },
+      create: {
         authUserId,
         fullName: data.fullName,
         email,
-        roles: ["CUSTOMER"],
+        roles: resolvePublicProfileRoles(),
+      },
+      update: {
+        fullName: data.fullName,
+        email,
+        ...(!existingProfile?.roles.length ? { roles: resolvePublicProfileRoles(existingProfile?.roles) } : {}),
       },
     });
 
-    await tx.loyaltyCard.create({
-      data: {
-        profileId: profile.id,
-        cardNumber: generateCardNumber(),
-        qrToken: generateQrToken(),
-      },
-    });
+    if (!existingProfile?.loyaltyCard) {
+      await tx.loyaltyCard.upsert({
+        where: { profileId: profile.id },
+        update: {},
+        create: {
+          profileId: profile.id,
+          cardNumber: generateCardNumber(),
+          qrToken: generateQrToken(),
+        },
+      });
+    }
 
     await tx.auditEvent.create({
       data: {
         actorId: profile.id,
-        action: "ACCOUNT_SIGNUP",
-        metadata: { method: "external_auth" },
+        action: existingProfile ? "ACCOUNT_PROFILE_UPDATED" : "ACCOUNT_SIGNUP",
+        metadata: existingProfile
+          ? { source: "complete_profile" }
+          : { method: "complete_profile" },
       },
     });
   });

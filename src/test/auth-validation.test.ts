@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolvePublicProfileRoles } from "@/lib/public-profile";
 import { completeProfileSchema, forcedPasswordChangeSchema, profileSettingsSchema, signupSchema } from "@/lib/validations/auth";
 
 describe("signup validation", () => {
@@ -59,6 +60,17 @@ describe("profile validation", () => {
       expect(result.data.username).toBeUndefined();
       expect(result.data.mobile).toBeUndefined();
     }
+  });
+
+  it("defaults new public profiles to the customer role", () => {
+    expect(resolvePublicProfileRoles()).toEqual(["CUSTOMER"]);
+    expect(resolvePublicProfileRoles([])).toEqual(["CUSTOMER"]);
+  });
+
+  it("preserves existing privileged or custom roles during public profile completion", () => {
+    expect(resolvePublicProfileRoles(["SUPER_ADMIN"])).toEqual(["SUPER_ADMIN"]);
+    expect(resolvePublicProfileRoles(["BRANCH_ADMIN", "CUSTOMER"])).toEqual(["BRANCH_ADMIN", "CUSTOMER"]);
+    expect(resolvePublicProfileRoles(["CASHIER"])).toEqual(["CASHIER"]);
   });
 });
 

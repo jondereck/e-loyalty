@@ -51,7 +51,7 @@ export const defaultRoleConfigs = [
     systemRole: "SUPER_ADMIN" as AppRole,
     defaultModule: "OVERVIEW" as RoleModuleKey,
     modules: allModuleKeys,
-    protected: false,
+    protected: true,
   },
   {
     key: "BRANCH_ADMIN",
@@ -73,7 +73,7 @@ export const defaultRoleConfigs = [
     systemRole: "CASHIER" as AppRole,
     defaultModule: "SCAN" as RoleModuleKey,
     modules: ["SCAN"] as RoleModuleKey[],
-    protected: true,
+    protected: false,
   },
 ] as const;
 
