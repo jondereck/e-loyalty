@@ -43,6 +43,11 @@ describe("role validation", () => {
     expect(superAdmin?.protected).toBe(true);
     expect(superAdmin?.modules).toEqual(allModuleKeys);
   });
+
+  it("keeps Branch Manager and Cashier editable by default", () => {
+    expect(defaultRoleConfigs.find((role) => role.key === "BRANCH_ADMIN")?.protected).toBe(false);
+    expect(defaultRoleConfigs.find((role) => role.key === "CASHIER")?.protected).toBe(false);
+  });
 });
 
 describe("permission resolution", () => {

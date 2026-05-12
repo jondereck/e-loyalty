@@ -87,8 +87,8 @@ INSERT INTO "AccessRole" (
   "updatedAt"
 ) VALUES
   ('role-super-admin', 'SUPER_ADMIN', 'Super Admin', 'super admin', 'Full platform access with protected system permissions.', 'ACTIVE', 'SUPER_ADMIN', 'SUPER_ADMIN', 'OVERVIEW', true, CURRENT_TIMESTAMP),
-  ('role-branch-admin', 'BRANCH_ADMIN', 'Branch Manager', 'branch manager', 'Manage assigned branches, approvals, staff, members, and branch reports.', 'ACTIVE', 'BRANCH_ADMIN', 'BRANCH_ADMIN', 'APPROVALS', true, CURRENT_TIMESTAMP),
-  ('role-cashier', 'CASHIER', 'Cashier', 'cashier', 'Scan customer QR codes and process loyalty activity at assigned branches.', 'ACTIVE', 'CASHIER', 'CASHIER', 'SCAN', true, CURRENT_TIMESTAMP);
+  ('role-branch-admin', 'BRANCH_ADMIN', 'Branch Manager', 'branch manager', 'Manage assigned branches, approvals, staff, members, and branch reports.', 'ACTIVE', 'BRANCH_ADMIN', 'BRANCH_ADMIN', 'APPROVALS', false, CURRENT_TIMESTAMP),
+  ('role-cashier', 'CASHIER', 'Cashier', 'cashier', 'Scan customer QR codes and process loyalty activity at assigned branches.', 'ACTIVE', 'CASHIER', 'CASHIER', 'SCAN', false, CURRENT_TIMESTAMP);
 
 INSERT INTO "RolePermission" ("id", "roleId", "module", "createdAt") VALUES
   ('perm-super-admin-overview', 'role-super-admin', 'OVERVIEW', CURRENT_TIMESTAMP),

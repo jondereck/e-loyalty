@@ -115,7 +115,7 @@ async function ensureDefaultAccessRoles() {
         baseRole: config.baseRole,
         systemRole: config.systemRole,
         defaultModule: config.defaultModule,
-        protected: true,
+        protected: config.protected,
       },
       create: {
         id: `role-${config.key.toLowerCase().replaceAll("_", "-")}`,
@@ -127,7 +127,7 @@ async function ensureDefaultAccessRoles() {
         baseRole: config.baseRole,
         systemRole: config.systemRole,
         defaultModule: config.defaultModule,
-        protected: true,
+        protected: config.protected,
       },
       select: { id: true },
     });

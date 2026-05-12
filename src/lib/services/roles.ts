@@ -52,40 +52,52 @@ export type RoleManagementData = {
 
 export async function ensureDefaultAccessRoles() {
   for (const config of defaultRoleConfigs) {
-    await prisma.accessRole.upsert({
-      where: { key: config.key },
-      update: {
-        name: config.name,
-        normalizedName: config.normalizedName,
-        description: config.description,
-        status: "ACTIVE",
-        baseRole: config.baseRole,
-        systemRole: config.systemRole,
-        defaultModule: config.defaultModule as RoleModuleKey,
-        protected: true,
-      },
-      create: {
-        id: `role-${config.key.toLowerCase().replaceAll("_", "-")}`,
-        key: config.key,
-        name: config.name,
-        normalizedName: config.normalizedName,
-        description: config.description,
-        status: "ACTIVE",
-        baseRole: config.baseRole,
-        systemRole: config.systemRole,
-        defaultModule: config.defaultModule as RoleModuleKey,
-        protected: true,
-      },
-    });
+    const existing = await prisma.accessRole.findUnique({ where: { key: config.key }, select: { id: true } });
+    const role = existing
+      ? await prisma.accessRole.update({
+          where: { id: existing.id },
+          data: config.protected
+            ? {
+                name: config.name,
+                normalizedName: config.normalizedName,
+                description: config.description,
+                status: "ACTIVE",
+                baseRole: config.baseRole,
+                systemRole: config.systemRole,
+                defaultModule: config.defaultModule as RoleModuleKey,
+                protected: true,
+              }
+            : { protected: false },
+          select: { id: true },
+        })
+      : await prisma.accessRole.create({
+          data: {
+            id: `role-${config.key.toLowerCase().replaceAll("_", "-")}`,
+            key: config.key,
+            name: config.name,
+            normalizedName: config.normalizedName,
+            description: config.description,
+            status: "ACTIVE",
+            baseRole: config.baseRole,
+            systemRole: config.systemRole,
+            defaultModule: config.defaultModule as RoleModuleKey,
+            protected: config.protected,
+            permissions: {
+              create: config.modules.map((module) => ({ module: module as RoleModuleKey })),
+            },
+          },
+          select: { id: true },
+        });
 
-    await prisma.$transaction(async (tx) => {
-      const role = await tx.accessRole.findUniqueOrThrow({ where: { key: config.key }, select: { id: true } });
-      await tx.rolePermission.deleteMany({ where: { roleId: role.id } });
-      await tx.rolePermission.createMany({
-        data: config.modules.map((module) => ({ roleId: role.id, module: module as RoleModuleKey })),
-        skipDuplicates: true,
+    if (config.protected) {
+      await prisma.$transaction(async (tx) => {
+        await tx.rolePermission.deleteMany({ where: { roleId: role.id } });
+        await tx.rolePermission.createMany({
+          data: config.modules.map((module) => ({ roleId: role.id, module: module as RoleModuleKey })),
+          skipDuplicates: true,
+        });
       });
-    });
+    }
   }
 }
 

@@ -142,7 +142,7 @@ export default async function AdminDashboardPage() {
               </div>
             ))}
           </div>
-          <span className="lp-panel-foot">View all activity</span>
+          <Link className="lp-panel-foot" href="/admin/activity">View all activity</Link>
         </section>
       </div>
     </AdminShell>

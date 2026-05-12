@@ -1527,6 +1527,32 @@ function branchScopeWhere(branchIds?: string[], query?: string): Prisma.BranchWh
   };
 }
 
+function activityListWhere(options: ActivityListOptions): Prisma.AuditEventWhereInput {
+  const trimmed = options.query?.trim();
+  return {
+    ...auditEventScopeWhere(options.branchIds),
+    ...(trimmed
+      ? {
+          OR: [
+            { action: { contains: trimmed, mode: "insensitive" } },
+            { actor: { is: { fullName: { contains: trimmed, mode: "insensitive" } } } },
+            { actor: { is: { email: { contains: trimmed, mode: "insensitive" } } } },
+            { visit: { is: { customer: { fullName: { contains: trimmed, mode: "insensitive" } } } } },
+            { visit: { is: { cashier: { fullName: { contains: trimmed, mode: "insensitive" } } } } },
+            { visit: { is: { branch: { name: { contains: trimmed, mode: "insensitive" } } } } },
+            { visit: { is: { branch: { code: { contains: trimmed, mode: "insensitive" } } } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function auditEventScopeWhere(branchIds?: string[]): Prisma.AuditEventWhereInput {
+  return Array.isArray(branchIds)
+    ? { visit: { is: { branchId: { in: branchIds } } } }
+    : {};
+}
+
 function approvalBaseWhere(options: ApprovalManagementOptions): Prisma.VisitWhereInput {
   const trimmed = options.query?.trim();
   const range = dateRangeFor(options.dateFrom, options.dateTo);
