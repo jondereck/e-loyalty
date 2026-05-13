@@ -42,8 +42,10 @@ export function Sidebar({
       </div>
       <SidebarProfileMenu
         name={profile?.fullName ?? "Admin"}
+        email={profile?.email ?? "No email"}
         avatarUrl={profile?.avatarUrl ?? null}
-        roleLabel={showSuperAdmin ? "Super Admin" : "Administrator"}
+        roleLabel={profile?.roles.includes("SUPER_ADMIN") ? "Super Admin" : profile?.roles.includes("BRANCH_ADMIN") ? "Branch Manager" : profile?.roles.includes("CASHIER") ? "Staff" : "Customer"}
+        settingsHref={profile?.roles.includes("SUPER_ADMIN") ? "/super-admin/settings" : null}
       />
     </aside>
   );
