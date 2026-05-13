@@ -39,7 +39,7 @@ type MetricItem = {
 
 export function AdminSkeletonShell({
   active = "/admin/dashboard",
-  heading = active.includes("dashboard") ? "Admin Dashboard" : "Loyalty Pass",
+  heading = "Loyalty Pass",
   showSuperAdmin = true,
   children,
 }: {
@@ -131,7 +131,7 @@ export function AdminDetailGridSkeleton({ panels = 2, rows = 5 }: { panels?: num
 
 export function AdminDashboardSkeleton({
   active = "/admin/dashboard",
-  heading = "Admin Dashboard",
+  heading = "Loyalty Pass",
   showSuperAdmin = true,
 }: {
   active?: string;
@@ -201,7 +201,7 @@ export function SuperAdminDashboardSkeleton() {
   ];
 
   return (
-    <AdminSkeletonShell active="/super-admin/dashboard" heading="Admin Dashboard" showSuperAdmin>
+    <AdminSkeletonShell active="/super-admin/dashboard" heading="Loyalty Pass" showSuperAdmin>
       <div className="lp-page-title">
         <h1>Platform control</h1>
         <p>Global loyalty system activity.</p>

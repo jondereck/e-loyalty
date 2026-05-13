@@ -143,7 +143,7 @@ textarea {
 
 .nav-action:disabled,
 .btn:disabled,
-.lp-admin-account-menu button:disabled {
+.lp-admin-account-action:disabled {
   cursor: wait;
   opacity: 0.7;
 }
@@ -1693,14 +1693,6 @@ h3 {
   background: #fbfcff;
 }
 
-.lp-admin-account summary {
-  list-style: none;
-}
-
-.lp-admin-account summary::-webkit-details-marker {
-  display: none;
-}
-
 .lp-admin-user {
   border: 1px solid #e8ebf3;
   border-radius: 16px;
@@ -1711,6 +1703,24 @@ h3 {
   gap: 11px;
   background: #fff;
   cursor: pointer;
+}
+
+.lp-admin-user-trigger {
+  width: 100%;
+  text-align: left;
+}
+
+.lp-admin-user-trigger:focus-visible {
+  outline: 2px solid #8c78ff;
+  outline-offset: 1px;
+}
+
+.lp-admin-user-trigger svg:last-child {
+  transition: transform 0.2s ease;
+}
+
+.lp-admin-user-trigger[data-state="open"] svg:last-child {
+  transform: rotate(180deg);
 }
 
 .lp-avatar.small {
@@ -1732,19 +1742,19 @@ h3 {
   color: #66708f;
 }
 
-.lp-admin-account-menu {
+.lp-admin-account-popover {
+  width: min(240px, max(188px, var(--radix-dropdown-menu-trigger-width)));
   display: grid;
   gap: 6px;
-  margin-top: 8px;
   border: 1px solid #e8ebf3;
   border-radius: 14px;
   padding: 8px;
   background: #fff;
   box-shadow: 0 10px 25px rgba(28, 36, 67, 0.08);
+  z-index: 120;
 }
 
-.lp-admin-account-menu a,
-.lp-admin-account-menu button {
+.lp-admin-account-action {
   width: 100%;
   border: 0;
   border-radius: 10px;
@@ -1757,12 +1767,14 @@ h3 {
   font-size: 13px;
   font-weight: 750;
   cursor: pointer;
+  text-align: left;
 }
 
-.lp-admin-account-menu a:hover,
-.lp-admin-account-menu button:hover {
+.lp-admin-account-action:hover,
+.lp-admin-account-action:focus-visible {
   background: rgba(108, 77, 246, 0.09);
   color: #593bff;
+  outline: none;
 }
 
 .lp-admin-main {
