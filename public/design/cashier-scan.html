@@ -1,46 +1,87 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Loyalty Pass — Cashier QR Scan</title><link rel="stylesheet" href="assets/styles.css"/>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loyalty Pass — Cashier Scan</title>
+<link rel="stylesheet" href="assets/styles.css">
+<script defer src="assets/app.js"></script>
 </head>
 <body>
-<header class="topbar">
-  <a class="brand"><span class="logo">L</span><b>Loyalty Pass</b></a>
-  <nav><a class="active">Scan</a><button aria-label="Notifications">⌁</button><button class="muted">↻ Logging out</button></nav>
-  <button class="hamb"><span></span><span></span><span></span></button>
-</header>
-<main class="wrap">
-  <section class="hero">
-    <div><p class="eyebrow">Cashier</p><h1>QR scan</h1><p class="sub">Dagupan Branch · Juan</p></div>
-    <div class="ready"><i></i> Ready to scan</div>
-  </section>
-  <section class="grid">
-    <article class="card scanner">
-      <div class="camera">
-        <div class="corners"></div><div class="line"></div>
-        <div class="center">
-          <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"/></svg>
-          <strong>Point camera at customer QR</strong><span>Secure daily validation runs automatically.</span>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-mark">✦</span><b>Loyalty Pass</b></a>
+    <nav class="side-nav">
+      <a class="nav-item" href="#"><span>▦</span>Overview</a>
+      <a class="nav-item" href="#"><span>👥</span>Members</a>
+      <a class="nav-item" href="#"><span>☑</span>Approvals</a>
+      <a class="nav-item" href="#"><span>◎</span>Staff</a>
+      <a class="nav-item" href="#"><span>⌖</span>Branches</a>
+      <a class="nav-item" href="#"><span>▥</span>System Reports</a>
+      <a class="nav-item active" href="#"><span>▣</span>Scan</a>
+      <a class="nav-item" href="#"><span>⚙</span>Settings</a>
+    </nav>
+    <div class="side-bottom">
+      <button class="mini-panel"><b>Notifications</b><span>🔔</span></button>
+      <div class="profile-card"><div class="avatar">JN</div><div><b>Jon Nifas</b><small>Cashier • Dagupan</small></div><span>⌄</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="mobile-menu">☰</button>
+      <div class="search"><span>⌕</span><input placeholder="Search member, card, or scan ID"></div>
+      <div class="top-actions"><a class="top-pill active">Scan</a><a class="top-pill">Admin</a><button class="icon-btn">🔔</button><button class="ghost-link">↪ Logout</button></div>
+    </header>
+
+    <section class="page-head">
+      <div><span class="eyebrow">Cashier workspace</span><h1>QR Scan</h1><p>Validate loyalty cards, prevent duplicate visits, and keep rewards accurate.</p></div>
+      <div class="branch-card"><span class="pulse"></span><div><b>Dagupan Branch</b><small>Cashier: Juan • Online</small></div></div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card"><div><span>Scans Today</span><b>42</b><small class="success">↑ 12.4% vs yesterday</small></div><i class="purple">▣</i></article>
+      <article class="stat-card"><div><span>Approved</span><b>36</b><small class="success">Points awarded</small></div><i class="green">✓</i></article>
+      <article class="stat-card"><div><span>Rejected</span><b>5</b><small class="danger">Duplicate / inactive</small></div><i class="red">!</i></article>
+      <article class="stat-card"><div><span>Pending Review</span><b>1</b><small class="warning">Needs admin approval</small></div><i class="amber">…</i></article>
+    </section>
+
+    <section class="workspace-grid">
+      <article class="panel scanner-panel">
+        <div class="panel-head"><div><h2>Scan customer QR</h2><p>Place the QR code inside the frame or paste the secure token below.</p></div><span class="badge live">Camera ready</span></div>
+        <div class="scanner-box">
+          <div class="phone-frame">
+            <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+            <div class="scan-line"></div>
+            <div class="scanner-copy"><span>▦</span><b>Ready to scan</b><small>Request camera permission or upload QR image.</small></div>
+          </div>
         </div>
+        <div class="manual-area">
+          <label for="qrToken">Manual QR token</label>
+          <div class="input-row"><input id="qrToken" placeholder="Paste customer qrToken"><button id="resolveBtn" class="primary-btn">Resolve QR</button></div>
+          <div id="scanMessage" class="message hidden"></div>
+        </div>
+      </article>
+
+      <article class="panel recent-panel">
+        <div class="panel-head"><div><h2>Recent scans</h2><p>Latest cashier activity from this branch.</p></div><button class="soft-btn">Export</button></div>
+        <div class="scan-list">
+          <div class="scan-item"><div class="scan-avatar">AJ</div><div><b>Alex Johnson</b><small>2:18 PM • +120 pts awarded</small></div><span class="status approved">Approved</span></div>
+          <div class="scan-item"><div class="scan-avatar">MG</div><div><b>Maria Garcia</b><small>2:03 PM • Already earned today</small></div><span class="status rejected">Rejected</span></div>
+          <div class="scan-item"><div class="scan-avatar">JL</div><div><b>Jordan Lee</b><small>1:46 PM • Order mismatch</small></div><span class="status pending">Pending</span></div>
+          <div class="scan-item"><div class="scan-avatar">TK</div><div><b>Taylor Kim</b><small>1:22 PM • +85 pts awarded</small></div><span class="status approved">Approved</span></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="panel-head"><div><h2>Scan result preview</h2><p>Use this visual state after a successful or rejected QR validation.</p></div><span class="badge approved">Eligible for visit</span></div>
+      <div class="result-grid">
+        <div class="result-hero"><div class="checkmark">✓</div><h3>Eligible for Visit</h3><p>Member can earn points for this business day.</p></div>
+        <div class="mini-loyalty"><span class="gold-badge">Gold</span><strong>Loyalty Pass</strong><div class="mini-row"><span><b>2,480</b><small>Points</small></span><span><b>18</b><small>Visits</small></span></div></div>
+        <div class="detail-list"><div><span>Member</span><b>Alex Johnson</b></div><div><span>Branch</span><b>Dagupan Branch</b></div><div><span>Order ID</span><b>#10258</b></div><div><span>Points to earn</span><b class="purple-text">+120 pts</b></div></div>
       </div>
-      <label>Manual QR token</label>
-      <div class="inputrow"><input id="qrToken" placeholder="Paste customer QR token"/><button id="resolve">Resolve QR</button></div>
-    </article>
-    <aside class="card recent">
-      <div class="head"><span>▣</span><div><h2>Recent scans</h2><p>Live activity from this cashier station.</p></div></div>
-      <div id="empty" class="empty"><div>✓</div><h3>No scans yet</h3><p>Recent scans will appear here after cashier activity.</p></div>
-      <div id="list" class="list" hidden>
-        <div class="item"><div><b>Alex Johnson</b><small>Downtown Branch · #10258</small></div><em>+120 pts</em></div>
-        <div class="item warn"><div><b>Maria Garcia</b><small>Already used today</small></div><em>Review</em></div>
-      </div>
-    </aside>
-  </section>
-  <section class="stats">
-    <div><span></span><b>Daily lock</b><p>Prevents duplicate rewards.</p></div>
-    <div><span></span><b>Fast checkout</b><p>Scan and validate in seconds.</p></div>
-    <div><span></span><b>Points stay forever</b><p>Customer balances remain safe.</p></div>
-  </section>
-</main>
-<script src="assets/app.js"></script>
-</body></html>
+    </section>
+  </main>
+</div>
+</body>
+</html>

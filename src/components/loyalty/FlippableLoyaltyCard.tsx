@@ -57,20 +57,7 @@ export function FlippableLoyaltyCard({
         </div>
       </button>
 
-      <button
-        type="button"
-        className="lp-glass-row lp-pass-toggle"
-        aria-label={showQr ? "Return to loyalty card" : "Show my pass QR"}
-        aria-pressed={showQr}
-        onClick={togglePass}
-      >
-        <span className="lp-soft-icon"><QrCode size={22} /></span>
-        <div>
-          <h3>{showQr ? "Hide My Pass" : "Show My Pass"}</h3>
-          <p>{showQr ? "Tap to return card" : "Tap to open QR"}</p>
-        </div>
-        <ChevronRight className={showQr ? "lp-row-chevron flipped" : "lp-row-chevron"} size={18} />
-      </button>
+  
     </>
   );
 }

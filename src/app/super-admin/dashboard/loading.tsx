@@ -1,5 +1,6 @@
-import { SuperAdminDashboardSkeleton } from "@/components/admin/AdminSkeletons";
+import { SuperAdminDashboardSkeleton, getAdminSkeletonAccess } from "@/components/admin/AdminSkeletons";
 
-export default function Loading() {
-  return <SuperAdminDashboardSkeleton />;
+export default async function Loading() {
+  const access = await getAdminSkeletonAccess();
+  return <SuperAdminDashboardSkeleton {...access} />;
 }

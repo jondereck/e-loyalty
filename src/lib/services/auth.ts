@@ -17,7 +17,7 @@ function firstError(errors: Record<string, string[] | undefined>) {
   return Object.values(errors).flat().find(Boolean) ?? "Please check the form.";
 }
 
-async function clearNeonAuthCookies() {
+export async function clearNeonAuthCookies() {
   const cookieStore = await cookies();
   const cookieOptionVariants = getExpiredAuthCookieOptionVariants({
     secure: shouldUseSecureAuthCookies(),
@@ -103,7 +103,7 @@ export async function logoutAction() {
   redirect("/login", RedirectType.replace);
 }
 
-export async function finishAuthSession() {
+export async function finishAuthSession({ canMutateCookies = false }: { canMutateCookies?: boolean } = {}) {
   const user = await getAuthUser();
   if (!user?.id) redirect("/login");
 
@@ -114,6 +114,9 @@ export async function finishAuthSession() {
     await auth.signOut();
     redirect("/login?error=suspended");
   }
+
+  const { completePendingAccountConnect } = await import("@/lib/services/account-connections");
+  await completePendingAccountConnect(profile, { clearCookie: canMutateCookies });
 
   await prisma.auditEvent.create({
     data: {

@@ -8,15 +8,17 @@ export async function AppNav({
   active,
   mode = "public",
   showAdmin = false,
+  adminHref = "/admin/dashboard",
 }: {
   active?: string;
   mode?: "public" | "staff";
   showAdmin?: boolean;
+  adminHref?: string;
 }) {
   const links = mode === "staff"
     ? [
         ["/cashier/scan", "Scan", "cashier"],
-        ...(showAdmin ? [["/admin/dashboard", "Admin", "admin"] as const] : []),
+        ...(showAdmin ? [[adminHref, "Admin", "admin"] as const] : []),
       ] as const
     : [
         ["/", "Home", "home"],

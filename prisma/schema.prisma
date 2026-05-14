@@ -21,12 +21,26 @@ model UserProfile {
   updatedAt        DateTime           @updatedAt
   auditEvents      AuditEvent[]       @relation("ActorAuditEvents")
   notifications    Notification[]
+  connectedAccounts AccountConnection[] @relation("OwnerAccountConnections")
+  connectedBy      AccountConnection[] @relation("ConnectedAccountConnections")
   loyaltyCard      LoyaltyCard?
   ledgerEntries    PointLedger[]
   redemptions      RewardRedemption[]
   staffAssignments StaffAssignment[]
   cashierVisits    Visit[]            @relation("CashierVisits")
   visits           Visit[]            @relation("CustomerVisits")
+}
+
+model AccountConnection {
+  id                 String      @id @default(cuid())
+  ownerProfileId     String
+  connectedProfileId String
+  createdAt          DateTime    @default(now())
+  owner              UserProfile @relation("OwnerAccountConnections", fields: [ownerProfileId], references: [id], onDelete: Cascade)
+  connectedProfile   UserProfile @relation("ConnectedAccountConnections", fields: [connectedProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerProfileId, connectedProfileId])
+  @@index([connectedProfileId])
 }
 
 model LoyaltyCard {

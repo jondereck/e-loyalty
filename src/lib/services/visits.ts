@@ -10,7 +10,7 @@ import { activeAssignmentsForRole, getCurrentProfile } from "@/lib/services/sess
 import { businessDayWindow, computeBusinessDate } from "@/lib/time";
 
 export type ScanPayload = {
-  qrToken: string;
+  scanCode: string;
   branchId?: string;
   suspicious?: boolean;
 };
@@ -47,12 +47,18 @@ export async function scanCustomerQr(payload: ScanPayload) {
   const businessTimezone = await getBusinessTimezone();
   const businessDate = computeBusinessDate(now, businessTimezone);
   const { start, end, nextEligibleAt } = businessDayWindow(now, businessTimezone);
-  const qrTokenHash = safeTokenPreview(payload.qrToken);
+  const scanCode = payload.scanCode.trim();
+  const qrTokenHash = safeTokenPreview(scanCode);
   const pointsPerVisit = await getPointsPerVisit();
 
   const [card, branch] = await Promise.all([
-    prisma.loyaltyCard.findUnique({
-      where: { qrToken: payload.qrToken },
+    prisma.loyaltyCard.findFirst({
+      where: {
+        OR: [
+          { qrToken: scanCode },
+          { cardNumber: normalizeCardNumber(scanCode) },
+        ],
+      },
       include: { profile: true },
     }) as Promise<ResolvedCard | null>,
     branchId ? prisma.branch.findUnique({ where: { id: branchId } }) : null,
@@ -501,5 +507,9 @@ export function scanMessage(reasonCode?: string | null) {
     default:
       return "Scan could not be approved.";
   }
+}
+
+function normalizeCardNumber(value: string) {
+  return value.trim().toUpperCase();
 }
 

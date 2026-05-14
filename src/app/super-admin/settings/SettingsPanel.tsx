@@ -35,12 +35,8 @@ import {
 } from "lucide-react";
 import {
   checkForSystemUpdatesAction,
-  createRoleSettingsAction,
-  disableRoleSettingsAction,
-  duplicateRoleSettingsAction,
   saveGeneralSettingsAction,
   saveRewardsSettingsAction,
-  updateRoleSettingsAction,
 } from "@/app/super-admin/settings/actions";
 import {
   currencyOptions,
@@ -68,6 +64,11 @@ type RoleDraft = {
   defaultModule: RoleModuleKey;
   modules: RoleModuleKey[];
   originalModules?: RoleModuleKey[];
+};
+type RoleMutationResult = {
+  ok?: boolean;
+  message?: string;
+  data?: RoleManagementData;
 };
 
 const tabs: Array<{ key: TabKey; label: string; icon: ComponentType<{ size?: number }> }> = [
@@ -246,34 +247,42 @@ export function SettingsPanel({
     }
 
     startRoleTransition(async () => {
-      const payload = {
-        name: roleDraft.name,
-        description: roleDraft.description,
-        status: roleDraft.status,
-        defaultModule: roleDraft.defaultModule,
-        modules: roleDraft.modules,
-      };
-      const result = roleDraft.roleId
-        ? await updateRoleSettingsAction({ ...payload, roleId: roleDraft.roleId })
-        : await createRoleSettingsAction(payload);
-      if (result.ok && result.data) {
-        setRoleData(result.data);
-        setRoleDraft(null);
-        toast.success(result.message ?? "Role saved.");
-      } else {
-        toast.error(result.message ?? "Role could not be saved.");
+      try {
+        const payload = {
+          name: roleDraft.name,
+          description: roleDraft.description,
+          status: roleDraft.status,
+          defaultModule: roleDraft.defaultModule,
+          modules: roleDraft.modules,
+        };
+        const result = roleDraft.roleId
+          ? await mutateRole({ action: "update", ...payload, roleId: roleDraft.roleId })
+          : await mutateRole({ action: "create", ...payload });
+        if (result?.ok && result.data) {
+          setRoleData(result.data);
+          setRoleDraft(null);
+          toast.success(result.message ?? "Role saved.");
+          return;
+        }
+        toast.error(result?.message ?? "Role could not be saved.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Role could not be saved.");
       }
     });
   }
 
   function duplicateRole(roleId: string) {
     startRoleTransition(async () => {
-      const result = await duplicateRoleSettingsAction(roleId);
-      if (result.ok && result.data) {
-        setRoleData(result.data);
-        toast.success(result.message ?? "Role duplicated.");
-      } else {
-        toast.error(result.message ?? "Role could not be duplicated.");
+      try {
+        const result = await mutateRole({ action: "duplicate", roleId });
+        if (result?.ok && result.data) {
+          setRoleData(result.data);
+          toast.success(result.message ?? "Role duplicated.");
+          return;
+        }
+        toast.error(result?.message ?? "Role could not be duplicated.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Role could not be duplicated.");
       }
     });
   }
@@ -281,12 +290,16 @@ export function SettingsPanel({
   function disableRole(role: RoleManagementItem) {
     if (!window.confirm(`Disable ${role.name}? Users assigned to this role will lose its module access.`)) return;
     startRoleTransition(async () => {
-      const result = await disableRoleSettingsAction(role.id);
-      if (result.ok && result.data) {
-        setRoleData(result.data);
-        toast.success(result.message ?? "Role disabled.");
-      } else {
-        toast.error(result.message ?? "Role could not be disabled.");
+      try {
+        const result = await mutateRole({ action: "disable", roleId: role.id });
+        if (result?.ok && result.data) {
+          setRoleData(result.data);
+          toast.success(result.message ?? "Role disabled.");
+          return;
+        }
+        toast.error(result?.message ?? "Role could not be disabled.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Role could not be disabled.");
       }
     });
   }
@@ -908,6 +921,20 @@ function permissionCategories(modules: RoleManagementData["modules"]) {
     map.set(module.category, [...(map.get(module.category) ?? []), module]);
   });
   return Array.from(map.entries());
+}
+
+async function mutateRole(payload: Record<string, unknown>): Promise<RoleMutationResult> {
+  const response = await fetch("/api/super-admin/roles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => null) as RoleMutationResult | null;
+  if (!response.ok) {
+    throw new Error(result?.message ?? "Role request failed.");
+  }
+  return result ?? { ok: false, message: "Role request failed." };
 }
 
 function moduleLabel(module: RoleModuleKey) {

@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 export function AuthFinishClient() {
   useEffect(() => {
-    window.location.replace("/auth/finalize");
+    window.location.replace("/api/auth/finalize");
   }, []);
 
   return (

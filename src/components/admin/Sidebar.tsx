@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { ChevronDown, Sparkles, UserCircle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
-import { UserAvatar } from "@/components/UserAvatar";
-import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
-import type { RoleModuleKey } from "@/lib/rbac";
+import { SidebarProfileMenu, type ConnectedAccount } from "@/components/admin/SidebarProfileMenu";
+import { moduleForPath, type RoleModuleKey } from "@/lib/rbac";
 import type { CurrentProfile } from "@/lib/services/session";
 
 export function Sidebar({
@@ -13,14 +12,17 @@ export function Sidebar({
   profile,
   systemName,
   enabledModules,
+  connectedAccounts = [],
 }: {
   active: string;
   showSuperAdmin?: boolean;
   profile?: CurrentProfile | null;
   systemName: string;
   enabledModules?: Set<RoleModuleKey>;
+  connectedAccounts?: ConnectedAccount[];
 }) {
   const visibleLinks = getVisibleAdminNavLinks(showSuperAdmin, enabledModules);
+  const roleLabel = profile ? profileRoleLabel(profile, active) : "Admin";
 
   return (
     <aside className="lp-admin-sidebar">
@@ -41,26 +43,40 @@ export function Sidebar({
         <span>Notifications</span>
         <NotificationBell className="lp-admin-notification-button" />
       </div>
-      <details className="lp-admin-account">
-        <summary className="lp-admin-user">
-          <UserAvatar name={profile?.fullName ?? "Admin"} imageUrl={profile?.avatarUrl} className="lp-avatar small" />
-          <div>
-            <b>{profile?.fullName ?? "Admin"}</b>
-            <span>{showSuperAdmin ? "Super Admin" : "Administrator"}</span>
-          </div>
-          <ChevronDown size={16} />
-        </summary>
-        <div className="lp-admin-account-menu">
-          <Link href="/profile">
-            <UserCircle size={15} />
-            Manage account
-          </Link>
-          <form action="/api/auth/logout" method="post">
-            <LogoutSubmitButton iconSize={15} />
-          </form>
-        </div>
-      </details>
+      <SidebarProfileMenu
+        name={profile?.fullName ?? "Admin"}
+        email={profile?.email ?? "No email"}
+        avatarUrl={profile?.avatarUrl ?? null}
+        roleLabel={roleLabel}
+        settingsHref={profile?.roles.includes("SUPER_ADMIN") ? "/super-admin/settings" : null}
+        connectedAccounts={connectedAccounts}
+      />
     </aside>
   );
+}
+
+function profileRoleLabel(profile: CurrentProfile, activePath: string) {
+  if (profile.roles.includes("SUPER_ADMIN")) return "Super Admin";
+
+  const activeModule = moduleForPath(activePath);
+  const activeAssignments = profile.staffAssignments.filter((assignment) =>
+    assignment.status === "ACTIVE" &&
+    assignment.branch.status === "ACTIVE" &&
+    assignment.roleDefinition?.status === "ACTIVE"
+  );
+
+  const matchingRole = activeAssignments.find((assignment) =>
+    activeModule
+      ? assignment.roleDefinition?.permissions.some((permission) => permission.module === activeModule)
+      : false
+  )?.roleDefinition?.name;
+  if (matchingRole) return matchingRole;
+
+  const assignedRole = activeAssignments[0]?.roleDefinition?.name;
+  if (assignedRole) return assignedRole;
+
+  if (profile.roles.includes("BRANCH_ADMIN")) return "Branch Manager";
+  if (profile.roles.includes("CASHIER")) return "Cashier";
+  return "Customer";
 }
 

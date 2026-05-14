@@ -25,6 +25,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { resolveProfileModules, type RoleModuleKey } from "@/lib/rbac";
+import { getCurrentProfile } from "@/lib/services/session";
 
 type MetricTone = "purple" | "green" | "orange";
 
@@ -37,18 +39,35 @@ type MetricItem = {
   sublineWidth?: string;
 };
 
+type AdminSkeletonAccessProps = {
+  showSuperAdmin?: boolean;
+  enabledModules?: Set<RoleModuleKey>;
+};
+
+export async function getAdminSkeletonAccess(): Promise<Required<AdminSkeletonAccessProps>> {
+  const profile = await getCurrentProfile();
+
+  return {
+    showSuperAdmin: Boolean(profile?.roles.includes("SUPER_ADMIN")),
+    enabledModules: profile ? resolveProfileModules(profile) : new Set<RoleModuleKey>(),
+  };
+}
+
 export function AdminSkeletonShell({
   active = "/admin/dashboard",
-  heading = active.includes("dashboard") ? "Admin Dashboard" : "Loyalty Pass",
-  showSuperAdmin = true,
+  heading = "Loyalty Pass",
+  showSuperAdmin = false,
+  enabledModules,
   children,
 }: {
   active?: string;
   heading?: string;
   showSuperAdmin?: boolean;
+  enabledModules?: Set<RoleModuleKey>;
   children: ReactNode;
 }) {
-  const sidebarLinks = getVisibleAdminNavLinks(showSuperAdmin);
+  const permissionsResolved = enabledModules !== undefined;
+  const sidebarLinks = permissionsResolved || showSuperAdmin ? getVisibleAdminNavLinks(showSuperAdmin, enabledModules) : [];
   const showShellHeader = heading !== "Loyalty Pass";
 
   return (
@@ -59,7 +78,7 @@ export function AdminSkeletonShell({
             <span className="lp-brand-icon"><Sparkles size={18} /></span>
             <span>Loyalty Pass</span>
           </div>
-          {sidebarLinks.map((link) => {
+          {sidebarLinks.length ? sidebarLinks.map((link) => {
             const Icon = link.icon;
             return (
               <div key={link.href} className={active === link.href ? "lp-side-link active" : "lp-side-link"}>
@@ -67,7 +86,7 @@ export function AdminSkeletonShell({
                 {link.label}
               </div>
             );
-          })}
+          }) : <NeutralSidebarSkeletonRows />}
           <div className="lp-admin-account lp-admin-account-static">
             <div className="lp-admin-user">
               <Skeleton className="lp-avatar small" />
@@ -91,6 +110,19 @@ export function AdminSkeletonShell({
         </section>
       </div>
     </main>
+  );
+}
+
+function NeutralSidebarSkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div className="lp-side-link lp-side-link-skeleton" key={index}>
+          <Skeleton className="lp-skeleton-side-icon" />
+          <Skeleton className="lp-skeleton-side-label" />
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -131,12 +163,14 @@ export function AdminDetailGridSkeleton({ panels = 2, rows = 5 }: { panels?: num
 
 export function AdminDashboardSkeleton({
   active = "/admin/dashboard",
-  heading = "Admin Dashboard",
-  showSuperAdmin = true,
+  heading = "Loyalty Pass",
+  showSuperAdmin = false,
+  enabledModules,
 }: {
   active?: string;
   heading?: string;
   showSuperAdmin?: boolean;
+  enabledModules?: Set<RoleModuleKey>;
 }) {
   const items: MetricItem[] = [
     { label: "Total Members", icon: Users, valueWidth: "62px", sublineWidth: "96px" },
@@ -146,7 +180,7 @@ export function AdminDashboardSkeleton({
   ];
 
   return (
-    <AdminSkeletonShell active={active} heading={heading} showSuperAdmin={showSuperAdmin}>
+    <AdminSkeletonShell active={active} heading={heading} showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <MetricGrid items={items} variant="dashboard" />
       <div className="lp-admin-grid">
         <section className="lp-panel span-6">
@@ -192,7 +226,7 @@ function ChartSkeleton({ height = 200 }: { height?: number }) {
   );
 }
 
-export function SuperAdminDashboardSkeleton() {
+export function SuperAdminDashboardSkeleton({ showSuperAdmin = true, enabledModules }: AdminSkeletonAccessProps = {}) {
   const items: MetricItem[] = [
     { label: "Total Users", icon: Users, variant: "dashboard", valueWidth: "64px", sublineWidth: "80px" },
     { label: "Total Visits", icon: TrendingUp, variant: "dashboard", valueWidth: "60px", sublineWidth: "90px" },
@@ -201,7 +235,7 @@ export function SuperAdminDashboardSkeleton() {
   ];
 
   return (
-    <AdminSkeletonShell active="/super-admin/dashboard" heading="Admin Dashboard" showSuperAdmin>
+    <AdminSkeletonShell active="/super-admin/dashboard" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-page-title">
         <h1>Platform control</h1>
         <p>Global loyalty system activity.</p>
@@ -215,7 +249,7 @@ export function SuperAdminDashboardSkeleton() {
   );
 }
 
-export function AdminMembersSkeleton() {
+export function AdminMembersSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   const items: MetricItem[] = [
     { label: "Total Members", icon: Users, tone: "purple", valueWidth: "54px", sublineWidth: "124px" },
     { label: "Active Members", icon: UserCheck, tone: "green", valueWidth: "54px", sublineWidth: "126px" },
@@ -224,7 +258,7 @@ export function AdminMembersSkeleton() {
   ];
 
   return (
-    <AdminSkeletonShell active="/admin/members" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/members" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-title-row lp-branch-hero">
         <AdminPageTitleSkeleton title="Members" subtitle="Manage customer loyalty accounts, cards, points, and visit activity." />
         <div className="lp-title-actions">
@@ -257,14 +291,14 @@ export function AdminMembersSkeleton() {
   );
 }
 
-export function AdminBranchesSkeleton() {
+export function AdminBranchesSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   const items: MetricItem[] = [
     { label: "Total Branches", icon: MapPin, valueWidth: "52px", sublineWidth: "120px" },
     { label: "Active Branches", icon: Store, tone: "green", valueWidth: "56px", sublineWidth: "136px" },
   ];
 
   return (
-    <AdminSkeletonShell active="/admin/branches" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/branches" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-title-row lp-branch-hero">
         <AdminPageTitleSkeleton title="Branches" subtitle="Monitor branch activity and manage assigned staff across all locations." />
         <div className="lp-title-actions">
@@ -292,9 +326,9 @@ export function AdminBranchesSkeleton() {
   );
 }
 
-export function AdminApprovalsSkeleton() {
+export function AdminApprovalsSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   return (
-    <AdminSkeletonShell active="/admin/approvals" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/approvals" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-title-row lp-branch-hero">
         <AdminPageTitleSkeleton title="Approvals" subtitle="Review pending scans before points are awarded." />
         <div className="lp-title-actions">
@@ -331,7 +365,7 @@ export function AdminApprovalsSkeleton() {
   );
 }
 
-export function AdminStaffSkeleton() {
+export function AdminStaffSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   const items: MetricItem[] = [
     { label: "Total Staff Rows", icon: User, variant: "dashboard", valueWidth: "48px", sublineWidth: "104px" },
     { label: "Active", icon: UserCheck, tone: "green", variant: "dashboard", valueWidth: "44px", sublineWidth: "84px" },
@@ -339,7 +373,7 @@ export function AdminStaffSkeleton() {
   ];
 
   return (
-    <AdminSkeletonShell active="/admin/staff" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/staff" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-title-row">
         <AdminPageTitleSkeleton title="Staff" subtitle="Cashier and branch-admin assignments." />
         <div className="lp-title-actions">
@@ -360,9 +394,9 @@ export function AdminStaffSkeleton() {
   );
 }
 
-export function AdminBranchDetailSkeleton() {
+export function AdminBranchDetailSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   return (
-    <AdminSkeletonShell active="/admin/branches" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/branches" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <DetailHeaderSkeleton backLabel="Back to Branches" title="Branch Details" subtitle="View comprehensive information and performance for this branch." actionWidth="140px" />
 
       <div className="lp-branch-detail-grid">
@@ -408,7 +442,7 @@ export function AdminBranchDetailSkeleton() {
   );
 }
 
-export function AdminMemberDetailSkeleton() {
+export function AdminMemberDetailSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   const items: MetricItem[] = [
     { label: "Points", icon: Star, tone: "purple", valueWidth: "58px", sublineWidth: "96px" },
     { label: "Visits", icon: TrendingUp, tone: "green", valueWidth: "52px", sublineWidth: "92px" },
@@ -417,7 +451,7 @@ export function AdminMemberDetailSkeleton() {
   ];
 
   return (
-    <AdminSkeletonShell active="/admin/members" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/members" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <DetailHeaderSkeleton backLabel="Back to Members" title="Member" subtitle="Member profile, loyalty card, points, visits, and management actions." actionWidth="132px" />
 
       <MetricGrid items={items} variant="branch" className="lp-member-metrics" />
@@ -456,9 +490,9 @@ export function AdminMemberDetailSkeleton() {
   );
 }
 
-export function AdminApprovalDetailSkeleton() {
+export function AdminApprovalDetailSkeleton({ showSuperAdmin, enabledModules }: AdminSkeletonAccessProps = {}) {
   return (
-    <AdminSkeletonShell active="/admin/approvals" heading="Loyalty Pass">
+    <AdminSkeletonShell active="/admin/approvals" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-approval-detail-head">
         <div className="lp-back-link">Back to Approvals</div>
         <div className="lp-title-row lp-branch-hero">
@@ -503,9 +537,9 @@ export function AdminApprovalDetailSkeleton() {
   );
 }
 
-export function SuperAdminSettingsSkeleton() {
+export function SuperAdminSettingsSkeleton({ showSuperAdmin = true, enabledModules }: AdminSkeletonAccessProps = {}) {
   return (
-    <AdminSkeletonShell active="/super-admin/settings" heading="Loyalty Pass" showSuperAdmin>
+    <AdminSkeletonShell active="/super-admin/settings" heading="Loyalty Pass" showSuperAdmin={showSuperAdmin} enabledModules={enabledModules}>
       <div className="lp-settings-page">
         <div className="lp-settings-head">
           <div>
