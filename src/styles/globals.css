@@ -4902,6 +4902,24 @@ h3 {
   pointer-events: none;
 }
 
+.lp-side-link-skeleton {
+  display: flex;
+  align-items: center;
+}
+
+.lp-skeleton-side-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  flex: 0 0 auto;
+}
+
+.lp-skeleton-side-label {
+  width: 92px;
+  height: 14px;
+  border-radius: 7px;
+}
+
 .lp-skeleton-account-copy {
   display: grid;
   gap: 7px;

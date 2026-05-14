@@ -1,5 +1,6 @@
-import { AdminMembersSkeleton } from "@/components/admin/AdminSkeletons";
+import { AdminMembersSkeleton, getAdminSkeletonAccess } from "@/components/admin/AdminSkeletons";
 
-export default function Loading() {
-  return <AdminMembersSkeleton />;
+export default async function Loading() {
+  const access = await getAdminSkeletonAccess();
+  return <AdminMembersSkeleton {...access} />;
 }
