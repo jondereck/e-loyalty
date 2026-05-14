@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { AppRole } from "@/generated/prisma/client";
+import { canLinkProfileByEmail, isProfileComplete } from "@/lib/auth/profile-resolution";
 import { resolvePublicProfileRoles } from "@/lib/public-profile";
 import { completeProfileSchema, forcedPasswordChangeSchema, profileSettingsSchema, signupSchema } from "@/lib/validations/auth";
 
@@ -71,6 +73,27 @@ describe("profile validation", () => {
     expect(resolvePublicProfileRoles(["SUPER_ADMIN"])).toEqual(["SUPER_ADMIN"]);
     expect(resolvePublicProfileRoles(["BRANCH_ADMIN", "CUSTOMER"])).toEqual(["BRANCH_ADMIN", "CUSTOMER"]);
     expect(resolvePublicProfileRoles(["CASHIER"])).toEqual(["CASHIER"]);
+  });
+
+  it("treats only full name, email, and role as required profile fields", () => {
+    expect(isProfileComplete({
+      fullName: "Juan Dela Cruz",
+      email: "juan@example.com",
+      roles: ["CUSTOMER"] as AppRole[],
+    })).toBe(true);
+
+    expect(isProfileComplete({
+      fullName: "",
+      email: "juan@example.com",
+      roles: ["CUSTOMER"] as AppRole[],
+    })).toBe(false);
+  });
+
+  it("only allows email fallback linking for verified or trusted-provider sessions", () => {
+    expect(canLinkProfileByEmail({ email: "juan@example.com", emailVerified: true, trustedProvider: false })).toBe(true);
+    expect(canLinkProfileByEmail({ email: "juan@example.com", emailVerified: false, trustedProvider: true })).toBe(true);
+    expect(canLinkProfileByEmail({ email: "juan@example.com", emailVerified: false, trustedProvider: false })).toBe(false);
+    expect(canLinkProfileByEmail({ email: undefined, emailVerified: true, trustedProvider: true })).toBe(false);
   });
 });
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { canAccessDuringMaintenance, getBrandingSettings, getMaintenanceSettings } from "@/lib/services/settings";
-import { getAuthUser, getCurrentProfile, redirectForProfile } from "@/lib/services/session";
+import { getAuthUser, getCurrentProfile, isProfileComplete, redirectForProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,8 @@ export default async function SignupPage() {
     getBrandingSettings(),
     getMaintenanceSettings(),
   ]);
-  if (profile) redirect(redirectForProfile(profile));
+  if (profile && isProfileComplete(profile)) redirect(redirectForProfile(profile));
+  if (profile) redirect("/complete-profile");
   if (user) redirect("/complete-profile");
   if (!canAccessDuringMaintenance({ path: "/signup", roles: [], maintenanceEnabled: maintenance.maintenanceEnabled })) {
     redirect("/maintenance");

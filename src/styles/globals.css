@@ -6337,7 +6337,7 @@ h3 {
   width: min(430px, calc(100% - 20px));
   min-height: calc(100vh - 20px);
   margin: 0 auto;
-  padding: 18px 20px 38px;
+  padding: 14px 20px 104px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.84);
   border-radius: 20px;
@@ -6346,24 +6346,15 @@ h3 {
   position: relative;
 }
 
-.lp-home-mobile-status,
 .lp-home-mobile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.lp-home-mobile-status {
-  min-height: 24px;
-  padding: 0 8px 6px;
-  color: #111625;
-  font-size: 13px;
-  font-weight: 900;
-}
-
 .lp-home-mobile-header {
   min-height: 54px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   position: relative;
   z-index: 10;
 }
@@ -6401,6 +6392,7 @@ h3 {
 .lp-home-mobile-menu nav button:focus-visible,
 .lp-home-primary-button:focus-visible,
 .lp-home-secondary-button:focus-visible,
+.lp-home-sticky-login:focus-visible,
 .lp-home-nav-links a:focus-visible,
 .lp-home-nav-links button:focus-visible,
 .lp-home-auth-close:focus-visible,
@@ -6426,7 +6418,7 @@ h3 {
 
 .lp-home-mobile-menu nav a,
 .lp-home-mobile-menu nav button {
-  min-height: 40px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   padding: 0 12px;
@@ -6453,6 +6445,9 @@ h3 {
 }
 
 .lp-home-mobile-hero {
+  min-height: min(470px, calc(100svh - 84px));
+  display: grid;
+  align-content: center;
   text-align: center;
 }
 
@@ -6465,8 +6460,8 @@ h3 {
 
 .lp-home-heading.center {
   max-width: 340px;
-  margin: 18px auto 0;
-  font-size: 32px;
+  margin: 14px auto 0;
+  font-size: clamp(31px, 8.7vw, 38px);
   line-height: 1.03;
   text-align: center;
 }
@@ -6476,21 +6471,25 @@ h3 {
 }
 
 .lp-home-mobile-hero .lp-home-lead {
-  max-width: 300px;
-  margin: 16px auto 0;
-  font-size: 13px;
-  line-height: 1.42;
+  max-width: 326px;
+  margin: 14px auto 0;
+  font-size: 14px;
+  line-height: 1.46;
 }
 
 .lp-home-mobile-hero .lp-home-proof-list {
   justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .lp-home-mobile-hero .lp-home-proof-list span {
-  gap: 5px;
+  gap: 4px;
   font-size: 10px;
+  padding: 5px 8px;
+  border: 1px solid rgba(105, 120, 148, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .lp-home-mobile-hero .lp-home-proof-list svg {
@@ -6501,30 +6500,65 @@ h3 {
 .lp-home-mobile-actions {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .lp-home-mobile-actions .lp-home-primary-button,
 .lp-home-mobile-actions .lp-home-secondary-button {
   width: 100%;
-  min-height: 48px;
-  border-radius: 14px;
-  font-size: 13px;
+  min-height: 52px;
+  border-radius: 16px;
+  font-size: 14px;
 }
 
-.lp-home-mobile-shell > .lp-home-pass-card {
-  margin-top: 20px;
+.lp-home-mobile-actions .lp-home-primary-button {
+  box-shadow: 0 18px 34px rgba(74, 101, 246, 0.36);
+}
+
+.lp-home-mobile-actions .lp-home-secondary-button {
+  min-height: 48px;
+  color: #4d5668;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.lp-home-cta-trust {
+  margin: 0;
+  color: #697486;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.lp-home-mobile-card-preview {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.lp-home-mobile-card-preview > span {
+  color: #5e50ff;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .lp-home-mobile-shell .lp-home-pass-card {
-  min-height: 150px;
-  border-radius: 15px;
-  padding: 18px;
+  min-height: 146px;
+  border-radius: 16px;
+  padding: 17px;
+}
+
+.lp-home-mobile-pass-card {
+  animation: lp-home-float 4.8s ease-in-out infinite;
+  box-shadow: 0 20px 42px rgba(98, 75, 255, 0.28);
 }
 
 .lp-home-mobile-shell .lp-home-pass-card strong {
-  margin-top: 19px;
+  margin-top: 17px;
   font-size: 20px;
 }
 
@@ -6535,7 +6569,7 @@ h3 {
 }
 
 .lp-home-mobile-shell .lp-home-pass-stats {
-  margin-top: 27px;
+  margin-top: 25px;
 }
 
 .lp-home-mobile-shell .lp-home-pass-stats b {
@@ -6544,21 +6578,22 @@ h3 {
 
 .lp-home-mobile-shell .lp-home-member-proof {
   width: 100%;
-  min-height: 58px;
+  min-height: 46px;
   justify-content: center;
-  gap: 10px;
-  margin-top: 14px;
-  padding: 10px 12px;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 10px;
   border-radius: 13px;
+  box-shadow: 0 10px 22px rgba(42, 48, 73, 0.07);
 }
 
 .lp-home-mobile-shell .lp-home-avatars {
-  min-width: 84px;
+  min-width: 68px;
 }
 
 .lp-home-mobile-shell .lp-home-avatars span {
-  width: 31px;
-  height: 31px;
+  width: 26px;
+  height: 26px;
   border-width: 2px;
 }
 
@@ -6582,7 +6617,7 @@ h3 {
 }
 
 .lp-home-mobile-how {
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 .lp-home-mobile-how .lp-home-section-head h2 {
@@ -6604,12 +6639,12 @@ h3 {
 }
 
 .lp-home-mobile-step {
-  min-height: 68px;
+  min-height: 60px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 18px;
   gap: 12px;
   align-items: center;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -6626,6 +6661,10 @@ h3 {
   height: 28px;
   border-radius: 10px;
   font-size: 14px;
+}
+
+.lp-home-mobile-step .lp-home-step-number svg {
+  color: #fff;
 }
 
 .lp-home-mobile-step strong,
@@ -6651,40 +6690,144 @@ h3 {
   margin-top: 18px;
 }
 
-.lp-home-mobile-auth {
+.lp-home-sticky-cta {
+  position: fixed;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 30;
+  width: min(398px, calc(100% - 32px));
   display: grid;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(223, 227, 239, 0.92);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 48px rgba(31, 38, 73, 0.2);
+  backdrop-filter: blur(20px);
+  translate: -50% 0;
+}
+
+.lp-home-sticky-cta .lp-home-primary-button {
+  min-width: 0;
+  min-height: 46px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.lp-home-sticky-login {
+  min-height: 42px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(108, 78, 255, 0.1);
+  color: #5d48ff;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.lp-home-mobile-auth {
+  flex: 1;
+  min-height: calc(100svh - 100px);
+  display: grid;
+  align-content: safe center;
+  padding: clamp(14px, 3svh, 24px) 0 clamp(46px, 10svh, 96px);
 }
 
 .lp-home-mobile-auth-visual {
-  height: 210px;
+  height: clamp(118px, 32vw, 144px);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   border-radius: 18px;
   background:
-    repeating-radial-gradient(ellipse at 82% 48%, transparent 0 28px, rgba(255, 255, 255, 0.2) 29px, transparent 31px),
-    linear-gradient(120deg, rgba(255, 255, 255, 0.28), rgba(220, 210, 255, 0.9));
+    radial-gradient(circle at 16% 12%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 86% 78%, rgba(98, 214, 255, 0.28), transparent 32%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.28), rgba(222, 213, 255, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 14px 34px rgba(77, 68, 171, 0.12);
 }
 
-.lp-home-mobile-auth-visual .lp-home-hero-image {
-  width: min(330px, 112%);
-  margin: -40px 0 -54px;
+.lp-home-mobile-auth-visual .lp-home-pass-card {
+  width: min(310px, calc(100% - 22px));
+  min-height: 116px;
+  padding: 14px 16px;
+  border-radius: 15px;
+  transform: translateY(1px) rotate(-1deg);
+  box-shadow: 0 18px 34px rgba(98, 75, 255, 0.24);
+}
+
+.lp-home-mobile-auth-visual .lp-home-pass-card strong {
+  margin-top: 13px;
+  font-size: 18px;
+}
+
+.lp-home-mobile-auth-visual .lp-home-tier {
+  min-height: 22px;
+  padding: 0 10px;
+  font-size: 10px;
+}
+
+.lp-home-mobile-auth-visual .lp-home-pass-stats {
+  margin-top: 19px;
+}
+
+.lp-home-mobile-auth-visual .lp-home-pass-stats b {
+  font-size: 19px;
 }
 
 .lp-home-mobile-auth .lp-home-auth-panel {
   width: 100%;
-  padding: 22px 16px 18px;
+  padding: 24px 16px 18px;
   border-radius: 19px;
 }
 
 .lp-home-mobile-auth .lp-home-auth-head {
+  justify-items: center;
   margin-bottom: 16px;
+  padding: 8px 48px 0;
+  text-align: center;
+}
+
+.lp-home-mobile-auth .lp-home-auth-kicker {
+  justify-self: center;
 }
 
 .lp-home-mobile-auth .lp-home-auth-head h2 {
   font-size: 25px;
+}
+
+.lp-home-mobile-auth .lp-home-auth-head p {
+  max-width: 270px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.lp-home-mobile-shell.is-auth {
+  min-height: calc(100svh - 20px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 22px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.lp-home-mobile-shell.is-auth .lp-home-mobile-header {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+@keyframes lp-home-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -6736,11 +6879,17 @@ h3 {
   }
 
   .lp-home-heading.center {
-    font-size: 30px;
+    font-size: 31px;
   }
 
   .lp-home-mobile-hero .lp-home-proof-list {
-    gap: 10px;
+    gap: 7px;
+  }
+
+  .lp-home-mobile-hero .lp-home-proof-list span {
+    padding-right: 6px;
+    padding-left: 6px;
+    font-size: 9px;
   }
 
   .lp-home-mobile-step {

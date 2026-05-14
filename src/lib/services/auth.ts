@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { PUBLIC_DEFAULT_ROLE, resolvePublicProfileRoles } from "@/lib/public-profile";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
 import { resolveLoginIdentifier } from "@/lib/services/login-identifier";
-import { getAuthUser, getCurrentProfile, redirectForProfile, redirectForRoles, requirePasswordResetProfile, requireProfile } from "@/lib/services/session";
+import { getAuthUser, getCurrentProfile, isProfileComplete, redirectForProfile, redirectForRoles, requirePasswordResetProfile, requireProfile } from "@/lib/services/session";
 import { completeProfileSchema, forcedPasswordChangeSchema, loginSchema, profileSettingsSchema, signupSchema, type AuthActionState } from "@/lib/validations/auth";
 
 function firstError(errors: Record<string, string[] | undefined>) {
@@ -106,27 +106,10 @@ export async function logoutAction() {
 export async function finishAuthSession() {
   const user = await getAuthUser();
   if (!user?.id) redirect("/login");
-  const authUserId = user.id;
 
-  let profile = await prisma.userProfile.findUnique({
-    where: { authUserId },
-  });
-
-  if (!profile && user.email) {
-    const email = user.email.toLowerCase();
-    const existingByEmail = await prisma.userProfile.findUnique({
-      where: { email },
-    });
-
-    if (existingByEmail) {
-      profile = await prisma.userProfile.update({
-        where: { id: existingByEmail.id },
-        data: { authUserId },
-      });
-    }
-  }
-
+  const profile = await getCurrentProfile();
   if (!profile) redirect("/complete-profile");
+  if (!isProfileComplete(profile)) redirect("/complete-profile");
   if (profile.status !== "ACTIVE") {
     await auth.signOut();
     redirect("/login?error=suspended");
@@ -140,10 +123,8 @@ export async function finishAuthSession() {
     },
   });
 
-  const currentProfile = await getCurrentProfile();
-  if (!currentProfile) redirect("/complete-profile");
-  const landingPath = redirectForProfile(currentProfile);
-  if (!canAccessDuringMaintenance({ path: landingPath, roles: currentProfile.roles, maintenanceEnabled: (await getMaintenanceSettings()).maintenanceEnabled })) {
+  const landingPath = redirectForProfile(profile);
+  if (!canAccessDuringMaintenance({ path: landingPath, roles: profile.roles, maintenanceEnabled: (await getMaintenanceSettings()).maintenanceEnabled })) {
     redirect("/maintenance");
   }
 
@@ -167,12 +148,14 @@ export async function completeProfileAction(_state: AuthActionState, formData: F
   }
 
   const data = parsed.data;
-  const existingProfile = await prisma.userProfile.findUnique({
+  const currentProfile = await getCurrentProfile();
+  if (currentProfile && isProfileComplete(currentProfile)) {
+    redirect(redirectForProfile(currentProfile));
+  }
+
+  const existingProfile = currentProfile ?? await prisma.userProfile.findUnique({
     where: { authUserId },
-    select: {
-      id: true,
-      email: true,
-      roles: true,
+    include: {
       loyaltyCard: {
         select: { id: true },
       },

@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
+import { canLinkProfileByEmail, isProfileComplete } from "@/lib/auth/profile-resolution";
 import { auth } from "@/lib/auth/server";
 import { rolePriority, roleRedirects } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { canAccessModule, defaultLandingForProfile, type RoleModuleKey } from "@/lib/rbac";
 import { canAccessDuringMaintenance, getMaintenanceSettings } from "@/lib/services/settings";
+
+export { canLinkProfileByEmail, isProfileComplete };
 
 export function highestRole(roles: string[] = []) {
   return rolePriority.find((role) => roles.includes(role)) ?? "CUSTOMER";
@@ -17,26 +20,104 @@ export function redirectForProfile(profile: CurrentProfile) {
   return defaultLandingForProfile(profile);
 }
 
+type AuthRecord = Record<string, unknown>;
+
+type AuthUser = {
+  id: string;
+  email?: string;
+  name?: string;
+  imageUrl?: string;
+  emailVerified: boolean;
+  trustedProvider: boolean;
+};
+
+const trustedEmailProviders = new Set(["google"]);
+
+const currentProfileInclude = {
+  loyaltyCard: true,
+  staffAssignments: {
+    include: {
+      branch: true,
+      roleDefinition: {
+        include: { permissions: true },
+      },
+    },
+  },
+} as const;
+
+function asRecord(value: unknown): AuthRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as AuthRecord : null;
+}
+
+function asRecordArray(value: unknown): AuthRecord[] {
+  return Array.isArray(value) ? value.map(asRecord).filter((item): item is AuthRecord => Boolean(item)) : [];
+}
+
+function stringValue(record: AuthRecord | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function booleanValue(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+}
+
+function hasVerifiedEmail(record: AuthRecord | null) {
+  return [
+    record?.emailVerified,
+    record?.email_verified,
+    record?.verifiedEmail,
+    record?.verified,
+  ].some((value) => booleanValue(value) === true);
+}
+
+function hasTrustedProvider(records: AuthRecord[]) {
+  return records.some((record) => {
+    const provider = stringValue(record, "provider") ?? stringValue(record, "providerId") ?? stringValue(record, "provider_id");
+    return provider ? trustedEmailProviders.has(provider.toLowerCase()) : false;
+  });
+}
+
+function normalizeSessionUser(sessionData: unknown): AuthUser | null {
+  const root = asRecord(sessionData);
+  const session = asRecord(root?.session);
+  const user = asRecord(root?.user) ?? asRecord(session?.user);
+  const id = stringValue(user, "id");
+  if (!id) return null;
+
+  const records = [
+    root,
+    session,
+    user,
+    asRecord(root?.account),
+    asRecord(session?.account),
+    ...asRecordArray(root?.accounts),
+    ...asRecordArray(session?.accounts),
+  ].filter((record): record is AuthRecord => Boolean(record));
+
+  const email = stringValue(user, "email")?.toLowerCase();
+  const imageUrl = [stringValue(user, "image"), stringValue(user, "picture"), stringValue(user, "avatar_url")].find(Boolean);
+
+  return {
+    id,
+    email,
+    name: stringValue(user, "name"),
+    imageUrl,
+    emailVerified: records.some(hasVerifiedEmail),
+    trustedProvider: hasTrustedProvider(records),
+  };
+}
+
 export async function getAuthUser() {
   try {
     const sessionResponse = await auth.getSession();
-    const data = sessionResponse?.data;
-    if (!data) return null;
-
-    const session = data as unknown as {
-      user?: { id?: string; email?: string; name?: string; image?: string; picture?: string; avatar_url?: string };
-      session?: { user?: { id?: string; email?: string; name?: string; image?: string; picture?: string; avatar_url?: string } };
-    } | null;
-
-    const user = session?.user ?? session?.session?.user;
-    if (!user?.id) return null;
-    const imageUrl = [user.image, user.picture, user.avatar_url].find((value) => typeof value === "string" && value.trim());
-    return {
-      id: String(user.id),
-      email: typeof user.email === "string" ? user.email : undefined,
-      name: typeof user.name === "string" ? user.name : undefined,
-      imageUrl: typeof imageUrl === "string" ? imageUrl : undefined,
-    };
+    return normalizeSessionUser(sessionResponse?.data);
   } catch (error) {
     console.error("Auth session retrieval failed:", error);
     return null;
@@ -48,22 +129,29 @@ export async function getCurrentProfile() {
   if (!user?.id) return null;
 
   try {
-    const profile = await prisma.userProfile.findUnique({
-      where: { authUserId: String(user.id) },
-      include: {
-        loyaltyCard: true,
-        staffAssignments: {
-          include: {
-            branch: true,
-            roleDefinition: {
-              include: { permissions: true },
-            },
-          },
-        },
-      },
+    const profileByAuthId = await prisma.userProfile.findUnique({
+      where: { authUserId: user.id },
+      include: currentProfileInclude,
     });
-    if (!profile) return null;
-    return { ...profile, avatarUrl: user.imageUrl ?? null };
+    if (profileByAuthId) return { ...profileByAuthId, avatarUrl: user.imageUrl ?? null };
+
+    if (!canLinkProfileByEmail(user)) return null;
+
+    const profileByEmail = await prisma.userProfile.findFirst({
+      where: { email: { equals: user.email, mode: "insensitive" } },
+      include: currentProfileInclude,
+    });
+    if (!profileByEmail) return null;
+
+    const linkedProfile = profileByEmail.authUserId === user.id
+      ? profileByEmail
+      : await prisma.userProfile.update({
+          where: { id: profileByEmail.id },
+          data: { authUserId: user.id },
+          include: currentProfileInclude,
+        });
+
+    return { ...linkedProfile, avatarUrl: user.imageUrl ?? null };
   } catch (error) {
     console.error("Error fetching profile from database:", error);
     return null;

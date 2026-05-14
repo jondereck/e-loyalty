@@ -2,14 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CompleteProfileForm } from "@/components/auth/CompleteProfileForm";
 import { getBrandingSettings } from "@/lib/services/settings";
-import { getAuthUser, getCurrentProfile, redirectForProfile } from "@/lib/services/session";
+import { getAuthUser, getCurrentProfile, isProfileComplete, redirectForProfile } from "@/lib/services/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function CompleteProfilePage() {
   const [user, profile, branding] = await Promise.all([getAuthUser(), getCurrentProfile(), getBrandingSettings()]);
   if (!user) redirect("/login");
-  if (profile) redirect(redirectForProfile(profile));
+  if (profile && isProfileComplete(profile)) redirect(redirectForProfile(profile));
   const email = typeof user.email === "string" ? user.email : "";
   const name = typeof user.name === "string" ? user.name : "";
   if (!email) redirect("/login");

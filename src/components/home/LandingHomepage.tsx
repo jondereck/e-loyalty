@@ -69,6 +69,27 @@ const steps = [
   },
 ] satisfies { number: string; title: string; body: string; icon: LucideIcon }[];
 
+const mobileSteps = [
+  {
+    number: "1",
+    title: "Join",
+    body: "Create your free account.",
+    icon: UserRoundPlus,
+  },
+  {
+    number: "2",
+    title: "Scan",
+    body: "Show your QR card at checkout.",
+    icon: QrCode,
+  },
+  {
+    number: "3",
+    title: "Earn rewards",
+    body: "Collect points and redeem rewards.",
+    icon: Gift,
+  },
+] satisfies { number: string; title: string; body: string; icon: LucideIcon }[];
+
 const rewards = [
   { name: "Free drink", points: "1,000 pts", variant: "drink" },
   { name: "Premium upgrade", points: "2,500 pts", variant: "dessert" },
@@ -173,15 +194,26 @@ function MobileHomepage({
   closeAuth: () => void;
 }) {
   const isAuth = authMode !== null;
+  const [showStickyCta, setShowStickyCta] = useState(false);
+
+  useEffect(() => {
+    if (isAuth) return;
+
+    function updateStickyCta() {
+      setShowStickyCta(window.scrollY > 320);
+    }
+
+    const frame = window.requestAnimationFrame(updateStickyCta);
+    window.addEventListener("scroll", updateStickyCta, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateStickyCta);
+    };
+  }, [isAuth]);
 
   return (
     <section className="lp-home-mobile" aria-label="Loyalty Pass homepage mobile view">
       <div className={`lp-home-mobile-shell ${isAuth ? "is-auth" : ""}`}>
-        <div className="lp-home-mobile-status" aria-hidden="true">
-          <span>9:41</span>
-          <span>LTE</span>
-        </div>
-
         <header className="lp-home-mobile-header">
           <button className="lp-home-brand lp-home-brand-button" type="button" onClick={closeAuth}>
             <BrandLogo />
@@ -201,13 +233,13 @@ function MobileHomepage({
             >
               <section className="lp-home-mobile-hero">
                 <Eyebrow />
-                <HeroHeading align="center" />
-                <HeroLead />
+                <HeroHeading align="center" copy="Your rewards, always in your pocket." />
+                <HeroLead copy="Join for free, get your secure QR loyalty card, and start earning points instantly." />
                 <ProofList />
-                <CtaColumn openAuth={openAuth} />
+                <CtaColumn openAuth={openAuth} showTrustText />
               </section>
 
-              <PassCard />
+              <MobilePassPreview />
               <MemberProof />
               <HowItWorksMobile openAuth={openAuth} />
               <CtaColumn openAuth={openAuth} />
@@ -221,19 +253,13 @@ function MobileHomepage({
               exit={{ opacity: 0, y: 18 }}
               transition={authTransition}
             >
-              <motion.div className="lp-home-mobile-auth-visual" aria-hidden="true" layout transition={authTransition}>
-                <Image
-                  className="lp-home-hero-image"
-                  src="/homepage/phone-hero.png"
-                  alt=""
-                  width={1254}
-                  height={1254}
-                  priority
-                />
-              </motion.div>
               <AuthPanel mode={authMode} setMode={openAuth} closeAuth={closeAuth} />
             </motion.div>
           )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showStickyCta && !isAuth ? <MobileStickyCta openAuth={openAuth} /> : null}
         </AnimatePresence>
       </div>
     </section>
@@ -411,18 +437,33 @@ function Eyebrow() {
   );
 }
 
-function HeroHeading({ align }: { align: "left" | "center" }) {
+function HeroHeading({ align, copy }: { align: "left" | "center"; copy?: string }) {
+  if (!copy) {
+    return (
+      <h1 className={`lp-home-heading ${align === "center" ? "center" : ""}`}>
+        Point will stay <span>forever</span>
+      </h1>
+    );
+  }
+
+  const [firstLine, ...rest] = copy.split(" ");
+  const emphasis = rest.join(" ");
+
   return (
     <h1 className={`lp-home-heading ${align === "center" ? "center" : ""}`}>
-      Point will stay <span>forever</span>
+      {firstLine} <span>{emphasis}</span>
     </h1>
   );
 }
 
-function HeroLead() {
+function HeroLead({
+  copy = "Earn points, unlock amazing rewards, and enjoy exclusive perks \u2014 all with your secure QR card.",
+}: {
+  copy?: string;
+}) {
   return (
     <p className="lp-home-lead">
-      Earn points, unlock amazing rewards, and enjoy exclusive perks {"\u2014"} all with your secure QR card.
+      {copy}
     </p>
   );
 }
@@ -456,15 +497,22 @@ function CtaRow({ openAuth }: { openAuth: (mode: AuthMode) => void }) {
   );
 }
 
-function CtaColumn({ openAuth }: { openAuth: (mode: AuthMode) => void }) {
+function CtaColumn({
+  openAuth,
+  showTrustText = false,
+}: {
+  openAuth: (mode: AuthMode) => void;
+  showTrustText?: boolean;
+}) {
   return (
     <div className="lp-home-mobile-actions">
       <button className="lp-home-primary-button" type="button" onClick={() => openAuth("signup")}>
-        Join now <ArrowRight size={18} />
+        Create my free card <ArrowRight size={18} />
       </button>
       <button className="lp-home-secondary-button" type="button" onClick={() => openAuth("login")}>
-        Login
+        I already have an account
       </button>
+      {showTrustText ? <p className="lp-home-cta-trust">Free to join {"\u2022"} Takes less than 30 seconds</p> : null}
     </div>
   );
 }
@@ -511,6 +559,34 @@ function PassCard({ className = "" }: { className?: string }) {
   );
 }
 
+function MobilePassPreview() {
+  return (
+    <section className="lp-home-mobile-card-preview" aria-label="Digital loyalty card preview">
+      <span>Your digital loyalty card</span>
+      <PassCard className="lp-home-mobile-pass-card" />
+    </section>
+  );
+}
+
+function MobileStickyCta({ openAuth }: { openAuth: (mode: AuthMode) => void }) {
+  return (
+    <motion.div
+      className="lp-home-sticky-cta"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 24 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+    >
+      <button className="lp-home-primary-button" type="button" onClick={() => openAuth("signup")}>
+        Create my free card
+      </button>
+      <button className="lp-home-sticky-login" type="button" onClick={() => openAuth("login")}>
+        Login
+      </button>
+    </motion.div>
+  );
+}
+
 function HowItWorksDesktop() {
   return (
     <section className="lp-home-section lp-home-how">
@@ -546,16 +622,21 @@ function HowItWorksMobile({ openAuth }: { openAuth: (mode: AuthMode) => void }) 
       </div>
 
       <div className="lp-home-mobile-step-list">
-        {steps.map((step) => (
-          <button className="lp-home-mobile-step" type="button" onClick={() => openAuth("signup")} key={step.number}>
-            <span className="lp-home-step-number">{step.number}</span>
-            <span>
-              <strong>{step.title}</strong>
-              <small>{step.body}</small>
-            </span>
-            <ChevronRight size={18} />
-          </button>
-        ))}
+        {mobileSteps.map((step) => {
+          const Icon = step.icon;
+          return (
+            <button className="lp-home-mobile-step" type="button" onClick={() => openAuth("signup")} key={step.number}>
+              <span className="lp-home-step-number">
+                <Icon size={14} />
+              </span>
+              <span>
+                <strong>{step.title}</strong>
+                <small>{step.body}</small>
+              </span>
+              <ChevronRight size={18} />
+            </button>
+          );
+        })}
       </div>
     </section>
   );
