@@ -1,4 +1,5 @@
 import {
+  ScanLine,
   ClipboardCheck,
   LayoutDashboard,
   MapPin,
@@ -26,6 +27,7 @@ export const adminNavLinks: AdminNavLink[] = [
   { href: "/admin/branches", label: "Branches", icon: MapPin, module: "BRANCHES" },
   { href: "/admin/reports", label: "Reports", icon: BarChart3, module: "REPORTS" },
   { href: "/super-admin/reports", label: "System Reports", icon: BarChart3, module: "SYSTEM_REPORTS", superAdminOnly: true },
+  { href: "/cashier/scan", label: "Scan", icon: ScanLine, module: "SCAN" },
   { href: "/super-admin/settings", label: "Settings", icon: Settings, module: "SETTINGS", superAdminOnly: true },
 ];
 

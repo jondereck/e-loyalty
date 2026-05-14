@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { X } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { AutoCloseScanResult } from "@/components/cashier/AutoCloseScanResult";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScanResultCard } from "@/components/cashier/ScanResultCard";
 import { activeAssignmentsForRole, requireModuleAccess } from "@/lib/services/session";
@@ -44,26 +46,29 @@ export default async function CashierScanResultPage({
         scannedAt={result.attempt.createdAt}
         nextEligibleAt={result.attempt.nextEligibleAt}
       />
-    );
+  );
 
   return (
-    <main className="lp-mobile-shell lp-cashier-shell">
-      <div className="lp-mobile-content">
-        <div className="lp-mobile-topbar">
-          <h2>Scan Result</h2>
-          <ButtonLink href="/cashier/scan" variant="secondary" className="lp-icon-link" aria-label="Close scan result">
-            <X size={17} />
-          </ButtonLink>
+    <AdminShell active="/cashier/scan">
+      <section className="lp-scan-result-page">
+        <div className="lp-scan-result-panel">
+          <div className="lp-mobile-topbar">
+            <h2>Scan Result</h2>
+            <ButtonLink href="/cashier/scan" variant="secondary" className="lp-icon-link" aria-label="Close scan result">
+              <X size={17} />
+            </ButtonLink>
+          </div>
+          <AutoCloseScanResult />
+          {card}
+          <div className="lp-scan-actions">
+            <ButtonLink href="/cashier/scan" variant="primary">Scan another</ButtonLink>
+            {modules.has("APPROVALS") ? (
+              <ButtonLink href="/admin/approvals" variant="secondary">Open approvals</ButtonLink>
+            ) : null}
+          </div>
         </div>
-        {card}
-        <div className="lp-scan-actions">
-          <ButtonLink href="/cashier/scan" variant="primary">Scan another</ButtonLink>
-          {modules.has("APPROVALS") ? (
-            <ButtonLink href="/admin/approvals" variant="secondary">Open approvals</ButtonLink>
-          ) : null}
-        </div>
-      </div>
-    </main>
+      </section>
+    </AdminShell>
   );
 }
 

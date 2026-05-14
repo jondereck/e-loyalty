@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import { SidebarProfileMenu, type ConnectedAccount } from "@/components/admin/SidebarProfileMenu";
-import type { RoleModuleKey } from "@/lib/rbac";
+import { moduleForPath, type RoleModuleKey } from "@/lib/rbac";
 import type { CurrentProfile } from "@/lib/services/session";
 
 export function Sidebar({
@@ -22,6 +22,7 @@ export function Sidebar({
   connectedAccounts?: ConnectedAccount[];
 }) {
   const visibleLinks = getVisibleAdminNavLinks(showSuperAdmin, enabledModules);
+  const roleLabel = profile ? profileRoleLabel(profile, active) : "Admin";
 
   return (
     <aside className="lp-admin-sidebar">
@@ -46,11 +47,36 @@ export function Sidebar({
         name={profile?.fullName ?? "Admin"}
         email={profile?.email ?? "No email"}
         avatarUrl={profile?.avatarUrl ?? null}
-        roleLabel={profile?.roles.includes("SUPER_ADMIN") ? "Super Admin" : profile?.roles.includes("BRANCH_ADMIN") ? "Branch Manager" : profile?.roles.includes("CASHIER") ? "Staff" : "Customer"}
+        roleLabel={roleLabel}
         settingsHref={profile?.roles.includes("SUPER_ADMIN") ? "/super-admin/settings" : null}
         connectedAccounts={connectedAccounts}
       />
     </aside>
   );
+}
+
+function profileRoleLabel(profile: CurrentProfile, activePath: string) {
+  if (profile.roles.includes("SUPER_ADMIN")) return "Super Admin";
+
+  const activeModule = moduleForPath(activePath);
+  const activeAssignments = profile.staffAssignments.filter((assignment) =>
+    assignment.status === "ACTIVE" &&
+    assignment.branch.status === "ACTIVE" &&
+    assignment.roleDefinition?.status === "ACTIVE"
+  );
+
+  const matchingRole = activeAssignments.find((assignment) =>
+    activeModule
+      ? assignment.roleDefinition?.permissions.some((permission) => permission.module === activeModule)
+      : false
+  )?.roleDefinition?.name;
+  if (matchingRole) return matchingRole;
+
+  const assignedRole = activeAssignments[0]?.roleDefinition?.name;
+  if (assignedRole) return assignedRole;
+
+  if (profile.roles.includes("BRANCH_ADMIN")) return "Branch Manager";
+  if (profile.roles.includes("CASHIER")) return "Cashier";
+  return "Customer";
 }
 

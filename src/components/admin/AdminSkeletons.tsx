@@ -25,6 +25,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
 import { Skeleton } from "@/components/ui/Skeleton";
+import type { RoleModuleKey } from "@/lib/rbac";
 
 type MetricTone = "purple" | "green" | "orange";
 
@@ -41,14 +42,16 @@ export function AdminSkeletonShell({
   active = "/admin/dashboard",
   heading = "Loyalty Pass",
   showSuperAdmin = true,
+  enabledModules,
   children,
 }: {
   active?: string;
   heading?: string;
   showSuperAdmin?: boolean;
+  enabledModules?: Set<RoleModuleKey>;
   children: ReactNode;
 }) {
-  const sidebarLinks = getVisibleAdminNavLinks(showSuperAdmin);
+  const sidebarLinks = getVisibleAdminNavLinks(showSuperAdmin, enabledModules);
   const showShellHeader = heading !== "Loyalty Pass";
 
   return (
