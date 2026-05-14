@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, ChevronRight, Plus, Settings, UserCircle, Users } from "lucide-react";
-import { toast } from "sonner";
 import { UserAvatar } from "@/components/UserAvatar";
 import { LogoutSubmitButton } from "@/components/auth/LogoutSubmitButton";
 import {
@@ -20,42 +19,34 @@ type SidebarProfileMenuProps = {
   avatarUrl?: string | null;
   roleLabel: string;
   settingsHref?: string | null;
+  connectedAccounts?: ConnectedAccount[];
 };
 
-type ConnectedAccount = {
+export type ConnectedAccount = {
   id: string;
   name: string;
   email: string;
   roleLabel: string;
   avatarUrl?: string | null;
-  active?: boolean;
 };
 
-export function SidebarProfileMenu({ name, email, avatarUrl, roleLabel, settingsHref = null }: SidebarProfileMenuProps) {
+export function SidebarProfileMenu({
+  name,
+  email,
+  avatarUrl,
+  roleLabel,
+  settingsHref = null,
+  connectedAccounts = [],
+}: SidebarProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [showSwitchPanel, setShowSwitchPanel] = useState(false);
   const accounts = useMemo<ConnectedAccount[]>(
-    () => [{ id: "current", name, email, roleLabel, avatarUrl, active: true }],
-    [name, email, roleLabel, avatarUrl],
+    () => [{ id: "current", name, email, roleLabel, avatarUrl }, ...connectedAccounts],
+    [name, email, roleLabel, avatarUrl, connectedAccounts],
   );
-
-  const canSwitch = accounts.length > 1;
 
   function openSwitcher() {
     setShowSwitchPanel(true);
-  }
-
-  function handleConnectAccount() {
-    toast.info("Connect account will be available soon.");
-  }
-
-  function handleSwitchAccount(accountId: string) {
-    const selected = accounts.find((account) => account.id === accountId);
-    if (!selected || selected.active) return;
-    if (!canSwitch) {
-      toast.info("Account switching will be available after connecting multiple accounts.");
-      return;
-    }
   }
 
   return (
@@ -128,29 +119,41 @@ export function SidebarProfileMenu({ name, email, avatarUrl, roleLabel, settings
                 <b>{email}</b>
               </header>
               <div className="lp-admin-account-switch-list">
-                {accounts.map((account) => (
-                  <button
-                    key={account.id}
-                    type="button"
-                    className={`lp-admin-account-row ${account.active ? "active" : ""}`}
-                    onClick={() => handleSwitchAccount(account.id)}
-                  >
-                    <UserAvatar name={account.name} imageUrl={account.avatarUrl} className="lp-avatar small" />
-                    <span className="lp-admin-account-row-copy">
-                      <b>{account.name}</b>
-                      <small>{account.email}</small>
-                      <i>{account.roleLabel}</i>
-                    </span>
-                    {account.active ? <Check size={15} /> : null}
-                  </button>
+                {accounts.map((account, index) => (
+                  index === 0 ? (
+                    <button key={account.id} type="button" className="lp-admin-account-row active">
+                      <UserAvatar name={account.name} imageUrl={account.avatarUrl} className="lp-avatar small" />
+                      <span className="lp-admin-account-row-copy">
+                        <b>{account.name}</b>
+                        <small>{account.email}</small>
+                        <i>{account.roleLabel}</i>
+                      </span>
+                      <Check size={15} />
+                    </button>
+                  ) : (
+                    <form action="/api/account-connections/switch" method="post" key={account.id}>
+                      <input type="hidden" name="profileId" value={account.id} />
+                      <button type="submit" className="lp-admin-account-row">
+                        <UserAvatar name={account.name} imageUrl={account.avatarUrl} className="lp-avatar small" />
+                        <span className="lp-admin-account-row-copy">
+                          <b>{account.name}</b>
+                          <small>{account.email}</small>
+                          <i>Sign in to switch - {account.roleLabel}</i>
+                        </span>
+                        <ChevronRight size={15} />
+                      </button>
+                    </form>
+                  )
                 ))}
-                <button type="button" className="lp-admin-account-row lp-admin-account-row-add" onClick={handleConnectAccount}>
-                  <span className="lp-admin-account-add-icon"><Plus size={14} /></span>
-                  <span className="lp-admin-account-row-copy">
-                    <b>Connect another account</b>
-                    <small>Add and switch profiles securely</small>
-                  </span>
-                </button>
+                <form action="/api/account-connections/connect" method="post">
+                  <button type="submit" className="lp-admin-account-row lp-admin-account-row-add">
+                    <span className="lp-admin-account-add-icon"><Plus size={14} /></span>
+                    <span className="lp-admin-account-row-copy">
+                      <b>Connect another account</b>
+                      <small>Sign in once to link another profile</small>
+                    </span>
+                  </button>
+                </form>
               </div>
             </section>
           ) : null}

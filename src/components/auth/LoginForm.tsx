@@ -14,8 +14,14 @@ type ClientAuthResult = {
   error?: { message?: string } | null;
 };
 
-export function LoginForm() {
-  const [state, setState] = useState<AuthActionState>(initialState);
+export function LoginForm({
+  initialIdentifier = "",
+  initialMessage,
+}: {
+  initialIdentifier?: string;
+  initialMessage?: string;
+}) {
+  const [state, setState] = useState<AuthActionState>(initialMessage ? { message: initialMessage } : initialState);
   const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<"password" | "email-code" | "forgot">("password");
   const [email, setEmail] = useState("");
@@ -153,6 +159,7 @@ export function LoginForm() {
             label="Email or Username"
             placeholder="Enter your email or username"
             autoComplete="username"
+            defaultValue={initialIdentifier}
           />
           <FieldError errors={state.errors?.identifier} />
           <AuthField

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { getVisibleAdminNavLinks } from "@/components/admin/adminNav";
-import { SidebarProfileMenu } from "@/components/admin/SidebarProfileMenu";
+import { SidebarProfileMenu, type ConnectedAccount } from "@/components/admin/SidebarProfileMenu";
 import type { RoleModuleKey } from "@/lib/rbac";
 import type { CurrentProfile } from "@/lib/services/session";
 
@@ -12,12 +12,14 @@ export function Sidebar({
   profile,
   systemName,
   enabledModules,
+  connectedAccounts = [],
 }: {
   active: string;
   showSuperAdmin?: boolean;
   profile?: CurrentProfile | null;
   systemName: string;
   enabledModules?: Set<RoleModuleKey>;
+  connectedAccounts?: ConnectedAccount[];
 }) {
   const visibleLinks = getVisibleAdminNavLinks(showSuperAdmin, enabledModules);
 
@@ -46,6 +48,7 @@ export function Sidebar({
         avatarUrl={profile?.avatarUrl ?? null}
         roleLabel={profile?.roles.includes("SUPER_ADMIN") ? "Super Admin" : profile?.roles.includes("BRANCH_ADMIN") ? "Branch Manager" : profile?.roles.includes("CASHIER") ? "Staff" : "Customer"}
         settingsHref={profile?.roles.includes("SUPER_ADMIN") ? "/super-admin/settings" : null}
+        connectedAccounts={connectedAccounts}
       />
     </aside>
   );

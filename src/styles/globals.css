@@ -1871,6 +1871,10 @@ h3 {
   gap: 5px;
 }
 
+.lp-admin-account-switch-list form {
+  margin: 0;
+}
+
 .lp-admin-account-row {
   width: 100%;
   border: 1px solid #e8edf8;
